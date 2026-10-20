@@ -1,0 +1,17 @@
+{
+  "name": "suggestion-bot",
+  "version": "2.0.0",
+  "description": "A full-featured Discord suggestion bot using Components v2. Made by ayliee, Aerox Development.",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0 <22.0.0"
+  }
+}

@@ -1,0 +1,174 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { registry as commandRegistry } from './CommandRegistry.js';
+import { componentRegistry } from './ComponentRegistry.js';
+import { ArgoniModule } from './Module.js';
+import { logger } from '../utils/logger.js';
+import cron from 'node-cron';
+
+export class ModuleRegistry {
+  constructor() {
+    this.modules = new Map();
+    this.activeCronJobs = new Map();
+    this.client = null;
+  }
+
+  /**
+   * Sets the Discord client reference
+   * @param {import('discord.js').Client} client
+   */
+  setClient(client) {
+    this.client = client;
+  }
+
+  /**
+   * Registers an Argoni module
+   * @param {ArgoniModule|object} module
+   */
+  async register(module) {
+    const mod = module instanceof ArgoniModule ? module : new ArgoniModule(module);
+
+    if (this.modules.has(mod.name)) {
+      logger.warn(`Module "${mod.name}" is already registered. Skipping.`);
+      return;
+    }
+
+    this.modules.set(mod.name, mod);
+
+    // 1. Register commands
+    if (Array.isArray(mod.commands)) {
+      for (const cmd of mod.commands) {
+        if (!cmd.category) {
+          cmd.category = mod.name;
+        }
+        commandRegistry.register(cmd);
+      }
+    }
+
+    // 2. Register component handlers
+    if (Array.isArray(mod.components)) {
+      for (const comp of mod.components) {
+        componentRegistry.register(comp);
+      }
+    }
+
+    // 3. Register event listeners if client is ready
+    if (this.client && mod.events) {
+      for (const [event, handler] of Object.entries(mod.events)) {
+        if (Array.isArray(handler)) {
+          handler.forEach(h => this.client.on(event, h));
+        } else if (typeof handler === 'function') {
+          this.client.on(event, handler);
+        }
+      }
+    }
+
+    // 4. Register cron jobs
+    if (Array.isArray(mod.cron)) {
+      const jobs = [];
+      for (const job of mod.cron) {
+        if (job.expression && typeof job.run === 'function') {
+          const task = cron.schedule(job.expression, async () => {
+            try {
+              await job.run(this.client);
+            } catch (err) {
+              logger.error({ err, module: mod.name }, 'Error running scheduled module cron job');
+            }
+          });
+          jobs.push(task);
+        }
+      }
+      this.activeCronJobs.set(mod.name, jobs);
+    }
+
+    // 5. Run module init hook
+    if (this.client) {
+      await mod.init(this.client);
+    }
+
+    logger.info(`Registered Argoni Module: [${mod.name}] (v${mod.version}) - ${mod.commands.length} command(s), ${mod.components.length} component(s)`);
+  }
+
+  /**
+   * Unregisters and destroys a module
+   * @param {string} moduleName
+   */
+  async unregister(moduleName) {
+    const name = moduleName.toLowerCase();
+    const mod = this.modules.get(name);
+    if (!mod) return false;
+
+    // Stop cron jobs
+    const jobs = this.activeCronJobs.get(name);
+    if (jobs) {
+      jobs.forEach(j => j.stop());
+      this.activeCronJobs.delete(name);
+    }
+
+    // Call destroy hook
+    if (this.client) {
+      await mod.destroy(this.client);
+    }
+
+    this.modules.delete(name);
+    logger.info(`Unregistered Argoni Module: [${name}]`);
+    return true;
+  }
+
+  /**
+   * Automatically scans a directory and registers any module definitions
+   * @param {string} dir
+   */
+  async loadModulesFromDirectory(dir) {
+    if (!fs.existsSync(dir)) return 0;
+
+    let loaded = 0;
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const indexPath = path.join(dir, entry.name, 'index.js');
+        const modulePath = path.join(dir, entry.name, `${entry.name}.js`);
+        let targetFile = null;
+
+        if (fs.existsSync(indexPath)) {
+          targetFile = indexPath;
+        } else if (fs.existsSync(modulePath)) {
+          targetFile = modulePath;
+        }
+
+        if (targetFile) {
+          try {
+            const fileUrl = pathToFileURL(targetFile).href;
+            const imported = await import(fileUrl);
+            const mod = imported.default || imported.module;
+            if (mod && (mod instanceof ArgoniModule || mod.name)) {
+              await this.register(mod);
+              loaded++;
+            }
+          } catch (err) {
+            logger.error({ err, path: targetFile }, `Failed to load module from ${entry.name}`);
+          }
+        }
+      }
+    }
+
+    return loaded;
+  }
+
+  get(name) {
+    return this.modules.get(name.toLowerCase()) || null;
+  }
+
+  getAll() {
+    return Array.from(this.modules.values());
+  }
+
+  has(name) {
+    return this.modules.has(name.toLowerCase());
+  }
+}
+
+export const moduleRegistry = new ModuleRegistry();
+export default moduleRegistry;
