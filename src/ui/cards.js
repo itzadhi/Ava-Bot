@@ -113,7 +113,8 @@ export function card({
 
   const payload = {
     flags,
-    components: [container]
+    components: [container],
+    allowedMentions: { parse: [] }
   };
 
   if (attachedFiles.length > 0) {

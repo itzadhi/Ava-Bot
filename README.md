@@ -1,307 +1,184 @@
-# Argoni — Discord Components V2 Engine & Bot Framework
+# Argoni — Premium Discord Components V2 Engine & Bot Framework
 
-**Argoni** is a production-grade, verification-ready **Discord Bot Framework & Modular Engine** powered by Discord's newest **Components V2** (`ContainerBuilder`, `TextDisplayBuilder`, `SeparatorBuilder`, `SectionBuilder`, `ThumbnailBuilder`, `MediaGalleryBuilder`), Supabase (PostgreSQL with RLS), and an extensible module architecture.
-
-![Argoni Logo](assets/logo.jpg)
+**Argoni** is a production-grade Discord bot framework built on **Node.js 20+**, **discord.js v14.27+**, and **Supabase (PostgreSQL with RLS)**. It features an exclusive, pure **Components V2** interface inspired by the reference standard of "Yuna CV2 AIO" — featuring clean dark borderless container cards, rich typography, and ZERO legacy embeds or colored sidebar strips.
 
 ---
 
-## 🌟 Highlights of the Components V2 Upgrade
+## 🌟 Visual Standards & Components V2 Features
 
-- **Pure Components V2 Layouts**: Strict compliance with `MessageFlags.IsComponentsV2` (Flag `32768`). No deprecated embed arrays or naked plain-text messages.
-- **Single Source of Truth Design System**: Global tokens in `/config/theme.js` defining colors, emojis (with custom Discord emoji token support + Unicode fallbacks), footer, and links.
-- **Comprehensive Discord Markdown Suite (`/utils/ui/format.js`)**: Helper functions for bold, italics, code blocks (`js`, `json`, `diff`), colored ANSI blocks, headings (`#`, `##`, `###`), subtext (`-#`), masked links, mentions, timestamps (`<t:unix:F> (<t:unix:R>)`), and safety input escaping.
-- **Interactive Control Dashboard (`/panel` & `&panel`)**: Unified management console listing all 10+ server modules with one-click navigation and live in-place refreshing.
-- **Interactive Help Menu (`/help` & `&help`)**: Greeting section with bot avatar thumbnail, dynamic command counter, link buttons (Invite, Website, Support), and dual dropdown category menus (Main & Extra) with pagination.
-- **Color-Coded Server Audit Logging (`/logs` & `&logs`)**: Event-driven logging for 15+ Discord events (member joins/leaves, bans/kicks/timeouts, nickname & role changes, channel/role lifecycle, message deletes, and before/after diff edits).
-- **Zero-Crash Resilience**: Built-in try/catch error boundaries, rate-limit safety queues (`p-queue`), author-only permission checks, and automatic 120s interaction timeout collectors.
+- **Components V2 ONLY**: Every message is dispatched with `flags: MessageFlags.IsComponentsV2` (Flag `32768`). No legacy `EmbedBuilder`, no `embeds: []`, and no naked plain-text messages.
+- **NO SIDEBAR / ZERO ACCENT STRIP**: Containers are rendered as borderless, modern dark cards without any vertical colored sidebar line (`ContainerBuilder` without `accent_color`).
+- **Help Menu**:
+  - Heading: `# Help Menu`
+  - Three bullet lines with cyan dot styling:
+    - `• Type {prefix}help to get more info`
+    - `• Total Commands available: {N}` (counted dynamically from loaded commands)
+    - `• [Invite](url) | [Website](url) | [Support](url)` (masked blue links separated by `|`)
+  - Divider (`SeparatorBuilder`)
+  - Greeting block: Butterfly icon + `Hey [DisplayName](avatarUrl)!` + `I'm Argoni, your friendly companion.`
+  - Chevrons: Server prefix + instructions to choose from menu
+  - Divider (`SeparatorBuilder`)
+  - Dual StringSelectMenus: `Main Categories` and `Extra Categories`
+  - Category pages with command lists, usage subtext, pagination, and persistent select menus
+- **Modular Design System (`/config/theme.js` & `/utils/ui/`)**: Single source of truth for emojis, tokens, URLs, and reusable component builders.
+- **Resilient Error Boundaries**: Ephemeral error, permission, and cooldown cards with relative Discord timestamps (`<t:unix:R>`).
 
 ---
 
-## 📁 Project Directory Structure
+## 📁 Directory Structure
 
 ```
 Argoni/
-├── assets/                  # Brand assets (logo.jpg)
-├── config/
-│   └── theme.js             # Root proxy for theme tokens
 ├── src/
-│   ├── index.js             # ArgoniClient entry point & event lifecycle
-│   ├── config.js            # Environment validation with Zod
+│   ├── index.js             # ArgoniClient initialization & Gateway event handling
+│   ├── config.js            # Environment validation & live credential checks
 │   ├── config/
-│   │   ├── theme.js         # Single source of truth (colors, emojis, links, footer)
-│   │   └── tiers.js         # Premium tier quotas
+│   │   ├── theme.js         # Single source of truth (bot name, emojis, links, footer)
+│   │   └── tiers.js         # Quotas and premium tier configurations
 │   ├── commands/            # Slash & prefix command definitions
 │   │   ├── backup/          # /backup snapshots & restores
-│   │   ├── chatlog/         # /chatlog vault
-│   │   ├── feedback/        # /feedback submissions
+│   │   ├── chatlog/         # /chatlog encrypted vault
+│   │   ├── feedback/        # /feedback submissions & reviews
 │   │   ├── help/            # /help interactive command catalog
 │   │   ├── panel/           # /panel central dashboard
-│   │   ├── settings/        # /automod, /autorole, /boosts, /botprofile, /logs, /sticky, /stickyroles
+│   │   ├── settings/        # /automod, /autorole, /boosts, /botprofile, /logs, etc.
 │   │   ├── suggestions/     # /suggest community ideas
 │   │   └── voice/           # /tts, /ttspanel, /voicepanel
-│   ├── db/                  # Supabase PostgreSQL client & repositories
-│   │   ├── client.js        # Supabase client + in-memory fallback
-│   │   ├── guilds.js        # Guild settings & 60s cache
-│   │   ├── moduleData.js    # Generic module_data key-value store
-│   │   ├── backups.js       # Backup records & scheduled intervals
-│   │   └── ...              # chatlogs, feedback, suggestions, sticky, voice
-│   ├── events/              # Core Gateway listeners (interactionCreate, messageCreate, voiceStateUpdate)
-│   ├── modules/             # Self-contained feature modules
-│   │   ├── automod/         # Rule engine & interactive panel
-│   │   ├── autorole/        # Member & bot auto-role on join
-│   │   ├── backup/          # Structural snapshots & restoration pipeline
-│   │   ├── boosts/          # Boost detection, celebrations & booster roles
-│   │   ├── chatlog/         # AES-256-GCM encrypted message vault
-│   │   ├── feedback/        # Member reviews & staff reply modals
-│   │   ├── help/            # Help menu & category command browser
-│   │   ├── logs/            # Audit logging engine, card builder & 15+ event listeners
-│   │   ├── owner/           # 10-tab administrative developer panel
-│   │   ├── panel/           # Main Control Dashboard module
-│   │   ├── settings/        # Guild configuration & bot profile
-│   │   ├── sticky/          # Pinned bottom-of-channel messages
-│   │   ├── stickyroles/     # Leave & rejoin role restoration
-│   │   ├── suggestions/     # Community suggestions & voting
-│   │   ├── sync/            # Cross-server live sync pipelines
-│   │   └── voice/           # Dynamic Join-to-Create voice channels & TTS reader
-│   ├── structures/          # CommandRegistry, ComponentRegistry, CommandContext, Module
-│   └── utils/
-│       ├── ui/
-│       │   ├── format.js    # Markdown helpers, ANSI blocks & input sanitization
-│       │   ├── builders.js  # buildContainer, successCard, errorCard, panelCard, etc.
-│       │   └── index.js     # Unified UI exports
-│       ├── logger.js        # Pino structured logger
-│       └── parser.js        # Prefix command argument tokenizer
-├── supabase/
-│   └── migrations/          # SQL database schemas & migrations (001 to 008)
-└── tests/                   # 18 test suites covering 88 comprehensive unit tests
+│   ├── db/                  # Supabase PostgreSQL client & data repositories
+│   │   ├── client.js        # Supabase client with in-memory SQLite fallback
+│   │   ├── guilds.js        # Per-guild settings cache (prefix, logs, etc.)
+│   │   └── ...              # backups, chatlogs, suggestions, sticky, voice
+│   ├── events/              # Gateway event listeners (interactionCreate, messageCreate)
+│   ├── middleware/          # Cooldown and permission pipelines
+│   ├── modules/             # Self-contained feature systems & interactive panels
+│   │   ├── help/            # Interactive Help Menu & Category browser
+│   │   ├── panel/           # Main server control dashboard
+│   │   ├── logs/            # Audit logging engine & interactive manager
+│   │   └── ...              # automod, autorole, voice, backup, sticky, feedback
+│   ├── structures/          # CommandRegistry, ComponentRegistry, CommandContext
+│   └── utils/ui/            # Components V2 Design System
+│       ├── components.js    # Reusable V2 builders (header, bulletLines, infoCard, etc.)
+│       ├── format.js        # Discord markdown, ANSI, and text escaping helpers
+│       └── index.js         # Clean centralized exports
+├── tests/                   # Automated node:test test suite (92 tests)
+├── .env.example             # Complete environment configuration template
+└── package.json
 ```
 
 ---
 
-## 🚀 Setup & Getting Started
+## 🚀 Setup & Installation
 
 ### 1. Prerequisites
-- **Node.js**: `v20.0.0` or higher
-- **Discord Bot**: Application created on the [Discord Developer Portal](https://discord.com/developers/applications)
-  - Required Privileged Intents: `Server Members Intent`, `Message Content Intent`
-- **Supabase**: PostgreSQL project (URL and Service Role Key)
+- **Node.js**: `v20.0.0` or higher (`v24` supported)
+- **Git**: Installed and available in terminal
+- **Supabase**: Free or Pro tier project (or in-memory mock for local testing)
 
-### 2. Environment Configuration
+### 2. Install Dependencies
+```bash
+npm install
+```
+
+### 3. Configure Environment Variables
 Copy `.env.example` to `.env`:
-
 ```bash
 cp .env.example .env
 ```
-
-| Environment Variable | Description | Default / Example |
-|---|---|---|
-| `DISCORD_TOKEN` | Discord Bot Token | *Required* |
-| `CLIENT_ID` | Discord Application Client ID | *Required* |
-| `OWNER_IDS` | Comma-separated Discord User IDs for owners | `123456789012345678` |
-| `DEFAULT_PREFIX` | Default prefix for guild commands | `a!` |
-| `OWNER_PREFIX` | Prefix for developer owner commands | `ao!` |
-| `SUPABASE_URL` | Supabase Project URL | `https://xyz.supabase.co` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Secret Service Role Key | *Required* |
-| `DATA_ENCRYPTION_KEY` | 32-byte secret key for AES-256-GCM message encryption | 32+ character string |
-| `SUPPORT_SERVER_URL` | Discord Support Server invite link | `https://discord.gg/argoni` |
-| `INVITE_URL` | Bot OAuth2 Invite Link | `https://discord.com/oauth2/...` |
-| `WEBSITE_URL` | Official Website Link | `https://argoni.app` |
-| `LOG_LEVEL` | Pino logger level (`info`, `debug`, `error`) | `info` |
-
-#### Custom Emoji Tokens (Optional)
-Configure custom server emojis in `.env` or leave unset to use automatic Unicode fallbacks:
+Fill in the following essential variables:
 ```env
-EMOJI_DOT=•
-EMOJI_ARROW=➔
-EMOJI_SUCCESS=✅
-EMOJI_ERROR=❌
-EMOJI_WARN=⚠️
-EMOJI_LOADING=⏳
-EMOJI_ON=🟢
-EMOJI_OFF=🔴
-EMOJI_INFO=ℹ️
-EMOJI_GEAR=⚙️
+DISCORD_TOKEN=your_bot_token_here
+CLIENT_ID=your_application_id_here
+OWNER_IDS=your_discord_user_id
+BOT_NAME=Argoni
+DEFAULT_PREFIX=a!
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+DATA_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 ```
 
-### 3. Install Dependencies & Run Tests
+### 4. Deploy Slash Commands
 ```bash
-npm install
+npm run deploy
+```
+
+### 5. Start the Bot
+```bash
+# Production
+npm start
+
+# Development (with file watcher)
+npm run dev
+```
+
+### 6. Run Test Suite
+```bash
 npm test
 ```
 
-### 4. Start the Bot
-```bash
-# Development (with auto-reload on file changes)
-npm run dev
-
-# Production
-npm start
-```
-
 ---
 
-## 🎨 Design System & Formatting Guide
+## 🛠️ How to Add a New Command Using UI Helpers
 
-### Components V2 Rule
-In Discord Components V2, **every response must be sent with `MessageFlags.IsComponentsV2` (`32768`)**. Messages must **never send `content` or `embeds` together with components**.
+All commands in Argoni must strictly return **Components V2 Container Cards**. Never use `EmbedBuilder` or send plain text strings.
 
-### Importing the Design System
-```javascript
-import {
-  theme,
-  buildContainer,
-  successCard,
-  errorCard,
-  warnCard,
-  infoCard,
-  confirmCard,
-  paginatedCard,
-  panelCard,
-  createButton,
-  createStringSelect,
-  createChannelSelect,
-  createRoleSelect,
-  createModal,
-  bold,
-  italic,
-  code,
-  codeBlock,
-  ansiBlock,
-  ansi,
-  quote,
-  heading,
-  subtext,
-  link,
-  userMention,
-  roleMention,
-  channelMention,
-  timeLongAndRelative,
-  kvLine,
-  escapeMarkdown
-} from './utils/ui/index.js';
-```
+Create a new file in `src/commands/<category>/<command_name>.js`:
 
----
-
-## 🛠️ How to Add a New Module Panel
-
-Creating a new interactive module panel following the standardized pattern takes under 5 minutes:
-
-### Step 1: Define the Panel Function (`src/modules/mymodule/panel.js`)
-```javascript
-import {
-  panelCard,
-  createButton,
-  createChannelSelect,
-  kvLine,
-  code,
-  channelMention,
-  theme
-} from '../../utils/ui/index.js';
-import { ButtonStyle } from 'discord.js';
-
-export function buildMyModulePanel(settings, guild) {
-  const isEnabled = settings.mymodule_enabled !== false;
-  const channelId = settings.mymodule_channel_id;
-
-  return panelCard({
-    title: 'My Custom Module',
-    isEnabled,
-    description: 'Automate custom guild workflows with Components V2 cards.',
-    statusLines: [
-      kvLine('System Status', isEnabled ? '🟢 Active' : '🔴 Disabled'),
-      kvLine('Target Channel', channelId ? channelMention(channelId) : '_None (Set below)_'),
-      kvLine('Mode', code('Automatic'))
-    ],
-    selects: [
-      createChannelSelect({
-        id: `mymodule:set_chan:${guild.id}`,
-        placeholder: 'Select Target Channel...'
-      })
-    ],
-    buttons: [
-      createButton({
-        customId: `mymodule:toggle:${guild.id}`,
-        label: isEnabled ? 'Disable Module' : 'Enable Module',
-        style: isEnabled ? ButtonStyle.Danger : ButtonStyle.Success,
-        emoji: isEnabled ? theme.emojis.off : theme.emojis.on
-      }),
-      createButton({
-        customId: `mymodule:edit_modal:${guild.id}`,
-        label: 'Edit Settings',
-        style: ButtonStyle.Secondary,
-        emoji: '📝'
-      }),
-      createButton({
-        customId: 'dash:return',
-        label: 'Dashboard',
-        style: ButtonStyle.Secondary,
-        emoji: '◀'
-      })
-    ]
-  });
-}
-```
-
-### Step 2: Handle Interactions (`src/modules/router.js`)
-```javascript
-if (action === 'toggle') {
-  const settings = await getGuildSettings(guildId);
-  await updateGuildSettings(guildId, { mymodule_enabled: !settings.mymodule_enabled });
-  const updated = await getGuildSettings(guildId);
-  await interaction.deferUpdate().catch(() => {});
-  return safeUpdatePanel(interaction, buildMyModulePanel(updated, interaction.guild));
-}
-```
-
-### Step 3: Register Command & Dashboard Shortcut
-Create `src/commands/settings/mymodule.js`:
 ```javascript
 import { PermissionFlagsBits } from 'discord.js';
-import { getGuildSettings } from '../../db/guilds.js';
-import { buildMyModulePanel } from '../../modules/mymodule/panel.js';
+import {
+  container,
+  header,
+  divider,
+  bulletLines,
+  infoCard,
+  successCard,
+  errorCard
+} from '../../utils/ui/index.js';
+import * as format from '../../utils/ui/format.js';
 
 export default {
-  name: 'mymodule',
-  description: 'Manage My Custom Module settings and channel',
-  category: 'settings',
-  permissions: [PermissionFlagsBits.ManageGuild],
+  name: 'ping',
+  description: 'Displays current bot websocket and database latency',
+  category: 'general',
+  cooldown: 5,
+  args: [],
   async execute(ctx) {
-    const settings = await getGuildSettings(ctx.guild.id);
-    return ctx.reply(buildMyModulePanel(settings, ctx.guild));
+    const wsPing = ctx.client.ws.ping;
+    const startDb = Date.now();
+    await ctx.client.db.from('guild_settings').select('guild_id').limit(1);
+    const dbPing = Date.now() - startDb;
+
+    // Build a clean, borderless Components V2 card
+    return ctx.reply(infoCard('System Latency', null, {
+      fields: [
+        { name: 'Gateway Latency', value: `${format.code(`${wsPing}ms`)}` },
+        { name: 'Database Latency', value: `${format.code(`${dbPing}ms`)}` }
+      ],
+      footer: `Requested by ${ctx.user.username} • ${format.time(new Date(), 'R')}`
+    }));
   }
 };
 ```
 
+### Available UI Helpers (`src/utils/ui/`):
+- `container({ blocks, ephemeral, files })`: Root borderless card wrapper.
+- `header(title, level)`: Heading `# Title` (1), `## Title` (2), or `### Title` (3).
+- `bulletLines(['Line 1', 'Line 2'])`: Cyan dot styled bullet list.
+- `arrowLines(['Step 1', 'Step 2'])`: Chevron styled list.
+- `linkRow([{ label, url }])`: Pipe-separated blue markdown links (`[Invite](url) | [Support](url)`).
+- `divider()`: Discord horizontal separator.
+- `greetingSection({ text, thumbnailUrl })`: Section layout with thumbnail accessory.
+- `successCard(title, description, { actions })`: Action completed confirmation card.
+- `errorCard(title, reason, { hint })`: Error response card.
+- `warnCard(title, warning, { hint })`: Warning notification card.
+- `cooldownCard(command, resetTime)`: Slow down rate-limit warning.
+- `permissionCard({ missing, isBot })`: Missing permissions notice.
+- `moderationResultCard({ action, target, moderator, reason, caseId })`: Audit result card.
+- `logCard({ eventName, emoji, category, user, channel, reason, beforeText, afterText })`: Audit logging card.
+
 ---
 
-## 📢 Server Audit Logging (`/logs`)
-
-Server logging categorizes all Discord events into dedicated visual cards:
-
-| Category | Accent Color | Events Covered |
-|---|---|---|
-| **Moderation** | Crimson Red (`#ED4245`) | Member Bans, Unbans, Kicks, Timeouts, Warning actions |
-| **Messages** | Vibrant Orange (`#E67E22`) | Message Deletions, Edits (with `diff` before/after blocks), Bulk Purges |
-| **Members** | Emerald Green (`#57F287`) | Member Joins, Leaves, Nickname changes |
-| **Roles** | Royal Purple (`#9B59B6`) | Member role additions/removals, Role creation, Role deletion, Role updates |
-| **Channels** | Blurple Blue (`#5865F2`) | Channel creation, Channel deletion, Topic/Name updates |
-| **Voice** | Royal Purple (`#9B59B6`) | Voice joins, Voice leaves, Switching voice channels, Server mutes/deafens |
-| **Server** | Blurple Blue (`#5865F2`) | Invite creations/deletions, Emoji additions/deletions, Guild setting modifications |
-
----
-
-## 🗄️ Supabase Migrations
-
-The project includes SQL migrations in `supabase/migrations/`:
-- `001_initial_schema.sql`: Initial guild settings, backups, chatlogs, templates, syncs, bot state
-- `002_module_data.sql`: Generic key-value store for module persistence
-- `003_voice_suggestions_feedback.sql`: Join-to-Create voice channels, suggestions, and feedback
-- `004_bot_profile_suggestion_image.sql`: Per-guild bot profile customizations
-- `005_automod_boost_tracking.sql`: AutoMod rule flags and boost tracking
-- `006_sticky_and_autorole.sql`: Sticky notes, sticky roles, and welcome auto-role
-- `007_automod_exception_role.sql`: AutoMod bypass and whitelist roles
-- `008_server_logging.sql`: Dedicated server logging columns and indexes
-
-> Run `008_server_logging.sql` in your Supabase SQL Editor to ensure full persistence for category log channels.
+## 🔒 Security & Best Practices
+- **Mentions Shield**: All cards automatically set `allowedMentions: { parse: [] }` to prevent user ping injection.
+- **Markdown Sanitization**: `format.escapeMarkdown(text)` escapes user input so custom names or reasons cannot break card formatting.
+- **Safety Truncation**: `format.truncate(text, max)` avoids splitting code blocks or Discord mention tags.

@@ -1,5 +1,5 @@
 import { config } from '../config.js';
-import { warnCard } from '../ui/cards.js';
+import { cooldownCard } from '../utils/ui/components.js';
 
 // Map of commandKey -> Map of (userId/guildId -> expirationTimestamp)
 const cooldowns = new Map();
@@ -28,14 +28,7 @@ export async function checkCooldown(ctx, command) {
   if (timestamps.has(identifier)) {
     const expirationTime = timestamps.get(identifier) + cooldownAmount;
     if (now < expirationTime) {
-      const timeLeft = Math.ceil((expirationTime - now) / 1000);
-      await ctx.reply(warnCard({
-        title: 'Cooldown Active',
-        subtitle: `Please wait before running /${command.name} again.`,
-        body: `**Remaining Time**: ${timeLeft} second${timeLeft > 1 ? 's' : ''}`,
-        subtext: 'Argoni rate limiter',
-        ephemeral: true
-      }));
+      await ctx.reply(cooldownCard(command.name, expirationTime, { ephemeral: true }));
       return { ok: false };
     }
   }

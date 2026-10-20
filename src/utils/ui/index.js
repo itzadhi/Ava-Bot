@@ -1,6 +1,5 @@
 export * from './format.js';
 export * from './components.js';
-export * from './builders.js';
 export { theme, default as defaultTheme } from '../../config/theme.js';
 
 // Re-export specialized cards from ui/cards.js for complete backwards compatibility
@@ -8,7 +7,7 @@ export {
   card,
   progressCard,
   backupCard,
-  listCard,
+  listCard as legacyListCard,
   detailCard,
   loadingCard,
   metricCard,

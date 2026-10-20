@@ -13,6 +13,9 @@ import {
   RoleSelectMenuBuilder,
   ChannelSelectMenuBuilder,
   UserSelectMenuBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
   MessageFlags,
   ComponentType
 } from 'discord.js';
@@ -27,18 +30,46 @@ import * as format from './format.js';
 
 /**
  * Builds a clean, borderless container card payload
+ * Accepts either { blocks: [...] } or { title, lines, footer, rows, controls, blocks, ephemeral, files }
  * @param {object} options
- * @param {Array<any>} [options.blocks=[]] Items to add to container
- * @param {boolean} [options.ephemeral=false]
- * @param {Array<any>} [options.files] Optional attachments
  * @returns {object} Discord message payload
  */
-export function container({ blocks = [], ephemeral = false, files = [] } = {}) {
+export function container({
+  title = null,
+  lines = [],
+  blocks = [],
+  rows = [],
+  controls = [],
+  footer = null,
+  thumbnail = null,
+  ephemeral = false,
+  files = []
+} = {}) {
   const c = new ContainerBuilder();
+
+  // If title was provided
+  if (title) {
+    const headingText = format.heading(2, title);
+    if (thumbnail) {
+      c.addSectionComponents(
+        new SectionBuilder()
+          .addTextDisplayComponents(new TextDisplayBuilder().setContent(headingText))
+          .setThumbnailAccessory(new ThumbnailBuilder().setURL(thumbnail))
+      );
+    } else {
+      c.addTextDisplayComponents(new TextDisplayBuilder().setContent(headingText));
+    }
+  }
+
+  // If lines were provided
+  if (Array.isArray(lines) && lines.length > 0) {
+    if (title) c.addSeparatorComponents(new SeparatorBuilder());
+    c.addTextDisplayComponents(new TextDisplayBuilder().setContent(lines.join('\n')));
+  }
 
   for (const block of blocks) {
     if (!block) continue;
-    if (typeof block === 'string') {
+    if (typeof block === 'string' && block.trim()) {
       c.addTextDisplayComponents(new TextDisplayBuilder().setContent(block));
     } else if (block instanceof TextDisplayBuilder) {
       c.addTextDisplayComponents(block);
@@ -53,6 +84,21 @@ export function container({ blocks = [], ephemeral = false, files = [] } = {}) {
     } else if (block.components || block.data?.type === ComponentType.ActionRow) {
       c.addActionRowComponents(block);
     }
+  }
+
+  const allRows = [...rows, ...controls];
+  for (const row of allRows) {
+    if (!row) continue;
+    if (row instanceof ActionRowBuilder) {
+      c.addActionRowComponents(row);
+    } else if (Array.isArray(row)) {
+      c.addActionRowComponents(new ActionRowBuilder().addComponents(row.slice(0, 5)));
+    }
+  }
+
+  if (footer) {
+    c.addSeparatorComponents(new SeparatorBuilder());
+    c.addTextDisplayComponents(new TextDisplayBuilder().setContent(format.subtext(footer)));
   }
 
   const flags = ephemeral
@@ -158,25 +204,11 @@ export function categorySelect({ id, placeholder, options }) {
   return new ActionRowBuilder().addComponents(menu);
 }
 
-/**
- * Information Card
- */
-export function infoCard(title, description, { fields = [], ephemeral = false, footer = null } = {}) {
-  const blocks = [
-    header(`${theme.emojis.info} ${title}`),
-    divider()
-  ];
-  if (description) {
-    blocks.push(new TextDisplayBuilder().setContent(description));
+function getCardBody(opts, defaultVal = '') {
+  if (Array.isArray(opts.lines) && opts.lines.length > 0) {
+    return opts.lines.join('\n');
   }
-  if (Array.isArray(fields) && fields.length > 0) {
-    const fieldLines = fields.map(f => format.kvLine(f.name || f.label, f.value));
-    blocks.push(new TextDisplayBuilder().setContent(fieldLines.join('\n')));
-  }
-  if (footer) {
-    blocks.push(new TextDisplayBuilder().setContent(format.subtext(footer)));
-  }
-  return container({ blocks, ephemeral });
+  return opts.description || opts.reason || opts.warning || opts.text || defaultVal;
 }
 
 /**
@@ -189,11 +221,11 @@ export function infoCard(arg1, arg2, opts = {}) {
 
   if (typeof arg1 === 'object' && arg1 !== null) {
     title = arg1.title || 'Information';
-    description = arg1.description || arg1.text || '';
+    description = getCardBody(arg1);
     options = arg1;
   } else {
     title = arg1 || 'Information';
-    description = arg2 || '';
+    description = typeof arg2 === 'object' && arg2 !== null ? getCardBody(arg2) : (arg2 || '');
   }
 
   const { fields = [], ephemeral = false, footer = null } = options;
@@ -224,11 +256,11 @@ export function successCard(arg1, arg2, opts = {}) {
 
   if (typeof arg1 === 'object' && arg1 !== null) {
     title = arg1.title || 'Success';
-    description = arg1.description || arg1.text || '';
+    description = getCardBody(arg1);
     options = arg1;
   } else {
     title = arg1 || 'Success';
-    description = arg2 || '';
+    description = typeof arg2 === 'object' && arg2 !== null ? getCardBody(arg2) : (arg2 || '');
   }
 
   const { ephemeral = false, actions = [] } = options;
@@ -255,11 +287,11 @@ export function errorCard(arg1, arg2, opts = {}) {
 
   if (typeof arg1 === 'object' && arg1 !== null) {
     title = arg1.title || 'Error';
-    reason = arg1.reason || arg1.description || arg1.text || 'An unexpected error occurred.';
+    reason = getCardBody(arg1, 'An unexpected error occurred.');
     options = arg1;
   } else {
     title = arg1 || 'Error';
-    reason = arg2 || 'An unexpected error occurred.';
+    reason = typeof arg2 === 'object' && arg2 !== null ? getCardBody(arg2, 'An unexpected error occurred.') : (arg2 || 'An unexpected error occurred.');
   }
 
   const { hint = options.fix || null, ephemeral = true } = options;
@@ -284,19 +316,21 @@ export function warnCard(arg1, arg2, opts = {}) {
 
   if (typeof arg1 === 'object' && arg1 !== null) {
     title = arg1.title || 'Warning';
-    warning = arg1.warning || arg1.reason || arg1.description || '';
+    warning = getCardBody(arg1);
     options = arg1;
   } else {
     title = arg1 || 'Warning';
-    warning = arg2 || '';
+    warning = typeof arg2 === 'object' && arg2 !== null ? getCardBody(arg2) : (arg2 || '');
   }
 
   const { hint = null, ephemeral = false } = options;
   const blocks = [
     header(`${theme.emojis.warn} ${title}`),
-    divider(),
-    new TextDisplayBuilder().setContent(warning)
+    divider()
   ];
+  if (warning) {
+    blocks.push(new TextDisplayBuilder().setContent(warning));
+  }
   if (hint) {
     blocks.push(new TextDisplayBuilder().setContent(format.subtext(hint)));
   }
@@ -325,12 +359,12 @@ export function permissionCard({ missing = [], isBot = false, ephemeral = true }
   const subject = isBot ? 'I am missing' : 'You are missing';
   const permsList = missing.map(p => format.code(p)).join(', ');
   const blocks = [
-    header(`🚫 Missing Permissions`),
+    header(isBot ? '🤖 Bot Missing Permissions' : '🚫 Permission Denied'),
     divider(),
     new TextDisplayBuilder().setContent(
-      `${subject} the required permissions to perform this action:\n${permsList}`
+      `${subject} the required permission(s) to perform this action:\n${permsList}`
     ),
-    new TextDisplayBuilder().setContent(format.subtext(`Check your server role hierarchy and channel overrides.`))
+    new TextDisplayBuilder().setContent(format.subtext('Check your server role hierarchy and channel overrides.'))
   ];
   return container({ blocks, ephemeral });
 }
@@ -360,15 +394,28 @@ export function usageCard({ name, prefix = 'a!', usage, description, examples = 
 /**
  * Confirmation Card with Confirm/Cancel Buttons
  */
-export function confirmCard({
-  title,
-  description,
-  confirmId,
-  cancelId,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
-  ephemeral = true
-}) {
+export function confirmCard(arg1, arg2, opts = {}) {
+  let title = 'Confirmation';
+  let description = '';
+  let options = opts;
+
+  if (typeof arg1 === 'object' && arg1 !== null) {
+    title = arg1.title || 'Confirmation';
+    description = arg1.description || arg1.text || '';
+    options = arg1;
+  } else {
+    title = arg1 || 'Confirmation';
+    description = arg2 || '';
+  }
+
+  const {
+    confirmId = options.confirmId || 'confirm',
+    cancelId = options.cancelId || 'cancel',
+    confirmLabel = options.confirmLabel || 'Confirm',
+    cancelLabel = options.cancelLabel || 'Cancel',
+    ephemeral = options.ephemeral ?? false
+  } = options;
+
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(confirmId)
@@ -382,10 +429,12 @@ export function confirmCard({
 
   const blocks = [
     header(`⚠️ ${title}`),
-    divider(),
-    new TextDisplayBuilder().setContent(description),
-    row
+    divider()
   ];
+  if (description) {
+    blocks.push(new TextDisplayBuilder().setContent(description));
+  }
+  blocks.push(row);
   return container({ blocks, ephemeral });
 }
 
@@ -395,19 +444,29 @@ export function confirmCard({
 export function paginatedCard({
   title,
   items = [],
+  pages = [],
   page = 1,
+  currentPage = 1,
+  totalPages = null,
   pageSize = 10,
   formatter = (item, idx) => `${idx + 1}. ${item}`,
-  customIdPrefix,
+  customIdPrefix = 'page',
   extraBlocks = [],
   ephemeral = false
-}) {
-  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
-  const safePage = Math.min(Math.max(page, 1), totalPages);
-  const start = (safePage - 1) * pageSize;
-  const pageItems = items.slice(start, start + pageSize);
+} = {}) {
+  const contentList = (Array.isArray(pages) && pages.length > 0) ? pages : items;
+  const calcTotalPages = totalPages || Math.max(1, Math.ceil(contentList.length / pageSize));
+  const activePage = currentPage || page || 1;
+  const safePage = Math.min(Math.max(activePage, 1), calcTotalPages);
 
-  const formattedItems = pageItems.map((item, i) => formatter(item, start + i)).join('\n');
+  let formattedItems = '';
+  if (Array.isArray(pages) && pages.length > 0) {
+    formattedItems = pages[safePage - 1] || pages[0] || '_No items available._';
+  } else {
+    const start = (safePage - 1) * pageSize;
+    const pageItems = contentList.slice(start, start + pageSize);
+    formattedItems = pageItems.map((item, i) => formatter(item, start + i)).join('\n');
+  }
 
   const navRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
@@ -422,14 +481,14 @@ export function paginatedCard({
       .setDisabled(safePage <= 1),
     new ButtonBuilder()
       .setCustomId(`${customIdPrefix}:page`)
-      .setLabel(`${safePage} / ${totalPages}`)
+      .setLabel(`${safePage} / ${calcTotalPages}`)
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(true),
     new ButtonBuilder()
       .setCustomId(`${customIdPrefix}:next:${safePage + 1}`)
       .setLabel('Next ›')
       .setStyle(ButtonStyle.Primary)
-      .setDisabled(safePage >= totalPages),
+      .setDisabled(safePage >= calcTotalPages),
     new ButtonBuilder()
       .setCustomId(`${customIdPrefix}:close`)
       .setLabel('✕ Close')
@@ -442,7 +501,7 @@ export function paginatedCard({
     new TextDisplayBuilder().setContent(formattedItems || '_No items available._'),
     ...extraBlocks,
     divider(),
-    new TextDisplayBuilder().setContent(format.subtext(`Page ${safePage} of ${totalPages} • Total items: ${items.length}`)),
+    new TextDisplayBuilder().setContent(format.subtext(`Page ${safePage} of ${calcTotalPages} • Total: ${contentList.length}`)),
     navRow
   ];
 
@@ -627,23 +686,33 @@ export function logCard({
 export function panelCard({
   title,
   status = null,
+  isEnabled = null,
+  statusLines = [],
   lines = [],
+  buttons = [],
   controls = [],
   footer = null,
   ephemeral = false
-}) {
+} = {}) {
+  let statusBadge = status;
+  if (!statusBadge && isEnabled !== null) {
+    statusBadge = isEnabled ? `${theme.emojis.on} [ACTIVE]` : `${theme.emojis.off} [DISABLED]`;
+  }
+
   const blocks = [
-    header(status ? `${title}  ${status}` : title),
+    header(statusBadge ? `${title}  ${statusBadge}` : title),
     divider()
   ];
 
-  if (lines.length > 0) {
-    blocks.push(new TextDisplayBuilder().setContent(lines.join('\n')));
+  const allLines = [...(Array.isArray(statusLines) ? statusLines : []), ...(Array.isArray(lines) ? lines : [])];
+  if (allLines.length > 0) {
+    blocks.push(new TextDisplayBuilder().setContent(allLines.join('\n')));
   }
 
-  if (controls.length > 0) {
+  const allControls = [...(Array.isArray(buttons) ? buttons : []), ...(Array.isArray(controls) ? controls : [])];
+  if (allControls.length > 0) {
     blocks.push(divider());
-    blocks.push(...controls);
+    blocks.push(...allControls);
   }
 
   if (footer) {
@@ -652,3 +721,251 @@ export function panelCard({
 
   return container({ blocks, ephemeral });
 }
+
+/**
+ * Clean text card helper
+ */
+export function textCard(text, { ephemeral = false } = {}) {
+  const content = typeof text === 'string' ? text : String(text || '');
+  return container({
+    blocks: [new TextDisplayBuilder().setContent(content)],
+    ephemeral
+  });
+}
+
+/** Alias buildContainer -> container for backwards compatibility */
+export const buildContainer = container;
+
+/** Helper to resolve ButtonStyle strings or integers */
+function resolveButtonStyle(style) {
+  if (typeof style === 'number') return style;
+  switch (String(style).toLowerCase()) {
+    case 'primary': return ButtonStyle.Primary;
+    case 'secondary': return ButtonStyle.Secondary;
+    case 'success': return ButtonStyle.Success;
+    case 'danger': return ButtonStyle.Danger;
+    case 'link': return ButtonStyle.Link;
+    default: return ButtonStyle.Secondary;
+  }
+}
+
+/**
+ * Creates a ButtonBuilder
+ */
+export function createButton({
+  id = null,
+  customId = null,
+  label = null,
+  style = ButtonStyle.Secondary,
+  emoji = null,
+  disabled = false,
+  url = null
+} = {}) {
+  const btn = new ButtonBuilder().setDisabled(disabled);
+
+  if (url) {
+    btn.setURL(url).setStyle(ButtonStyle.Link);
+  } else {
+    btn.setCustomId(id || customId || `btn_${Date.now()}`).setStyle(resolveButtonStyle(style));
+  }
+
+  if (label) btn.setLabel(String(label).slice(0, 80));
+  if (emoji) btn.setEmoji(emoji);
+
+  return btn;
+}
+
+/**
+ * Creates an ActionRowBuilder with components
+ */
+export function createActionRow(...components) {
+  const row = new ActionRowBuilder();
+  const items = components.flat();
+  if (items.length > 0) {
+    row.addComponents(items.slice(0, 5));
+  }
+  return row;
+}
+
+/**
+ * Chunks an array of button builders into valid ActionRowBuilder instances (max 5 per row)
+ */
+export function packActionRows(components, maxPerRow = 5) {
+  const rows = [];
+  const items = Array.isArray(components) ? components : [components];
+
+  for (let i = 0; i < items.length; i += maxPerRow) {
+    const chunk = items.slice(i, i + maxPerRow);
+    rows.push(new ActionRowBuilder().addComponents(chunk));
+  }
+
+  return rows;
+}
+
+/**
+ * Creates a StringSelectMenuBuilder
+ */
+export function createStringSelect({
+  id = null,
+  customId = null,
+  placeholder = 'Select an option...',
+  options = [],
+  minValues = 1,
+  maxValues = 1,
+  disabled = false
+} = {}) {
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId(id || customId || `select_${Date.now()}`)
+    .setPlaceholder(placeholder)
+    .setMinValues(minValues)
+    .setMaxValues(maxValues)
+    .setDisabled(disabled);
+
+  if (Array.isArray(options) && options.length > 0) {
+    menu.addOptions(
+      options.map(opt => ({
+        label: String(opt.label || opt.name || opt.value).slice(0, 100),
+        value: String(opt.value || opt.id || opt.label),
+        description: opt.description ? String(opt.description).slice(0, 100) : undefined,
+        emoji: opt.emoji || undefined,
+        default: Boolean(opt.default)
+      }))
+    );
+  }
+
+  return menu;
+}
+
+/**
+ * Creates a ChannelSelectMenuBuilder
+ */
+export function createChannelSelect({
+  id = null,
+  customId = null,
+  placeholder = 'Select a channel...',
+  channelTypes = [],
+  minValues = 1,
+  maxValues = 1,
+  disabled = false
+} = {}) {
+  const menu = new ChannelSelectMenuBuilder()
+    .setCustomId(id || customId || `ch_select_${Date.now()}`)
+    .setPlaceholder(placeholder)
+    .setMinValues(minValues)
+    .setMaxValues(maxValues)
+    .setDisabled(disabled);
+
+  if (Array.isArray(channelTypes) && channelTypes.length > 0) {
+    menu.setChannelTypes(channelTypes);
+  }
+
+  return menu;
+}
+
+/**
+ * Creates a RoleSelectMenuBuilder
+ */
+export function createRoleSelect({
+  id = null,
+  customId = null,
+  placeholder = 'Select a role...',
+  minValues = 1,
+  maxValues = 1,
+  disabled = false
+} = {}) {
+  return new RoleSelectMenuBuilder()
+    .setCustomId(id || customId || `role_select_${Date.now()}`)
+    .setPlaceholder(placeholder)
+    .setMinValues(minValues)
+    .setMaxValues(maxValues)
+    .setDisabled(disabled);
+}
+
+/**
+ * Creates a ModalBuilder with TextInput rows
+ */
+export function createModal({
+  id = null,
+  customId = null,
+  title = 'Modal Form',
+  inputs = [],
+  fields = []
+} = {}) {
+  const modal = new ModalBuilder()
+    .setCustomId(id || customId || `modal_${Date.now()}`)
+    .setTitle(title.slice(0, 45));
+
+  const allInputs = (Array.isArray(inputs) && inputs.length > 0) ? inputs : (Array.isArray(fields) ? fields : []);
+  for (const input of allInputs) {
+    const textInput = createTextInput(input);
+    modal.addComponents(new ActionRowBuilder().addComponents(textInput));
+  }
+
+  return modal;
+}
+
+/**
+ * Creates a TextInputBuilder
+ */
+export function createTextInput({
+  id = null,
+  customId = null,
+  label = 'Input',
+  style = TextInputStyle.Short,
+  paragraph = false,
+  placeholder = '',
+  value = null,
+  required = true,
+  minLength = null,
+  maxLength = null
+} = {}) {
+  const input = new TextInputBuilder()
+    .setCustomId(id || customId || `input_${Date.now()}`)
+    .setLabel(label.slice(0, 45))
+    .setStyle(paragraph || style === TextInputStyle.Paragraph || style === 'paragraph' ? TextInputStyle.Paragraph : TextInputStyle.Short)
+    .setRequired(required);
+
+  if (placeholder) input.setPlaceholder(String(placeholder).slice(0, 100));
+  if (value) input.setValue(String(value));
+  if (minLength !== null) input.setMinLength(minLength);
+  if (maxLength !== null) input.setMaxLength(maxLength);
+
+  return input;
+}
+
+export default {
+  container,
+  buildContainer,
+  header,
+  bulletLines,
+  arrowLines,
+  linkRow,
+  divider,
+  greetingSection,
+  categorySelect,
+  infoCard,
+  successCard,
+  errorCard,
+  warnCard,
+  cooldownCard,
+  permissionCard,
+  usageCard,
+  confirmCard,
+  paginatedCard,
+  listCard,
+  statsCard,
+  profileCard,
+  leaderboardCard,
+  moderationResultCard,
+  logCard,
+  panelCard,
+  textCard,
+  createButton,
+  createActionRow,
+  packActionRows,
+  createStringSelect,
+  createChannelSelect,
+  createRoleSelect,
+  createModal,
+  createTextInput
+};

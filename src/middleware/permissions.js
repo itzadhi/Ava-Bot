@@ -1,6 +1,6 @@
-import { PermissionFlagsBits, PermissionsBitField } from 'discord.js';
+import { PermissionFlagsBits } from 'discord.js';
 import { getGuildSettings } from '../db/guilds.js';
-import { errorCard } from '../ui/cards.js';
+import { permissionCard, errorCard } from '../utils/ui/components.js';
 import { config } from '../config.js';
 
 export async function checkPermissions(ctx, command) {
@@ -22,7 +22,7 @@ export async function checkPermissions(ctx, command) {
         await ctx.reply(errorCard({
           title: 'Unauthorized',
           reason: 'This command is strictly reserved for the bot owner.',
-          fix: 'Only authorized administrators can run this action.',
+          hint: 'Only authorized administrators can run this action.',
           ephemeral: true
         }));
       }
@@ -36,9 +36,8 @@ export async function checkPermissions(ctx, command) {
     if (!isGuildOwner && !isBotOwner) {
       await ctx.reply(errorCard({
         title: 'Server Owner Only',
-        subtitle: `Restricted on ${ctx.guild.name}`,
         reason: 'This command is strictly reserved for the Server Owner.',
-        fix: `Only the server owner (<@${ctx.guild.ownerId}>) is authorized to run this action.`,
+        hint: `Only the server owner (<@${ctx.guild.ownerId}>) is authorized to run this action.`,
         ephemeral: true
       }));
       return { ok: false };
@@ -75,11 +74,9 @@ export async function checkPermissions(ctx, command) {
           }
         }
 
-        await ctx.reply(errorCard({
-          title: 'Permission Denied',
-          subtitle: `Required permission(s) missing for /${command.name}`,
-          reason: `You need the following permission(s): **${missingNames.join(', ')}** (or the server Staff role).`,
-          fix: 'Ask a server administrator to grant you the required permissions or the staff role.',
+        await ctx.reply(permissionCard({
+          missing: missingNames,
+          isBot: false,
           ephemeral: true
         }));
         return { ok: false };
@@ -101,11 +98,9 @@ export async function checkPermissions(ctx, command) {
       }
 
       if (missing.length > 0) {
-        await ctx.reply(errorCard({
-          title: 'Bot Missing Permissions',
-          subtitle: `Argoni requires additional Discord permissions to run /${command.name}.`,
-          reason: `Missing bot permissions: **${missing.join(', ')}**`,
-          fix: 'Navigate to Server Settings -> Roles -> Argoni, and enable the missing permissions.',
+        await ctx.reply(permissionCard({
+          missing,
+          isBot: true,
           ephemeral: true
         }));
         return { ok: false };
