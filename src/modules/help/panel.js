@@ -112,37 +112,38 @@ export const CATEGORY_DEFINITIONS = {
  * @param {string} [currentCat=null]
  */
 function createHelpSelectRows(sessionId, currentCat = null) {
+  const isMainCat = CATEGORY_DEFINITIONS.main.some(c => c.id === currentCat);
+  const isExtraCat = CATEGORY_DEFINITIONS.extra.some(c => c.id === currentCat);
+
   const mainOptions = [
     {
-      label: 'Home',
+      label: 'Help Overview',
       value: 'home',
-      description: 'Return to the main help overview',
-      emoji: '🏠',
-      default: currentCat === 'home'
+      description: 'Return to the main help menu overview',
+      emoji: '🏠'
     },
     ...CATEGORY_DEFINITIONS.main.map(cat => ({
       label: cat.name,
       value: cat.id,
       description: cat.description,
       emoji: cat.emoji,
-      default: currentCat === cat.id
+      default: isMainCat && currentCat === cat.id
     }))
   ];
 
   const extraOptions = [
     {
-      label: 'Home',
+      label: 'Help Overview',
       value: 'home',
-      description: 'Return to the main help overview',
-      emoji: '🏠',
-      default: currentCat === 'home'
+      description: 'Return to the main help menu overview',
+      emoji: '🏠'
     },
     ...CATEGORY_DEFINITIONS.extra.map(cat => ({
       label: cat.name,
       value: cat.id,
       description: cat.description,
       emoji: cat.emoji,
-      default: currentCat === cat.id
+      default: isExtraCat && currentCat === cat.id
     }))
   ];
 
@@ -213,8 +214,8 @@ export function buildHelpMenuPayload({ user, client, prefix = 'a!', sessionId })
   // 5. Separator
   container.addSeparatorComponents(new SeparatorBuilder());
 
-  // 6. Two Select Menus (Main & Extra)
-  const selectRows = createHelpSelectRows(sessionId, 'home');
+  // 6. Two Select Menus (Main & Extra) - both display their distinctive placeholders
+  const selectRows = createHelpSelectRows(sessionId, null);
   for (const row of selectRows) {
     container.addActionRowComponents(row);
   }
@@ -315,7 +316,7 @@ export function buildCategoryHelpPayload({
       .setCustomId(`help:close:${sessionId}`)
       .setLabel('Close')
       .setStyle(ButtonStyle.Danger)
-      .setEmoji('✕')
+      .setEmoji('❌')
   );
 
   container.addActionRowComponents(navRow);
@@ -384,7 +385,8 @@ export async function startHelpSession(ctx) {
 
       if (customId.startsWith('help:close:')) {
         collector.stop('closed');
-        return interaction.update({ components: [] }).catch(() => {});
+        await interaction.update({ components: [] }).catch(() => {});
+        return;
       }
 
       if (customId.startsWith('help:back:')) {
@@ -394,19 +396,21 @@ export async function startHelpSession(ctx) {
           prefix,
           sessionId
         });
-        return interaction.update(menuPayload);
+        await interaction.update(menuPayload).catch(() => {});
+        return;
       }
 
       if (customId.startsWith('help:sel_main:') || customId.startsWith('help:sel_extra:')) {
-        const categoryId = interaction.values[0];
-        if (categoryId === 'home') {
+        const categoryId = interaction.values?.[0];
+        if (!categoryId || categoryId === 'home') {
           const menuPayload = buildHelpMenuPayload({
             user: ctx.user,
             client: ctx.client,
             prefix,
             sessionId
           });
-          return interaction.update(menuPayload);
+          await interaction.update(menuPayload).catch(() => {});
+          return;
         }
 
         const categoryPayload = buildCategoryHelpPayload({
@@ -415,7 +419,8 @@ export async function startHelpSession(ctx) {
           sessionId,
           page: 1
         });
-        return interaction.update(categoryPayload);
+        await interaction.update(categoryPayload).catch(() => {});
+        return;
       }
 
       if (customId.startsWith('help:page:')) {
@@ -428,9 +433,10 @@ export async function startHelpSession(ctx) {
           sessionId,
           page: targetPage
         });
-        return interaction.update(pagePayload);
+        await interaction.update(pagePayload).catch(() => {});
+        return;
       }
-    } catch (err) {
+    } catch (_) {
       // Ignore update errors safely
     }
   });

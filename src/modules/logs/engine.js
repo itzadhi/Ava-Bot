@@ -323,7 +323,7 @@ export async function buildLogsPanel(guild, activeCategory = 'all') {
       .setCustomId('dash:return')
       .setLabel('Dashboard')
       .setStyle(ButtonStyle.Secondary)
-      .setEmoji('◀')
+      .setEmoji('◀️')
   );
 
   container.addActionRowComponents(

@@ -122,7 +122,7 @@ export async function buildDashboardPayload({ guild, user, client, sessionId }) 
       .setCustomId(`dash:close:${sessionId}`)
       .setLabel('Close')
       .setStyle(ButtonStyle.Danger)
-      .setEmoji('✕')
+      .setEmoji('❌')
   );
 
   container.addActionRowComponents(quickRow);
@@ -206,7 +206,7 @@ function renderLogsShortcutPanel(guildSettings, guild) {
       .setCustomId('dash:return')
       .setLabel('Dashboard')
       .setStyle(ButtonStyle.Secondary)
-      .setEmoji('◀')
+      .setEmoji('◀️')
   );
 
   container.addActionRowComponents(chanRow, btnRow);
