@@ -1,6 +1,5 @@
 import {
   ContainerBuilder,
-  SectionBuilder,
   TextDisplayBuilder,
   SeparatorBuilder,
   SeparatorSpacingSize,
@@ -14,35 +13,19 @@ import {
 import { getTempChannel } from '../../db/voice.js';
 
 /**
- * Builds the Components V2 room control container
- * @param {object} params
- * @param {import('discord.js').VoiceChannel} params.channel
- * @param {string} params.ownerId
- * @param {boolean} [params.isLocked=false]
- * @param {boolean} [params.isHidden=false]
- * @param {boolean} [params.ttsEnabled=true]
+ * Builds the Components V2 Voice Manager card matching the reference screenshot
+ * @param {object} [options]
+ * @param {string} [options.targetId='common'] The channel ID or 'common' for lobby panel
  * @returns {{ components: [ContainerBuilder], flags: number }}
  */
-export function buildControlCard({
-  channel,
-  ownerId,
-  isLocked = false,
-  isHidden = false,
-  ttsEnabled = true
-}) {
-  const memberCount = channel?.members?.size ?? 0;
-  const userLimit = channel?.userLimit ?? 0;
-  const limitText = userLimit === 0 ? 'Unlimited (0)' : `${userLimit}`;
-  const bitrateKbps = Math.round((channel?.bitrate ?? 64000) / 1000);
-  const channelId = channel.id;
-
+export function buildVoiceManagerCard({ targetId = 'common' } = {}) {
   const container = new ContainerBuilder();
 
-  // 1. Header Section
+  // 1. Header Section: Title & Quote
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `## 🎙️ Room Controls — ${channel.name}\n` +
-      `Manage your temporary voice room settings, participant access, and text-to-speech below.`
+      '# Voice Manager\n' +
+      '> Join the creator channel to get your own private voice room.'
     )
   );
 
@@ -50,127 +33,84 @@ export function buildControlCard({
     new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
   );
 
-  // 2. Info Status Block
-  const lockStatus = isLocked ? '🔒 **Locked**' : '🔓 **Unlocked**';
-  const hideStatus = isHidden ? '👁️ **Hidden**' : '👁️‍🗨️ **Visible**';
-  const ttsStatus = ttsEnabled ? '🔊 **Enabled**' : '🔇 **Disabled**';
-
+  // 2. Member Controls Section
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `👑 **Room Owner:** <@${ownerId}>\n` +
-      `👥 **Members:** \`${memberCount}\` · 🛑 **Limit:** \`${limitText}\` · ⚡ **Bitrate:** \`${bitrateKbps} kbps\`\n` +
-      `🛡️ **Status:** ${lockStatus} · ${hideStatus} · ${ttsStatus}`
+      '### Member Controls\n' +
+      'Manage who can stay in your channel.'
     )
   );
 
-  container.addSeparatorComponents(
-    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-  );
-
-  // 3. Row 1: Primary Owner Controls (Buttons)
-  const row1 = new ActionRowBuilder().addComponents(
+  // 3. Member Controls Action: Disconnect Users Button
+  const memberRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId(`fb:jtc:rename:${channelId}`)
-      .setLabel('Rename')
-      .setEmoji('✏️')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId(`fb:jtc:limit:${channelId}`)
-      .setLabel('Limit')
-      .setEmoji('👥')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId(`fb:jtc:lock:${channelId}`)
-      .setLabel(isLocked ? 'Unlock' : 'Lock')
-      .setEmoji(isLocked ? '🔓' : '🔒')
-      .setStyle(isLocked ? ButtonStyle.Success : ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId(`fb:jtc:hide:${channelId}`)
-      .setLabel(isHidden ? 'Unhide' : 'Hide')
-      .setEmoji(isHidden ? '👁️‍🗨️' : '👁️')
-      .setStyle(isHidden ? ButtonStyle.Success : ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId(`fb:jtc:reset:${channelId}`)
-      .setLabel('Reset')
-      .setEmoji('🔄')
-      .setStyle(ButtonStyle.Danger)
-  );
-
-  // 4. Row 2: Participant Management (Buttons opening user selects/modals)
-  const row2 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`fb:jtc:kick:${channelId}`)
-      .setLabel('Kick')
-      .setEmoji('👢')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId(`fb:jtc:permit:${channelId}`)
-      .setLabel('Permit')
-      .setEmoji('🟢')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId(`fb:jtc:reject:${channelId}`)
-      .setLabel('Reject')
-      .setEmoji('🔴')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId(`fb:jtc:transfer:${channelId}`)
-      .setLabel('Transfer')
-      .setEmoji('👑')
+      .setCustomId(`fb:jtc:disconnect:${targetId}`)
+      .setLabel('Disconnect Users')
+      .setEmoji('↪️')
       .setStyle(ButtonStyle.Secondary)
   );
+  container.addActionRowComponents(memberRow);
 
-  // 5. Row 3: Bitrate Dropdown Select Menu
-  const bitrateSelect = new StringSelectMenuBuilder()
-    .setCustomId(`fb:jtc:bitrate_sel:${channelId}`)
-    .setPlaceholder(`Change Audio Bitrate (${bitrateKbps} kbps)`)
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+  );
+
+  // 4. Customization Section
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      'Customize and personalize your voice channel experience'
+    )
+  );
+
+  // 5. Actions Dropdown Select Menu (8 distinct options matching screenshots 2 & 3)
+  const actionSelect = new StringSelectMenuBuilder()
+    .setCustomId(`fb:jtc:action_sel:${targetId}`)
+    .setPlaceholder('Select an action...')
     .addOptions(
       new StringSelectMenuOptionBuilder()
-        .setLabel('64 kbps (Standard)')
-        .setDescription('Standard audio quality suitable for speech')
-        .setValue('64000')
-        .setDefault(bitrateKbps === 64),
+        .setLabel('Lock Your Channel')
+        .setDescription('Prevent others from joining your channel')
+        .setValue('lock')
+        .setEmoji('🔒'),
       new StringSelectMenuOptionBuilder()
-        .setLabel('96 kbps (High Quality)')
-        .setDescription('High definition voice clarity')
-        .setValue('96000')
-        .setDefault(bitrateKbps === 96),
+        .setLabel('Unlock Your Channel')
+        .setDescription('Allow others to join your channel')
+        .setValue('unlock')
+        .setEmoji('🔓'),
       new StringSelectMenuOptionBuilder()
-        .setLabel('128 kbps (Ultra Quality)')
-        .setDescription('Ultra clear for music & crisp voice')
-        .setValue('128000')
-        .setDefault(bitrateKbps === 128),
+        .setLabel('Hide Your Channel')
+        .setDescription('Make your channel invisible in the list')
+        .setValue('hide')
+        .setEmoji('🙈'),
       new StringSelectMenuOptionBuilder()
-        .setLabel('32 kbps (Bandwidth Saver)')
-        .setDescription('Low data usage mode')
-        .setValue('32000')
-        .setDefault(bitrateKbps === 32)
+        .setLabel('Reveal Your Channel')
+        .setDescription('Make your channel visible to everyone')
+        .setValue('reveal')
+        .setEmoji('👁️'),
+      new StringSelectMenuOptionBuilder()
+        .setLabel('Delete Your Channel')
+        .setDescription('Permanently delete your voice channel')
+        .setValue('delete')
+        .setEmoji('🗑️'),
+      new StringSelectMenuOptionBuilder()
+        .setLabel('Rename Your Channel')
+        .setDescription('Give your channel a new name')
+        .setValue('rename')
+        .setEmoji('✏️'),
+      new StringSelectMenuOptionBuilder()
+        .setLabel('Set Channel Bitrate')
+        .setDescription('Adjust the audio quality of your channel')
+        .setValue('bitrate')
+        .setEmoji('🌐'),
+      new StringSelectMenuOptionBuilder()
+        .setLabel('Set User Limit')
+        .setDescription('Limit how many users can join your channel')
+        .setValue('limit')
+        .setEmoji('👥')
     );
-  const row3 = new ActionRowBuilder().addComponents(bitrateSelect);
 
-  // 6. Row 4: Everyone Actions (Claim, TTS toggle, User TTS prefs)
-  const row4 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`fb:jtc:claim:${channelId}`)
-      .setLabel('Claim Room')
-      .setEmoji('🙋')
-      .setStyle(ButtonStyle.Primary),
-    new ButtonBuilder()
-      .setCustomId(`fb:jtc:tts_room:${channelId}`)
-      .setLabel(ttsEnabled ? 'Mute Room TTS' : 'Unmute Room TTS')
-      .setEmoji(ttsEnabled ? '🔇' : '🔊')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId(`fb:jtc:tts_me:${channelId}`)
-      .setLabel('My TTS')
-      .setEmoji('🎧')
-      .setStyle(ButtonStyle.Secondary)
-  );
-
-  container.addActionRowComponents(row1);
-  container.addActionRowComponents(row2);
-  container.addActionRowComponents(row3);
-  container.addActionRowComponents(row4);
+  const actionRow = new ActionRowBuilder().addComponents(actionSelect);
+  container.addActionRowComponents(actionRow);
 
   return {
     components: [container],
@@ -179,7 +119,30 @@ export function buildControlCard({
 }
 
 /**
+ * Builds the Components V2 room control container for an active channel
+ * @param {object} params
+ * @param {import('discord.js').VoiceChannel} [params.channel]
+ * @returns {{ components: [ContainerBuilder], flags: number }}
+ */
+export function buildControlCard({ channel } = {}) {
+  const targetId = channel?.id || 'common';
+  return buildVoiceManagerCard({ targetId });
+}
+
+/**
+ * Builds the persistent Common Voice Room Control Card for the server
+ * Any VC creator connected to their room can use this panel to manage their specific channel.
+ * @param {object} [options]
+ * @returns {{ components: [ContainerBuilder], flags: number }}
+ */
+export function buildCommonControlCard({ guild, client } = {}) {
+  return buildVoiceManagerCard({ targetId: 'common' });
+}
+
+/**
  * Updates an active room control message in place
+ * @param {import('discord.js').VoiceChannel} channel
+ * @returns {Promise<import('discord.js').Message|null>}
  */
 export async function refreshControlMessage(channel) {
   const record = await getTempChannel(channel.id);
@@ -190,13 +153,7 @@ export async function refreshControlMessage(channel) {
     const msg = await controlChannel.messages.fetch(record.control_message_id).catch(() => null);
     if (!msg) return null;
 
-    const payload = buildControlCard({
-      channel,
-      ownerId: record.owner_id,
-      isLocked: record.is_locked,
-      isHidden: record.is_hidden,
-      ttsEnabled: record.tts_enabled
-    });
+    const payload = buildControlCard({ channel });
 
     await msg.edit(payload);
     return msg;
@@ -205,145 +162,4 @@ export async function refreshControlMessage(channel) {
   }
 }
 
-/**
- * Builds the persistent Common Voice Room Control Card for the server
- * Any VC creator connected to their room can use this panel to manage their specific channel.
- */
-export function buildCommonControlCard({ guild, client } = {}) {
-  const container = new ContainerBuilder();
-
-  // 1. Header Section
-  container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(
-      `## 🎛️ Voice Channel Controls\n` +
-      `Manage your temporary voice room settings, participant access, and audio quality.`
-    )
-  );
-
-  container.addSeparatorComponents(
-    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-  );
-
-  // 2. Info Instructions
-  container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(
-      `### 📌 How to Manage Your Room\n` +
-      `• **Connect First:** Join your temporary voice room before clicking the buttons.\n` +
-      `• **Customization:** Rename, adjust user limits, lock/unlock, or select audio bitrate.\n` +
-      `• **Access Control:** Permit or reject members, kick disruptive users, or transfer ownership.\n` +
-      `• **Claiming:** If the room creator leaves the voice channel, anyone inside can tap **Claim Room**.\n\n` +
-      `-# ⚡ *Controls automatically apply to whichever temporary voice room you are currently inside.*`
-    )
-  );
-
-  container.addSeparatorComponents(
-    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-  );
-
-  // 3. Row 1: Primary Owner Controls (Buttons)
-  const row1 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('fb:jtc:rename:common')
-      .setLabel('Rename')
-      .setEmoji('✏️')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId('fb:jtc:limit:common')
-      .setLabel('Limit')
-      .setEmoji('👥')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId('fb:jtc:lock:common')
-      .setLabel('Lock / Unlock')
-      .setEmoji('🔒')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId('fb:jtc:hide:common')
-      .setLabel('Hide / Unhide')
-      .setEmoji('👁️')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId('fb:jtc:reset:common')
-      .setLabel('Reset')
-      .setEmoji('🔄')
-      .setStyle(ButtonStyle.Danger)
-  );
-
-  // 4. Row 2: Member Management
-  const row2 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('fb:jtc:kick:common')
-      .setLabel('Kick')
-      .setEmoji('👢')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId('fb:jtc:permit:common')
-      .setLabel('Permit')
-      .setEmoji('🟢')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId('fb:jtc:reject:common')
-      .setLabel('Reject')
-      .setEmoji('🔴')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId('fb:jtc:transfer:common')
-      .setLabel('Transfer')
-      .setEmoji('👑')
-      .setStyle(ButtonStyle.Secondary)
-  );
-
-  // 5. Row 3: Bitrate Dropdown Select Menu
-  const bitrateSelect = new StringSelectMenuBuilder()
-    .setCustomId('fb:jtc:bitrate_sel:common')
-    .setPlaceholder('Adjust Voice Channel Audio Bitrate')
-    .addOptions(
-      new StringSelectMenuOptionBuilder()
-        .setLabel('64 kbps (Standard)')
-        .setDescription('Standard audio quality suitable for speech')
-        .setValue('64000'),
-      new StringSelectMenuOptionBuilder()
-        .setLabel('96 kbps (High Quality)')
-        .setDescription('High definition voice clarity')
-        .setValue('96000'),
-      new StringSelectMenuOptionBuilder()
-        .setLabel('128 kbps (Ultra Quality)')
-        .setDescription('Ultra clear for music & crisp voice')
-        .setValue('128000'),
-      new StringSelectMenuOptionBuilder()
-        .setLabel('32 kbps (Bandwidth Saver)')
-        .setDescription('Low data usage mode')
-        .setValue('32000')
-    );
-  const row3 = new ActionRowBuilder().addComponents(bitrateSelect);
-
-  // 6. Row 4: Everyone Actions (Claim, TTS room toggle, User TTS prefs)
-  const row4 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('fb:jtc:claim:common')
-      .setLabel('Claim Room')
-      .setEmoji('🙋')
-      .setStyle(ButtonStyle.Primary),
-    new ButtonBuilder()
-      .setCustomId('fb:jtc:tts_room:common')
-      .setLabel('Room TTS')
-      .setEmoji('🔊')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId('fb:jtc:tts_me:common')
-      .setLabel('My TTS')
-      .setEmoji('🎧')
-      .setStyle(ButtonStyle.Secondary)
-  );
-
-  container.addActionRowComponents(row1);
-  container.addActionRowComponents(row2);
-  container.addActionRowComponents(row3);
-  container.addActionRowComponents(row4);
-
-  return {
-    components: [container],
-    flags: MessageFlags.IsComponentsV2
-  };
-}
 

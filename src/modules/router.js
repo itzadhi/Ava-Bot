@@ -465,6 +465,204 @@ async function routeJTCInteraction(interaction, action, channelId) {
     });
   }
 
+  // ── VOICE MANAGER ACTIONS DROPDOWN (8 ACTIONS) ──
+  if (action === 'action_sel') {
+    const selectedAction = interaction.values?.[0];
+
+    // 1. Lock Your Channel
+    if (selectedAction === 'lock') {
+      await interaction.deferUpdate().catch(() => {});
+      await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+        Connect: false
+      }).catch(err => logger.warn({ err }, 'Error setting lock overwrite'));
+
+      await updateTempChannel(resolvedChannelId, { is_locked: true });
+      await refreshControlMessage(channel);
+
+      return interaction.followUp({
+        content: `🔒 **${channel.name}** is now **Locked**. Others are prevented from joining.`,
+        flags: MessageFlags.Ephemeral
+      });
+    }
+
+    // 2. Unlock Your Channel
+    if (selectedAction === 'unlock') {
+      await interaction.deferUpdate().catch(() => {});
+      await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+        Connect: true
+      }).catch(err => logger.warn({ err }, 'Error setting unlock overwrite'));
+
+      await updateTempChannel(resolvedChannelId, { is_locked: false });
+      await refreshControlMessage(channel);
+
+      return interaction.followUp({
+        content: `🔓 **${channel.name}** is now **Unlocked**. Others can now join.`,
+        flags: MessageFlags.Ephemeral
+      });
+    }
+
+    // 3. Hide Your Channel
+    if (selectedAction === 'hide') {
+      await interaction.deferUpdate().catch(() => {});
+      await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+        ViewChannel: false
+      }).catch(err => logger.warn({ err }, 'Error setting hide overwrite'));
+
+      await updateTempChannel(resolvedChannelId, { is_hidden: true });
+      await refreshControlMessage(channel);
+
+      return interaction.followUp({
+        content: `🙈 **${channel.name}** is now **Hidden**. It is invisible in the server list.`,
+        flags: MessageFlags.Ephemeral
+      });
+    }
+
+    // 4. Reveal Your Channel
+    if (selectedAction === 'reveal') {
+      await interaction.deferUpdate().catch(() => {});
+      await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+        ViewChannel: true
+      }).catch(err => logger.warn({ err }, 'Error setting reveal overwrite'));
+
+      await updateTempChannel(resolvedChannelId, { is_hidden: false });
+      await refreshControlMessage(channel);
+
+      return interaction.followUp({
+        content: `👁️ **${channel.name}** is now **Revealed**. It is visible to everyone.`,
+        flags: MessageFlags.Ephemeral
+      });
+    }
+
+    // 5. Delete Your Channel
+    if (selectedAction === 'delete') {
+      await interaction.reply({
+        content: `🗑️ Permanently deleting **${channel.name}**...`,
+        flags: MessageFlags.Ephemeral
+      });
+
+      await deleteTempChannel(resolvedChannelId);
+      await channel.delete('Permanently deleted by room owner via Voice Manager').catch(err => {
+        logger.warn({ err, channelId: resolvedChannelId }, 'Failed to delete voice channel');
+      });
+      return;
+    }
+
+    // 6. Rename Your Channel
+    if (selectedAction === 'rename') {
+      const modal = new ModalBuilder()
+        .setCustomId(`fb:jtc:rename_mod:${resolvedChannelId}`)
+        .setTitle('Rename Your Channel');
+
+      const nameInput = new TextInputBuilder()
+        .setCustomId('channel_name')
+        .setLabel('New Channel Name')
+        .setStyle(TextInputStyle.Short)
+        .setValue(channel.name)
+        .setRequired(true)
+        .setMinLength(1)
+        .setMaxLength(100);
+
+      modal.addComponents(new ActionRowBuilder().addComponents(nameInput));
+      return interaction.showModal(modal);
+    }
+
+    // 7. Set Channel Bitrate
+    if (selectedAction === 'bitrate') {
+      const bitrateKbps = Math.round((channel?.bitrate ?? 64000) / 1000);
+      const bitrateSelect = new StringSelectMenuBuilder()
+        .setCustomId(`fb:jtc:bitrate_exec:${resolvedChannelId}`)
+        .setPlaceholder(`Select Bitrate (Current: ${bitrateKbps} kbps)`)
+        .addOptions(
+          new StringSelectMenuOptionBuilder()
+            .setLabel('64 kbps (Standard)')
+            .setDescription('Standard audio quality suitable for speech')
+            .setValue('64000')
+            .setDefault(bitrateKbps === 64)
+            .setEmoji('🌐'),
+          new StringSelectMenuOptionBuilder()
+            .setLabel('96 kbps (High Quality)')
+            .setDescription('High definition voice clarity')
+            .setValue('96000')
+            .setDefault(bitrateKbps === 96)
+            .setEmoji('🌐'),
+          new StringSelectMenuOptionBuilder()
+            .setLabel('128 kbps (Ultra Quality)')
+            .setDescription('Ultra clear for music & crisp voice')
+            .setValue('128000')
+            .setDefault(bitrateKbps === 128)
+            .setEmoji('🌐'),
+          new StringSelectMenuOptionBuilder()
+            .setLabel('32 kbps (Bandwidth Saver)')
+            .setDescription('Low data usage mode')
+            .setValue('32000')
+            .setDefault(bitrateKbps === 32)
+            .setEmoji('🌐')
+        );
+
+      const row = new ActionRowBuilder().addComponents(bitrateSelect);
+      return interaction.reply({
+        content: `🌐 **Set Channel Bitrate:** Choose audio quality for **${channel.name}**:`,
+        components: [row],
+        flags: MessageFlags.Ephemeral
+      });
+    }
+
+    // 8. Set User Limit
+    if (selectedAction === 'limit') {
+      const modal = new ModalBuilder()
+        .setCustomId(`fb:jtc:limit_mod:${resolvedChannelId}`)
+        .setTitle('Set User Limit');
+
+      const limitInput = new TextInputBuilder()
+        .setCustomId('user_limit')
+        .setLabel('User Limit (0-99, 0 = Unlimited)')
+        .setStyle(TextInputStyle.Short)
+        .setValue(String(channel.userLimit))
+        .setRequired(true)
+        .setMinLength(1)
+        .setMaxLength(2);
+
+      modal.addComponents(new ActionRowBuilder().addComponents(limitInput));
+      return interaction.showModal(modal);
+    }
+  }
+
+  // ── DISCONNECT USERS (BUTTON & SELECTION) ──
+  if (action === 'disconnect') {
+    const disconnectable = channel.members?.filter
+      ? channel.members.filter(m => m.id !== interaction.user.id && !m.user.bot)
+      : new Map();
+
+    if (disconnectable.size === 0) {
+      return interaction.reply({
+        content: `ℹ️ There are no other members in **${channel.name}** to disconnect.`,
+        flags: MessageFlags.Ephemeral
+      });
+    }
+
+    const userSelect = new UserSelectMenuBuilder()
+      .setCustomId(`fb:jtc:disconnect_exec:${resolvedChannelId}`)
+      .setPlaceholder('Select member to disconnect...');
+
+    const row = new ActionRowBuilder().addComponents(userSelect);
+    return interaction.reply({
+      content: `Select a member below to **disconnect** from **${channel.name}**:`,
+      components: [row],
+      flags: MessageFlags.Ephemeral
+    });
+  }
+
+  if (action === 'disconnect_exec') {
+    const targetUserId = interaction.values[0];
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const targetMember = channel.members?.get?.(targetUserId);
+    if (targetMember && targetMember.voice) {
+      await targetMember.voice.disconnect('Disconnected by room owner').catch(() => {});
+      return interaction.editReply({ content: `↪️ Disconnected <@${targetUserId}> from **${channel.name}**.` });
+    }
+    return interaction.editReply({ content: `⚠️ <@${targetUserId}> is not currently in **${channel.name}**.` });
+  }
+
   // OWNER ACTION: RENAME MODAL OPEN
   if (action === 'rename') {
     const modal = new ModalBuilder()

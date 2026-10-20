@@ -90,7 +90,14 @@ test('JTC: Room Control Card strictly conforms to Components V2 standards', () =
 
   const containerJson = payload.components[0].toJSON();
   assert.ok(containerJson.components.length <= 40, 'Total components must not exceed 40');
+  assert.equal(containerJson.accent_color, undefined, 'Must not have accent color');
   assert.ok(containerJson.components.some(c => c.type === 1), 'Container must have ActionRow components');
+
+  // Verify Voice Manager header and quote
+  const textDisplays = containerJson.components.filter(c => c.type === 10);
+  assert.ok(textDisplays.some(t => t.content?.includes('# Voice Manager')), 'Header must have Voice Manager title');
+  assert.ok(textDisplays.some(t => t.content?.includes('> Join the creator channel')), 'Header must have creator quote');
+  assert.ok(textDisplays.some(t => t.content?.includes('Member Controls')), 'Must have Member Controls heading');
 
   // Verify common control card builder
   const commonPayload = buildCommonControlCard();
@@ -98,8 +105,23 @@ test('JTC: Room Control Card strictly conforms to Components V2 standards', () =
   assert.equal(commonPayload.components.length, 1);
   const commonJson = commonPayload.components[0].toJSON();
   const commonRows = commonJson.components.filter(c => c.type === 1);
-  assert.ok(commonRows.length >= 3, 'Common panel must have multiple ActionRows');
-  assert.ok(commonRows[0].components.some(b => b.custom_id.includes(':common')), 'Buttons must use common identifier');
+  assert.ok(commonRows.length >= 2, 'Common panel must have multiple ActionRows (disconnect button + action dropdown)');
+
+  // Verify Disconnect button
+  const disconnectBtn = commonRows[0].components.find(b => b.custom_id?.includes(':disconnect:common'));
+  assert.ok(disconnectBtn, 'Buttons must include Disconnect Users with :common');
+  assert.equal(disconnectBtn.label, 'Disconnect Users');
+
+  // Verify Action Select Menu and 8 exact options
+  const actionMenu = commonRows[1].components.find(s => s.custom_id?.includes(':action_sel:common'));
+  assert.ok(actionMenu, 'Must have action_sel select menu with :common');
+  assert.equal(actionMenu.placeholder, 'Select an action...');
+  assert.equal(actionMenu.options.length, 8, 'Must have exactly 8 action options matching screenshots');
+
+  const expectedValues = ['lock', 'unlock', 'hide', 'reveal', 'delete', 'rename', 'bitrate', 'limit'];
+  for (const val of expectedValues) {
+    assert.ok(actionMenu.options.some(opt => opt.value === val), `Must have option for ${val}`);
+  }
 
   // Verify Suggestion and Feedback are removed from both cards
   const allCardButtons = containerJson.components
@@ -341,6 +363,52 @@ test('Router: correctly intercepts fb:* and ignores non-fb customIds', async () 
   const jtcHandled = await handleFeedbackVoiceInteraction(mockJtcInteraction);
   assert.equal(jtcHandled, true);
   assert.ok(jtcFollowUp && jtcFollowUp.includes('My Lounge'), 'Should manage that particular voice channel from common panel');
+
+  // Verify Voice Manager action_sel routing (Lock)
+  let actionFollowUp = null;
+  const mockActionInteraction = {
+    customId: 'fb:jtc:action_sel:common',
+    guildId: 'guild_common_test',
+    user: { id: 'user_creator_1' },
+    member: {
+      voice: { channel: { id: 'vc_creator_1', name: 'My Lounge' } }
+    },
+    guild: mockJtcInteraction.guild,
+    values: ['lock'],
+    deferUpdate: async () => {},
+    followUp: async (data) => { actionFollowUp = data.content || JSON.stringify(data); }
+  };
+
+  const actionHandled = await handleFeedbackVoiceInteraction(mockActionInteraction);
+  assert.equal(actionHandled, true);
+  assert.ok(actionFollowUp && actionFollowUp.includes('Locked'), 'action_sel lock must lock the channel');
+
+  // Verify Disconnect button routing
+  let disconnectReply = null;
+  const mockDisconnectInteraction = {
+    customId: 'fb:jtc:disconnect:common',
+    guildId: 'guild_common_test',
+    user: { id: 'user_creator_1' },
+    member: {
+      voice: { channel: { id: 'vc_creator_1', name: 'My Lounge' } }
+    },
+    guild: {
+      channels: {
+        cache: new Map([
+          ['vc_creator_1', {
+            id: 'vc_creator_1',
+            name: 'My Lounge',
+            members: new Map()
+          }]
+        ])
+      }
+    },
+    reply: async (data) => { disconnectReply = data.content || JSON.stringify(data); }
+  };
+
+  const disconnectHandled = await handleFeedbackVoiceInteraction(mockDisconnectInteraction);
+  assert.equal(disconnectHandled, true);
+  assert.ok(disconnectReply && disconnectReply.includes('no other members'), 'Should notify if no members to disconnect');
 });
 
 test('Suggestions & Threads: postSuggestionMessage creates V2 card and starts public thread', async () => {
