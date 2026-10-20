@@ -182,3 +182,63 @@ export default {
 - **Mentions Shield**: All cards automatically set `allowedMentions: { parse: [] }` to prevent user ping injection.
 - **Markdown Sanitization**: `format.escapeMarkdown(text)` escapes user input so custom names or reasons cannot break card formatting.
 - **Safety Truncation**: `format.truncate(text, max)` avoids splitting code blocks or Discord mention tags.
+
+---
+
+## 🎫 Ticket Support System
+
+Argoni includes an enterprise-grade ticket system built with 100% Components V2 container cards, rich Discord markdown, atomic sequential numbering, and complete in-ticket controls.
+
+### 🚀 Quick Setup & Database Migration
+1. Open your [Supabase Dashboard](https://supabase.com/dashboard) and navigate to the **SQL Editor**.
+2. Run the SQL migration located at:
+   ```
+   supabase/migrations/009_ticket_system.sql
+   ```
+3. This creates all necessary tables with Row-Level Security (`ticket_settings`, `ticket_panels`, `ticket_categories`, `ticket_questions`, `tickets`, `ticket_notes`, `ticket_ratings`, `ticket_blacklist`, `ticket_macros`, `ticket_transcripts`, `ticket_counters`) and the atomic counter RPC `next_ticket_number(p_guild_id)`.
+
+### 🛡️ Required Bot Permissions
+Ensure the bot has the following permissions in your server:
+- **Manage Channels** — To create private ticket channels, set category channel permissions, and delete closed channels.
+- **Manage Roles** — To apply private permission overwrites for ticket owners and support roles.
+- **View Channel & Send Messages** — To communicate in tickets and log channels.
+- **Attach Files** — To deliver standalone dark-mode HTML transcripts.
+- **Read Message History** — To generate complete transcripts of closed tickets.
+
+### 📌 How to Create & Publish a Ticket Panel
+1. Use `/ticket panel` or `a!ticket panel` (requires `Manage Server`).
+2. Click **Create Panel** and enter your desired title and description.
+3. Configure the panel style:
+   - **Buttons** — Direct category buttons per department.
+   - **Dropdown Select** — Interactive string select menu supporting unlimited categories.
+4. Select the destination channel from the dropdown to publish the persistent Components V2 card.
+
+### ⚙️ How to Configure Settings
+- Run `/ticket settings` or `/panel` and select **Ticket System**.
+- **General**: Enable/disable system, select ticket type (channels or threads), naming format, and user open limits.
+- **Staff Roles**: Select global support and admin roles.
+- **Channels**: Configure dedicated channels for audit event logs and closed ticket transcripts.
+- **Auto-Close**: Configure inactivity timeout hours (e.g. 24h, 48h) with automated advance warnings.
+- **Ratings**: Enable 1–5 star customer satisfaction ratings and feedback prompts upon ticket closure.
+- **Blacklist**: Restrict disruptive users or roles from opening new tickets.
+
+### 📋 Ticket Commands Reference
+
+| Command | Usage | Description | Permission |
+| :--- | :--- | :--- | :--- |
+| `/ticket panel` | `a!ticket panel` | Open panel creator and deployment dashboard | Manage Server |
+| `/ticket settings` | `a!ticket settings` | Open multi-tab interactive settings dashboard | Manage Server |
+| `/ticket stats` | `a!ticket stats` | Display server ticket volume, resolution rates & stats | Staff / Everyone |
+| `/ticket list` | `a!ticket list [status]` | View active server tickets filtered by status | Staff |
+| `/ticket info` | `a!ticket info` | Show metadata and internal notes for current ticket | Inside Ticket |
+| `/claim` | `a!claim` or `/ticket claim` | Claim or release claim on the current ticket channel | Support Staff |
+| `/close` | `a!close [reason]` | Close current ticket channel with optional reason | Owner / Staff |
+| `/reopen` | `a!reopen` | Reopen a closed ticket prior to automatic deletion | Support Staff |
+| `/ticket add` | `/ticket add [user] [role]` | Grant member or role access to the current ticket | Inside Ticket |
+| `/ticket remove` | `/ticket remove [user] [role]` | Revoke member or role access from the ticket | Support Staff |
+| `/ticket rename` | `/ticket rename <name>` | Rename the ticket channel | Support Staff |
+| `/ticket priority` | `/ticket priority <level>` | Set priority: `low`, `normal`, `high`, `urgent` | Support Staff |
+| `/ticket note` | `/ticket note <content>` | Add internal staff note saved in database record | Support Staff |
+| `/ticket blacklist`| `/ticket blacklist <add\|remove\|list>` | Restrict users/roles from creating tickets | Manage Server |
+| `/ticket macro` | `/ticket macro <use\|list\|add\|delete>`| Manage and trigger canned response templates | Staff |
+| `/ticket reviews`| `a!ticket reviews` | Display staff customer satisfaction leaderboard | Everyone |

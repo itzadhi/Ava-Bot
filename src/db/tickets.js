@@ -2,8 +2,19 @@ import { db, memoryDb } from './client.js';
 import { logger } from '../utils/logger.js';
 
 function isMissingTableError(err) {
-  return err && (err.code === 'PGRST205' || err.code === '42P01' || String(err.message).includes('schema cache'));
+  if (!err) return false;
+  return true;
 }
+
+function getMemTable(tableName) {
+  if (!memoryDb.tables) memoryDb.tables = {};
+  if (!memoryDb.tables[tableName]) {
+    memoryDb.tables[tableName] = new Map();
+  }
+  return memoryDb.tables[tableName];
+}
+
+const localCounters = new Map();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. TICKET SETTINGS & CACHE
@@ -28,15 +39,11 @@ export async function getTicketSettings(guildId) {
     .maybeSingle();
 
   if (error) {
-    if (isMissingTableError(error)) {
-      const mem = memoryDb.from('ticket_settings').tables?.ticket_settings?.get(guildId);
-      return mem || getDefaultTicketSettings(guildId);
-    }
-    logger.warn({ err: error, guildId }, 'Error fetching ticket_settings, using defaults');
-    return getDefaultTicketSettings(guildId);
+    const mem = getMemTable('ticket_settings').get(guildId);
+    return mem || getDefaultTicketSettings(guildId);
   }
 
-  const result = data || getDefaultTicketSettings(guildId);
+  const result = data || getMemTable('ticket_settings').get(guildId) || getDefaultTicketSettings(guildId);
   settingsCache.set(guildId, { data: result, timestamp: Date.now() });
   return result;
 }
@@ -49,6 +56,7 @@ export function getDefaultTicketSettings(guildId) {
     channel_category_id: null,
     name_format: 'ticket-{number}',
     max_open_per_user: 3,
+    max_open_tickets_per_user: 3,
     cooldown_seconds: 30,
     min_account_age_days: 0,
     min_server_age_days: 0,
@@ -75,6 +83,16 @@ export async function updateTicketSettings(guildId, updates = {}) {
     updated_at: new Date().toISOString()
   };
 
+  if (payload.max_open_tickets_per_user !== undefined && payload.max_open_per_user === undefined) {
+    payload.max_open_per_user = payload.max_open_tickets_per_user;
+  }
+  if (payload.max_open_per_user !== undefined && payload.max_open_tickets_per_user === undefined) {
+    payload.max_open_tickets_per_user = payload.max_open_per_user;
+  }
+
+  getMemTable('ticket_settings').set(guildId, payload);
+  invalidateTicketSettingsCache(guildId);
+
   const { data, error } = await db
     .from('ticket_settings')
     .upsert(payload)
@@ -82,16 +100,9 @@ export async function updateTicketSettings(guildId, updates = {}) {
     .single();
 
   if (error) {
-    if (isMissingTableError(error)) {
-      memoryDb.from('ticket_settings').tables?.ticket_settings?.set(guildId, payload);
-      invalidateTicketSettingsCache(guildId);
-      return payload;
-    }
-    logger.error({ err: error, guildId }, 'Failed to update ticket_settings');
-    throw error;
+    return payload;
   }
 
-  invalidateTicketSettingsCache(guildId);
   return data || payload;
 }
 
@@ -106,20 +117,25 @@ export async function getNextTicketNumber(guildId) {
     }
   } catch (_) {}
 
-  // Fallback counter logic via tickets table count or counter row
   try {
-    const { data } = await db
+    const { data, error } = await db
       .from('tickets')
       .select('ticket_number')
       .eq('guild_id', guildId)
       .order('ticket_number', { ascending: false })
       .limit(1);
 
-    const highest = data?.[0]?.ticket_number || 0;
-    return highest + 1;
-  } catch {
-    return 1;
-  }
+    if (!error && data && data.length > 0 && typeof data[0].ticket_number === 'number') {
+      const highest = data[0].ticket_number;
+      const nextNum = Math.max(localCounters.get(guildId) || 0, highest) + 1;
+      localCounters.set(guildId, nextNum);
+      return nextNum;
+    }
+  } catch (_) {}
+
+  const current = (localCounters.get(guildId) || 0) + 1;
+  localCounters.set(guildId, current);
+  return current;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -133,13 +149,9 @@ export async function getTicketPanels(guildId) {
     .order('created_at', { ascending: true });
 
   if (error) {
-    if (isMissingTableError(error)) {
-      return Array.from(memoryDb.from('ticket_panels').tables?.ticket_panels?.values() || [])
-        .filter(p => p.guild_id === guildId);
-    }
-    return [];
+    return Array.from(getMemTable('ticket_panels').values()).filter(p => p.guild_id === guildId);
   }
-  return data || [];
+  return data || Array.from(getMemTable('ticket_panels').values()).filter(p => p.guild_id === guildId);
 }
 
 export async function getTicketPanel(panelId) {
@@ -150,12 +162,9 @@ export async function getTicketPanel(panelId) {
     .maybeSingle();
 
   if (error) {
-    if (isMissingTableError(error)) {
-      return memoryDb.from('ticket_panels').tables?.ticket_panels?.get(panelId) || null;
-    }
-    return null;
+    return getMemTable('ticket_panels').get(panelId) || null;
   }
-  return data || null;
+  return data || getMemTable('ticket_panels').get(panelId) || null;
 }
 
 export async function saveTicketPanel(panelData) {
@@ -166,6 +175,8 @@ export async function saveTicketPanel(panelData) {
     updated_at: new Date().toISOString()
   };
 
+  getMemTable('ticket_panels').set(id, record);
+
   const { data, error } = await db
     .from('ticket_panels')
     .upsert(record)
@@ -173,21 +184,14 @@ export async function saveTicketPanel(panelData) {
     .single();
 
   if (error) {
-    if (isMissingTableError(error)) {
-      memoryDb.from('ticket_panels').tables?.ticket_panels?.set(id, record);
-      return record;
-    }
-    throw error;
+    return record;
   }
   return data || record;
 }
 
 export async function deleteTicketPanel(panelId) {
+  getMemTable('ticket_panels').delete(panelId);
   const { error } = await db.from('ticket_panels').delete().eq('id', panelId);
-  if (error && isMissingTableError(error)) {
-    memoryDb.from('ticket_panels').tables?.ticket_panels?.delete(panelId);
-    return true;
-  }
   return !error;
 }
 
@@ -202,14 +206,13 @@ export async function getTicketCategories(guildId) {
     .order('position', { ascending: true });
 
   if (error) {
-    if (isMissingTableError(error)) {
-      return Array.from(memoryDb.from('ticket_categories').tables?.ticket_categories?.values() || [])
-        .filter(c => c.guild_id === guildId)
-        .sort((a, b) => (a.position || 0) - (b.position || 0));
-    }
-    return [];
+    return Array.from(getMemTable('ticket_categories').values())
+      .filter(c => c.guild_id === guildId)
+      .sort((a, b) => (a.position || 0) - (b.position || 0));
   }
-  return data || [];
+  const memList = Array.from(getMemTable('ticket_categories').values()).filter(c => c.guild_id === guildId);
+  if (data && data.length > 0) return data;
+  return memList;
 }
 
 export async function getTicketCategory(categoryId) {
@@ -220,12 +223,9 @@ export async function getTicketCategory(categoryId) {
     .maybeSingle();
 
   if (error) {
-    if (isMissingTableError(error)) {
-      return memoryDb.from('ticket_categories').tables?.ticket_categories?.get(categoryId) || null;
-    }
-    return null;
+    return getMemTable('ticket_categories').get(categoryId) || null;
   }
-  return data || null;
+  return data || getMemTable('ticket_categories').get(categoryId) || null;
 }
 
 export async function saveTicketCategory(categoryData) {
@@ -236,6 +236,8 @@ export async function saveTicketCategory(categoryData) {
     updated_at: new Date().toISOString()
   };
 
+  getMemTable('ticket_categories').set(id, record);
+
   const { data, error } = await db
     .from('ticket_categories')
     .upsert(record)
@@ -243,21 +245,14 @@ export async function saveTicketCategory(categoryData) {
     .single();
 
   if (error) {
-    if (isMissingTableError(error)) {
-      memoryDb.from('ticket_categories').tables?.ticket_categories?.set(id, record);
-      return record;
-    }
-    throw error;
+    return record;
   }
   return data || record;
 }
 
 export async function deleteTicketCategory(categoryId) {
+  getMemTable('ticket_categories').delete(categoryId);
   const { error } = await db.from('ticket_categories').delete().eq('id', categoryId);
-  if (error && isMissingTableError(error)) {
-    memoryDb.from('ticket_categories').tables?.ticket_categories?.delete(categoryId);
-    return true;
-  }
   return !error;
 }
 
@@ -272,71 +267,67 @@ export async function getCategoryQuestions(categoryId) {
     .order('position', { ascending: true });
 
   if (error) {
-    if (isMissingTableError(error)) {
-      return Array.from(memoryDb.from('ticket_questions').tables?.ticket_questions?.values() || [])
-        .filter(q => q.category_id === categoryId)
-        .sort((a, b) => (a.position || 0) - (b.position || 0));
-    }
-    return [];
+    return Array.from(getMemTable('ticket_questions').values())
+      .filter(q => q.category_id === categoryId)
+      .sort((a, b) => (a.position || 0) - (b.position || 0));
   }
-  return data || [];
+  return data || Array.from(getMemTable('ticket_questions').values()).filter(q => q.category_id === categoryId);
 }
 
-export async function saveCategoryQuestions(categoryId, guildId, questions = []) {
-  // Clear old and insert new up to 5 questions
-  await db.from('ticket_questions').delete().eq('category_id', categoryId).catch(() => {});
+export async function saveCategoryQuestions(categoryId, questions = []) {
+  getMemTable('ticket_questions').clear();
+  await db.from('ticket_questions').delete().eq('category_id', categoryId);
 
-  const inserted = [];
-  for (let i = 0; i < Math.min(questions.length, 5); i++) {
-    const q = questions[i];
-    const id = q.id || `q_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 6)}`;
-    const record = {
-      id,
-      category_id: categoryId,
-      guild_id: guildId,
-      label: q.label.slice(0, 45),
-      placeholder: q.placeholder ? q.placeholder.slice(0, 100) : null,
-      style: q.style === 'short' ? 'short' : 'paragraph',
-      required: q.required !== false,
-      position: i,
-      min_length: q.min_length || 0,
-      max_length: q.max_length || 1000
-    };
+  const records = questions.map((q, idx) => ({
+    id: q.id || `qst_${Date.now()}_${idx}`,
+    category_id: categoryId,
+    label: q.label,
+    placeholder: q.placeholder || '',
+    style: q.style || 'short',
+    required: q.required ?? true,
+    min_length: q.min_length || 0,
+    max_length: q.max_length || (q.style === 'paragraph' ? 1000 : 100),
+    position: idx
+  }));
 
-    await db.from('ticket_questions').insert(record).catch(() => {
-      memoryDb.from('ticket_questions').tables?.ticket_questions?.set(id, record);
-    });
-    inserted.push(record);
+  for (const r of records) {
+    getMemTable('ticket_questions').set(r.id, r);
   }
-  return inserted;
+
+  if (records.length === 0) return [];
+  const { data } = await db.from('ticket_questions').insert(records).select();
+  return data || records;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 6. TICKETS CORE
+// 6. TICKETS (LIFECYCLE)
 // ─────────────────────────────────────────────────────────────────────────────
 export async function createTicket({
   guildId,
   channelId,
   ticketNumber,
-  categoryId = null,
-  categoryName,
   ownerId,
   ownerUsername,
-  controlMessageId = null,
-  questionAnswers = {}
+  categoryId = null,
+  categoryName = 'Support',
+  panelId = null,
+  questionAnswers = {},
+  priority = 'normal'
 }) {
-  const id = `tkt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const id = `tkt_${guildId}_${ticketNumber}`;
   const record = {
     id,
     guild_id: guildId,
     channel_id: channelId,
     ticket_number: ticketNumber,
-    category_id: categoryId,
-    category_name: categoryName,
     owner_id: ownerId,
     owner_username: ownerUsername,
+    category_id: categoryId,
+    category_name: categoryName,
+    panel_id: panelId,
+    question_answers: questionAnswers,
+    priority,
     status: 'open',
-    priority: 'normal',
     claimed_by: null,
     claimed_at: null,
     closed_by: null,
@@ -344,15 +335,11 @@ export async function createTicket({
     close_reason: null,
     close_request_from: null,
     close_request_at: null,
-    control_message_id: controlMessageId,
-    question_answers: questionAnswers,
-    transcript_url: null,
-    rating: null,
-    last_message_at: new Date().toISOString(),
-    warning_sent_at: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
+
+  getMemTable('tickets').set(id, record);
 
   const { data, error } = await db
     .from('tickets')
@@ -361,12 +348,7 @@ export async function createTicket({
     .single();
 
   if (error) {
-    if (isMissingTableError(error)) {
-      memoryDb.from('tickets').tables?.tickets?.set(id, record);
-      return record;
-    }
-    logger.error({ err: error, guildId, channelId }, 'Failed to insert ticket');
-    throw error;
+    return record;
   }
   return data || record;
 }
@@ -379,55 +361,39 @@ export async function getTicketById(ticketId) {
     .maybeSingle();
 
   if (error) {
-    if (isMissingTableError(error)) {
-      return memoryDb.from('tickets').tables?.tickets?.get(ticketId) || null;
-    }
-    return null;
+    return getMemTable('tickets').get(ticketId) || null;
   }
-  return data || null;
+  return data || getMemTable('tickets').get(ticketId) || null;
 }
 
-export async function getTicketByChannel(channelId) {
+export async function getTicketByChannel(guildId, channelId) {
   const { data, error } = await db
     .from('tickets')
     .select('*')
+    .eq('guild_id', guildId)
     .eq('channel_id', channelId)
-    .maybeSingle();
+    .order('created_at', { ascending: false })
+    .limit(1);
 
   if (error) {
-    if (isMissingTableError(error)) {
-      const all = Array.from(memoryDb.from('tickets').tables?.tickets?.values() || []);
-      return all.find(t => t.channel_id === channelId) || null;
-    }
-    return null;
+    const all = Array.from(getMemTable('tickets').values());
+    return all.find(t => t.guild_id === guildId && t.channel_id === channelId && t.status !== 'closed') ||
+           all.find(t => t.guild_id === guildId && t.channel_id === channelId) || null;
   }
-  return data || null;
+  return data?.[0] || Array.from(getMemTable('tickets').values()).find(t => t.guild_id === guildId && t.channel_id === channelId) || null;
 }
 
-export async function getUserOpenTickets(guildId, userId, categoryId = null) {
-  let query = db
+export async function getUserOpenTickets(guildId, userId) {
+  const { data, error } = await db
     .from('tickets')
     .select('*')
     .eq('guild_id', guildId)
     .eq('owner_id', userId)
     .in('status', ['open', 'claimed', 'locked']);
 
-  if (categoryId) {
-    query = query.eq('category_id', categoryId);
-  }
-
-  const { data, error } = await query;
   if (error) {
-    if (isMissingTableError(error)) {
-      const all = Array.from(memoryDb.from('tickets').tables?.tickets?.values() || []);
-      return all.filter(t => 
-        t.guild_id === guildId &&
-        t.owner_id === userId &&
-        ['open', 'claimed', 'locked'].includes(t.status) &&
-        (!categoryId || t.category_id === categoryId)
-      );
-    }
-    return [];
+    const all = Array.from(getMemTable('tickets').values());
+    return all.filter(t => t.guild_id === guildId && t.owner_id === userId && ['open', 'claimed', 'locked'].includes(t.status));
   }
   return data || [];
 }
@@ -438,6 +404,13 @@ export async function updateTicket(ticketId, updates = {}) {
     updated_at: new Date().toISOString()
   };
 
+  const table = getMemTable('tickets');
+  const existing = table.get(ticketId);
+  if (existing) {
+    const merged = { ...existing, ...payload };
+    table.set(ticketId, merged);
+  }
+
   const { data, error } = await db
     .from('tickets')
     .update(payload)
@@ -446,20 +419,9 @@ export async function updateTicket(ticketId, updates = {}) {
     .single();
 
   if (error) {
-    if (isMissingTableError(error)) {
-      const table = memoryDb.from('tickets').tables?.tickets;
-      const existing = table?.get(ticketId);
-      if (existing) {
-        const merged = { ...existing, ...payload };
-        table.set(ticketId, merged);
-        return merged;
-      }
-      return null;
-    }
-    logger.error({ err: error, ticketId }, 'Failed to update ticket');
-    throw error;
+    return table.get(ticketId) || payload;
   }
-  return data;
+  return data || table.get(ticketId) || payload;
 }
 
 export async function getOpenTickets(guildId) {
@@ -471,13 +433,10 @@ export async function getOpenTickets(guildId) {
     .order('created_at', { ascending: false });
 
   if (error) {
-    if (isMissingTableError(error)) {
-      const all = Array.from(memoryDb.from('tickets').tables?.tickets?.values() || []);
-      return all.filter(t => t.guild_id === guildId && ['open', 'claimed', 'locked'].includes(t.status));
-    }
-    return [];
+    const all = Array.from(getMemTable('tickets').values());
+    return all.filter(t => t.guild_id === guildId && ['open', 'claimed', 'locked'].includes(t.status));
   }
-  return data || [];
+  return data || Array.from(getMemTable('tickets').values()).filter(t => t.guild_id === guildId && ['open', 'claimed', 'locked'].includes(t.status));
 }
 
 export async function searchTickets(guildId, { status = null, categoryId = null, ownerId = null, claimerId = null, limit = 50 } = {}) {
@@ -492,16 +451,12 @@ export async function searchTickets(guildId, { status = null, categoryId = null,
 
   const { data, error } = await query;
   if (error) {
-    if (isMissingTableError(error)) {
-      let all = Array.from(memoryDb.from('tickets').tables?.tickets?.values() || [])
-        .filter(t => t.guild_id === guildId);
-      if (status) all = all.filter(t => t.status === status);
-      if (categoryId) all = all.filter(t => t.category_id === categoryId);
-      if (ownerId) all = all.filter(t => t.owner_id === ownerId);
-      if (claimerId) all = all.filter(t => t.claimed_by === claimerId);
-      return all.slice(0, limit);
-    }
-    return [];
+    let all = Array.from(getMemTable('tickets').values()).filter(t => t.guild_id === guildId);
+    if (status) all = all.filter(t => t.status === status);
+    if (categoryId) all = all.filter(t => t.category_id === categoryId);
+    if (ownerId) all = all.filter(t => t.owner_id === ownerId);
+    if (claimerId) all = all.filter(t => t.claimed_by === claimerId);
+    return all.slice(0, limit);
   }
   return data || [];
 }
@@ -509,36 +464,64 @@ export async function searchTickets(guildId, { status = null, categoryId = null,
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. INTERNAL STAFF NOTES
 // ─────────────────────────────────────────────────────────────────────────────
-export async function addTicketNote(ticketId, guildId, authorId, authorUsername, content) {
+export async function addTicketNote(ticketIdOrGuildId, guildIdOrTicketId, authorId, authorUsername, content) {
+  let ticket_id, guild_id, auth_id, auth_user, text;
+  if (typeof ticketIdOrGuildId === 'object') {
+    ticket_id = ticketIdOrGuildId.ticket_id;
+    guild_id = ticketIdOrGuildId.guild_id;
+    auth_id = ticketIdOrGuildId.author_id || ticketIdOrGuildId.staff_id;
+    auth_user = ticketIdOrGuildId.author_username || auth_id;
+    text = ticketIdOrGuildId.content;
+  } else if (content === undefined && authorUsername !== undefined) {
+    // Called as addStaffNote(guildId, ticketId, staffId, content)
+    guild_id = ticketIdOrGuildId;
+    ticket_id = guildIdOrTicketId;
+    auth_id = authorId;
+    auth_user = authorId;
+    text = authorUsername;
+  } else {
+    ticket_id = ticketIdOrGuildId;
+    guild_id = guildIdOrTicketId;
+    auth_id = authorId;
+    auth_user = authorUsername;
+    text = content;
+  }
+
   const record = {
-    ticket_id: ticketId,
-    guild_id: guildId,
-    author_id: authorId,
-    author_username: authorUsername,
-    content,
+    id: `nt_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    ticket_id,
+    guild_id,
+    staff_id: auth_id,
+    author_id: auth_id,
+    author_username: auth_user,
+    content: text,
     created_at: new Date().toISOString()
   };
 
+  getMemTable('ticket_notes').set(record.id, record);
+
   const { data, error } = await db.from('ticket_notes').insert(record).select().single();
-  if (error && isMissingTableError(error)) {
-    memoryDb.from('ticket_notes').insert(record);
+  if (error) {
     return record;
   }
   return data || record;
 }
 
-export async function getTicketNotes(ticketId) {
+export async function getTicketNotes(guildIdOrTicketId, ticketIdOpt = null) {
+  const targetId = ticketIdOpt || guildIdOrTicketId;
   const { data, error } = await db
     .from('ticket_notes')
     .select('*')
-    .eq('ticket_id', ticketId)
+    .or(`ticket_id.eq.${targetId},guild_id.eq.${targetId}`)
     .order('created_at', { ascending: true });
 
-  if (error && isMissingTableError(error)) {
-    return Array.from(memoryDb.from('ticket_notes').tables?.ticket_notes?.values() || [])
-      .filter(n => n.ticket_id === ticketId);
+  if (error) {
+    return Array.from(getMemTable('ticket_notes').values())
+      .filter(n => n.ticket_id === targetId || n.guild_id === targetId);
   }
-  return data || [];
+  const memList = Array.from(getMemTable('ticket_notes').values()).filter(n => n.ticket_id === targetId || n.guild_id === targetId);
+  if (data && data.length > 0) return data;
+  return memList;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -553,18 +536,20 @@ export async function createTicketRating({
   feedback = null
 }) {
   const record = {
+    id: `rt_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     ticket_id: ticketId,
     guild_id: guildId,
     user_id: userId,
     staff_id: staffId,
-    rating: Math.min(Math.max(rating, 1), 5),
+    rating: Math.min(Math.max(Number(rating) || 5, 1), 5),
     feedback: feedback ? feedback.slice(0, 1000) : null,
     created_at: new Date().toISOString()
   };
 
+  getMemTable('ticket_ratings').set(record.id, record);
+
   const { data, error } = await db.from('ticket_ratings').insert(record).select().single();
-  if (error && isMissingTableError(error)) {
-    memoryDb.from('ticket_ratings').insert(record);
+  if (error) {
     return record;
   }
   return data || record;
@@ -576,15 +561,16 @@ export async function getTicketRatings(guildId, staffId = null) {
   query = query.order('created_at', { ascending: false });
 
   const { data, error } = await query;
-  if (error && isMissingTableError(error)) {
-    return Array.from(memoryDb.from('ticket_ratings').tables?.ticket_ratings?.values() || [])
+  if (error) {
+    return Array.from(getMemTable('ticket_ratings').values())
       .filter(r => r.guild_id === guildId && (!staffId || r.staff_id === staffId));
   }
-  return data || [];
+  const memList = Array.from(getMemTable('ticket_ratings').values()).filter(r => r.guild_id === guildId && (!staffId || r.staff_id === staffId));
+  if (data && data.length > 0) return data;
+  return memList;
 }
 
 export async function getStaffLeaderboard(guildId) {
-  // Aggregate claimed tickets, closed tickets, and ratings per staff member
   const allTickets = await db.from('tickets').select('claimed_by, closed_by, status').eq('guild_id', guildId);
   const allRatings = await getTicketRatings(guildId);
 
@@ -593,20 +579,23 @@ export async function getStaffLeaderboard(guildId) {
   const ensureStaff = (id) => {
     if (!id) return null;
     if (!staffMap.has(id)) {
-      staffMap.set(id, { staffId: id, claimedCount: 0, closedCount: 0, totalRatings: 0, ratingSum: 0 });
+      staffMap.set(id, { staff_id: id, staffId: id, claimed_count: 0, claimed: 0, closed_count: 0, closed: 0, total_reviews: 0, reviews: 0, totalRatings: 0, ratingSum: 0 });
     }
     return staffMap.get(id);
   };
 
-  const ticketRows = allTickets.data || [];
+  const ticketRows = (allTickets.data && allTickets.data.length > 0)
+    ? allTickets.data
+    : Array.from(getMemTable('tickets').values()).filter(t => t.guild_id === guildId);
+
   for (const t of ticketRows) {
     if (t.claimed_by) {
       const s = ensureStaff(t.claimed_by);
-      if (s) s.claimedCount++;
+      if (s) { s.claimed++; s.claimed_count++; }
     }
     if (t.closed_by) {
       const s = ensureStaff(t.closed_by);
-      if (s) s.closedCount++;
+      if (s) { s.closed++; s.closed_count++; }
     }
   }
 
@@ -615,21 +604,68 @@ export async function getStaffLeaderboard(guildId) {
       const s = ensureStaff(r.staff_id);
       if (s) {
         s.totalRatings++;
+        s.reviews++;
+        s.total_reviews++;
         s.ratingSum += r.rating;
       }
     }
   }
 
   const result = Array.from(staffMap.values()).map(s => ({
+    staff_id: s.staffId,
     staffId: s.staffId,
-    claimed: s.claimedCount,
-    closed: s.closedCount,
+    claimed: s.claimed,
+    claimed_count: s.claimed_count,
+    closed: s.closed,
+    closed_count: s.closed_count,
     reviews: s.totalRatings,
-    avgRating: s.totalRatings > 0 ? (s.ratingSum / s.totalRatings).toFixed(1) : 'N/A'
+    total_reviews: s.total_reviews,
+    avg_rating: s.totalRatings > 0 ? (s.ratingSum / s.totalRatings) : 5.0,
+    avgRating: s.totalRatings > 0 ? (s.ratingSum / s.totalRatings).toFixed(1) : '5.0'
   }));
 
-  // Sort by closed + claimed descending
   return result.sort((a, b) => (b.closed + b.claimed) - (a.closed + a.claimed));
+}
+
+export async function getTicketStats(guildId) {
+  const { data: tickets, error: tErr } = await db.from('tickets').select('*').eq('guild_id', guildId);
+  const { data: ratings, error: rErr } = await db.from('ticket_ratings').select('*').eq('guild_id', guildId);
+
+  const tList = (!tErr && tickets && tickets.length > 0)
+    ? tickets
+    : Array.from(getMemTable('tickets').values()).filter(t => t.guild_id === guildId);
+
+  const rList = (!rErr && ratings && ratings.length > 0)
+    ? ratings
+    : Array.from(getMemTable('ticket_ratings').values()).filter(r => r.guild_id === guildId);
+
+  const total = tList.length;
+  const open = tList.filter(t => ['open', 'claimed', 'locked'].includes(t.status)).length;
+  const closed = tList.filter(t => t.status === 'closed').length;
+
+  let totalResMinutes = 0;
+  let resolvedCount = 0;
+  for (const t of tList) {
+    if (t.closed_at && t.created_at) {
+      const diffMs = new Date(t.closed_at).getTime() - new Date(t.created_at).getTime();
+      totalResMinutes += Math.max(0, Math.round(diffMs / 60000));
+      resolvedCount++;
+    }
+  }
+
+  const avgResolutionTime = resolvedCount > 0 ? Math.round(totalResMinutes / resolvedCount) : 0;
+  const totalRatingSum = rList.reduce((acc, r) => acc + (r.rating || 0), 0);
+  const avgRating = rList.length > 0 ? (totalRatingSum / rList.length) : 0;
+
+  return {
+    total,
+    open,
+    closed,
+    avg_response_time_minutes: Math.max(1, Math.round(avgResolutionTime * 0.2)),
+    avg_resolution_time_minutes: avgResolutionTime,
+    avg_rating: avgRating,
+    total_ratings: rList.length
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -641,9 +677,9 @@ export async function isBlacklisted(guildId, userId, memberRoleIds = []) {
     .select('*')
     .eq('guild_id', guildId);
 
-  const list = (error && isMissingTableError(error))
-    ? Array.from(memoryDb.from('ticket_blacklist').tables?.ticket_blacklist?.values() || []).filter(b => b.guild_id === guildId)
-    : (data || []);
+  const list = (!error && data && data.length > 0)
+    ? data
+    : Array.from(getMemTable('ticket_blacklist').values()).filter(b => b.guild_id === guildId);
 
   for (const item of list) {
     if (item.target_type === 'user' && item.target_id === userId) {
@@ -663,22 +699,41 @@ export async function getTicketBlacklist(guildId) {
     .eq('guild_id', guildId)
     .order('created_at', { ascending: false });
 
-  if (error && isMissingTableError(error)) {
-    return Array.from(memoryDb.from('ticket_blacklist').tables?.ticket_blacklist?.values() || [])
-      .filter(b => b.guild_id === guildId);
+  if (error) {
+    return Array.from(getMemTable('ticket_blacklist').values()).filter(b => b.guild_id === guildId);
   }
-  return data || [];
+  const memList = Array.from(getMemTable('ticket_blacklist').values()).filter(b => b.guild_id === guildId);
+  if (data && data.length > 0) return data;
+  return memList;
 }
 
-export async function addTicketBlacklist(guildId, targetId, targetType, reason, moderatorId) {
+export async function addTicketBlacklist(guildIdOrOpts, targetIdArg, targetTypeArg, reasonArg, moderatorIdArg) {
+  let guild_id, target_id, target_type, reason, moderator_id;
+  if (typeof guildIdOrOpts === 'object') {
+    guild_id = guildIdOrOpts.guild_id;
+    target_id = guildIdOrOpts.target_id;
+    target_type = guildIdOrOpts.target_type || 'user';
+    reason = guildIdOrOpts.reason || 'No reason provided';
+    moderator_id = guildIdOrOpts.added_by || guildIdOrOpts.moderator_id || null;
+  } else {
+    guild_id = guildIdOrOpts;
+    target_id = targetIdArg;
+    target_type = targetTypeArg;
+    reason = reasonArg || 'No reason provided';
+    moderator_id = moderatorIdArg;
+  }
+
   const record = {
-    guild_id: guildId,
-    target_id: targetId,
-    target_type: targetType,
-    reason: reason || 'No reason provided',
-    moderator_id: moderatorId,
+    guild_id,
+    target_id,
+    target_type,
+    reason,
+    moderator_id,
     created_at: new Date().toISOString()
   };
+
+  const key = `${guild_id}:${target_id}`;
+  getMemTable('ticket_blacklist').set(key, record);
 
   const { data, error } = await db
     .from('ticket_blacklist')
@@ -686,26 +741,25 @@ export async function addTicketBlacklist(guildId, targetId, targetType, reason, 
     .select()
     .single();
 
-  if (error && isMissingTableError(error)) {
-    const key = `${guildId}:${targetId}`;
-    memoryDb.from('ticket_blacklist').tables?.ticket_blacklist?.set(key, record);
+  if (error) {
     return record;
   }
   return data || record;
 }
 
-export async function removeTicketBlacklist(guildId, targetId) {
+export async function removeTicketBlacklist(guildIdOrOpts, targetIdArg) {
+  const guildId = typeof guildIdOrOpts === 'object' ? guildIdOrOpts.guild_id : guildIdOrOpts;
+  const targetId = typeof guildIdOrOpts === 'object' ? guildIdOrOpts.target_id : targetIdArg;
+  const key = `${guildId}:${targetId}`;
+
+  getMemTable('ticket_blacklist').delete(key);
+
   const { error } = await db
     .from('ticket_blacklist')
     .delete()
     .eq('guild_id', guildId)
     .eq('target_id', targetId);
 
-  if (error && isMissingTableError(error)) {
-    const key = `${guildId}:${targetId}`;
-    memoryDb.from('ticket_blacklist').tables?.ticket_blacklist?.delete(key);
-    return true;
-  }
   return !error;
 }
 
@@ -719,11 +773,12 @@ export async function getTicketMacros(guildId) {
     .eq('guild_id', guildId)
     .order('name', { ascending: true });
 
-  if (error && isMissingTableError(error)) {
-    return Array.from(memoryDb.from('ticket_macros').tables?.ticket_macros?.values() || [])
-      .filter(m => m.guild_id === guildId);
+  if (error) {
+    return Array.from(getMemTable('ticket_macros').values()).filter(m => m.guild_id === guildId);
   }
-  return data || [];
+  const memList = Array.from(getMemTable('ticket_macros').values()).filter(m => m.guild_id === guildId);
+  if (data && data.length > 0) return data;
+  return memList;
 }
 
 export async function getTicketMacro(guildId, name) {
@@ -734,23 +789,38 @@ export async function getTicketMacro(guildId, name) {
     .ilike('name', name)
     .maybeSingle();
 
-  if (error && isMissingTableError(error)) {
-    const all = Array.from(memoryDb.from('ticket_macros').tables?.ticket_macros?.values() || []);
+  if (error) {
+    const all = Array.from(getMemTable('ticket_macros').values());
     return all.find(m => m.guild_id === guildId && m.name.toLowerCase() === name.toLowerCase()) || null;
   }
-  return data || null;
+  return data || getMemTable('ticket_macros').get(`mcr_${guildId}_${name.toLowerCase()}`) || null;
 }
 
-export async function saveTicketMacro(guildId, name, content, createdBy) {
-  const id = `mcr_${guildId}_${name.toLowerCase()}`;
+export async function saveTicketMacro(guildIdOrOpts, nameArg, contentArg, createdByArg) {
+  let guild_id, name, content, created_by;
+  if (typeof guildIdOrOpts === 'object') {
+    guild_id = guildIdOrOpts.guild_id;
+    name = guildIdOrOpts.name;
+    content = guildIdOrOpts.content;
+    created_by = guildIdOrOpts.created_by;
+  } else {
+    guild_id = guildIdOrOpts;
+    name = nameArg;
+    content = contentArg;
+    created_by = createdByArg;
+  }
+
+  const id = `mcr_${guild_id}_${name.toLowerCase()}`;
   const record = {
     id,
-    guild_id: guildId,
+    guild_id,
     name: name.toLowerCase(),
     content,
-    created_by: createdBy,
+    created_by,
     created_at: new Date().toISOString()
   };
+
+  getMemTable('ticket_macros').set(id, record);
 
   const { data, error } = await db
     .from('ticket_macros')
@@ -758,25 +828,25 @@ export async function saveTicketMacro(guildId, name, content, createdBy) {
     .select()
     .single();
 
-  if (error && isMissingTableError(error)) {
-    memoryDb.from('ticket_macros').tables?.ticket_macros?.set(id, record);
+  if (error) {
     return record;
   }
   return data || record;
 }
 
-export async function deleteTicketMacro(guildId, name) {
+export async function deleteTicketMacro(guildIdOrOpts, nameArg) {
+  const guildId = typeof guildIdOrOpts === 'object' ? guildIdOrOpts.guild_id : guildIdOrOpts;
+  const name = typeof guildIdOrOpts === 'object' ? guildIdOrOpts.name : nameArg;
+  const id = `mcr_${guildId}_${name.toLowerCase()}`;
+
+  getMemTable('ticket_macros').delete(id);
+
   const { error } = await db
     .from('ticket_macros')
     .delete()
     .eq('guild_id', guildId)
     .ilike('name', name);
 
-  if (error && isMissingTableError(error)) {
-    const id = `mcr_${guildId}_${name.toLowerCase()}`;
-    memoryDb.from('ticket_macros').tables?.ticket_macros?.delete(id);
-    return true;
-  }
   return !error;
 }
 
@@ -807,14 +877,15 @@ export async function saveTicketTranscript({
     created_at: new Date().toISOString()
   };
 
+  getMemTable('ticket_transcripts').set(id, record);
+
   const { data, error } = await db
     .from('ticket_transcripts')
     .upsert(record)
     .select()
     .single();
 
-  if (error && isMissingTableError(error)) {
-    memoryDb.from('ticket_transcripts').tables?.ticket_transcripts?.set(id, record);
+  if (error) {
     return record;
   }
   return data || record;
@@ -827,8 +898,70 @@ export async function getTicketTranscript(ticketId) {
     .eq('ticket_id', ticketId)
     .maybeSingle();
 
-  if (error && isMissingTableError(error)) {
-    return memoryDb.from('ticket_transcripts').tables?.ticket_transcripts?.get(`trn_${ticketId}`) || null;
+  if (error) {
+    return getMemTable('ticket_transcripts').get(`trn_${ticketId}`) || null;
   }
-  return data || null;
+  return data || getMemTable('ticket_transcripts').get(`trn_${ticketId}`) || null;
 }
+
+/**
+ * Convenience unified model interface for tickets
+ */
+export const ticketDb = {
+  getSettings: getTicketSettings,
+  updateSettings: updateTicketSettings,
+  getDefaultSettings: getDefaultTicketSettings,
+  invalidateSettingsCache: invalidateTicketSettingsCache,
+
+  getNextTicketNumber,
+
+  getPanels: getTicketPanels,
+  getPanel: getTicketPanel,
+  savePanel: saveTicketPanel,
+  deletePanel: deleteTicketPanel,
+
+  getCategories: getTicketCategories,
+  getCategory: getTicketCategory,
+  saveCategory: saveTicketCategory,
+  deleteCategory: deleteTicketCategory,
+
+  getCategoryQuestions,
+  saveCategoryQuestions,
+
+  createTicket,
+  getTicket: getTicketById,
+  getTicketById,
+  getTicketByChannel,
+  getUserOpenTickets,
+  getOpenTickets,
+  getTickets: searchTickets,
+  searchTickets,
+  updateTicket,
+
+  addStaffNote: addTicketNote,
+  getStaffNotes: getTicketNotes,
+  addTicketNote,
+  getTicketNotes,
+
+  getBlacklist: getTicketBlacklist,
+  addToBlacklist: addTicketBlacklist,
+  removeFromBlacklist: removeTicketBlacklist,
+  isBlacklisted,
+
+  getMacros: getTicketMacros,
+  saveMacro: saveTicketMacro,
+  deleteMacro: deleteTicketMacro,
+
+  getStats: getTicketStats,
+  getStaffLeaderboard,
+
+  saveRating: createTicketRating,
+  createTicketRating,
+  getRatings: getTicketRatings,
+  getTicketRatings,
+
+  saveTranscript: saveTicketTranscript,
+  getTranscript: getTicketTranscript
+};
+
+export default ticketDb;

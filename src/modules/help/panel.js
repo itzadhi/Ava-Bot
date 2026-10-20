@@ -64,6 +64,12 @@ export const CATEGORY_DEFINITIONS = {
       name: 'Boost Tracker',
       emoji: theme.emojis.categories.boosts || '🚀',
       description: 'Nitro booster celebrations, logs & tier roles'
+    },
+    {
+      id: 'tickets',
+      name: 'Ticket System',
+      emoji: theme.emojis.categories.tickets || '🎫',
+      description: 'Panels, private channels, claim/close flow, transcripts & stats'
     }
   ],
   extra: [

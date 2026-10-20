@@ -8,12 +8,19 @@ import { componentRegistry } from '../structures/ComponentRegistry.js';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
 import { handleFeedbackVoiceInteraction } from '../modules/router.js';
+import { handleTicketInteraction } from '../modules/tickets/router.js';
 import { handleDashboardInteraction } from '../modules/panel/index.js';
 import { handleHelpInteraction } from '../modules/help/panel.js';
 
 export async function onInteractionCreate(interaction) {
   try {
-    // 0. Central Router for Suggestions, Feedback, JTC, TTS & Logs (fb:*)
+    // 0. Ticket System Routing (tkt:*)
+    if (interaction.customId?.startsWith('tkt:') || (interaction.isModalSubmit() && interaction.customId?.startsWith('tkt:'))) {
+      const handled = await handleTicketInteraction(interaction);
+      if (handled) return;
+    }
+
+    // 0.1 Central Router for Suggestions, Feedback, JTC, TTS & Logs (fb:*)
     if (interaction.customId?.startsWith('fb:') || (interaction.isModalSubmit() && interaction.customId?.startsWith('fb:'))) {
       const handled = await handleFeedbackVoiceInteraction(interaction);
       if (handled) return;

@@ -29,6 +29,7 @@ import { renderChatlogPanel } from '../chatlog/panel.js';
 import { buildBotProfilePanel } from '../settings/botprofile.js';
 import { buildTTSPanel } from '../voice/tts/panel.js';
 import { buildLogsPanel } from '../logs/engine.js';
+import { renderTicketSettingsDashboard } from '../tickets/settings.js';
 
 export const MODULE_ITEMS = [
   { id: 'automod', name: 'AutoMod Protection', emoji: '🛡️', desc: 'Spam, invite, link & word filters' },
@@ -40,6 +41,7 @@ export const MODULE_ITEMS = [
   { id: 'voice', name: 'Voice & Speech', emoji: '🔊', desc: 'Join-to-Create channels & TTS' },
   { id: 'staff', name: 'Suggestions & Feedback', emoji: '💡', desc: 'Staff queues, upvotes & reviews' },
   { id: 'chatlog', name: 'Chatlog Vault', emoji: '💬', desc: 'Encrypted message disaster archive' },
+  { id: 'tickets', name: 'Ticket System', emoji: '🎫', desc: 'Panels, categories, controls & logs' },
   { id: 'botprofile', name: 'Bot Profile', emoji: '🎨', desc: 'Per-server nickname, avatar & bio' },
   { id: 'settings', name: 'General Settings', emoji: '⚙️', desc: 'Prefix, locale & core toggles' }
 ];
@@ -162,6 +164,8 @@ export async function renderModulePanelById(moduleId, guild) {
       return buildTTSPanel(guild, null);
     case 'logs':
       return buildLogsPanel(guild);
+    case 'tickets':
+      return renderTicketSettingsDashboard({ guild, activeTab: 'general' });
     case 'settings':
     default:
       return renderStaffPanel({ guild, activeTab: 'settings' });

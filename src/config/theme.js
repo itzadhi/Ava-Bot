@@ -53,6 +53,7 @@ export const theme = {
       staff: process.env.EMOJI_CAT_STAFF || '💡',
       chatlog: process.env.EMOJI_CAT_CHATLOG || '💬',
       botprofile: process.env.EMOJI_CAT_BOTPROFILE || '🎨',
+      tickets: process.env.EMOJI_CAT_TICKETS || '🎫',
       general: process.env.EMOJI_CAT_GENERAL || '🌐',
       utility: process.env.EMOJI_CAT_UTILITY || '🛠️',
       moderation: process.env.EMOJI_CAT_MODERATION || '🔨',

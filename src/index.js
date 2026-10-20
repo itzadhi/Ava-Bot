@@ -40,6 +40,7 @@ import { handleStickyMessage } from './modules/sticky/engine.js';
 import { handleStickyRoleMemberLeave, handleStickyRoleMemberRejoin } from './modules/stickyroles/engine.js';
 import { handleAutoRoleMemberJoin } from './modules/autorole/engine.js';
 import { registerLogListeners } from './modules/logs/listeners.js';
+import { startTicketScheduler, stopTicketScheduler, handleMemberLeave, handleChannelDelete } from './modules/tickets/autoclose.js';
 
 /**
  * ArgoniClient - Reusable Discord Bot Client powered by Components V2 & Supabase
@@ -115,6 +116,10 @@ export class ArgoniClient extends Client {
     });
     this.on('guildMemberRemove', async (member) => {
       await handleStickyRoleMemberLeave(member).catch(() => {});
+      await handleMemberLeave(member).catch(() => {});
+    });
+    this.on('channelDelete', async (channel) => {
+      await handleChannelDelete(channel).catch(() => {});
     });
 
     // Register comprehensive server audit logging listeners
@@ -166,6 +171,7 @@ export class ArgoniClient extends Client {
       });
 
       startScheduler(readyClient);
+      startTicketScheduler(readyClient);
     });
   }
 
@@ -262,6 +268,7 @@ async function handleShutdown(signal) {
   logger.info(`Received ${signal}. Starting graceful shutdown...`);
 
   stopScheduler();
+  stopTicketScheduler();
 
   if (queue.size > 0 || queue.pending > 0) {
     logger.info(`Waiting for ${queue.size + queue.pending} queued operations to finish...`);
