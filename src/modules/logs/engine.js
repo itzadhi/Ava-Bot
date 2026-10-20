@@ -23,13 +23,13 @@ const configCache = new Map();
 const CACHE_TTL = 60000;
 
 export const LOG_CATEGORIES = {
-  mod: { name: 'Moderation', emoji: '🛡️', color: theme.logColors.red, desc: 'Bans, kicks, timeouts, unbans & mod commands' },
-  messages: { name: 'Messages', emoji: '💬', color: theme.logColors.orange, desc: 'Message deletes, edits & bulk purges' },
-  members: { name: 'Members', emoji: '👥', color: theme.logColors.green, desc: 'Joins, leaves & nickname changes' },
-  roles: { name: 'Roles', emoji: '🧲', color: theme.logColors.purple, desc: 'Role add/remove & role creates/updates' },
-  channels: { name: 'Channels', emoji: '📁', color: theme.logColors.blue, desc: 'Channel creates, updates & deletions' },
-  voice: { name: 'Voice', emoji: '🔊', color: theme.logColors.purple, desc: 'Voice joins, leaves, moves & mute/deafens' },
-  server: { name: 'Server', emoji: '🌐', color: theme.logColors.blue, desc: 'Invites, emojis, stickers & guild updates' }
+  mod: { name: 'Moderation', emoji: '🛡️', desc: 'Bans, kicks, timeouts, unbans & mod commands' },
+  messages: { name: 'Messages', emoji: '💬', desc: 'Message deletes, edits & bulk purges' },
+  members: { name: 'Members', emoji: '👥', desc: 'Joins, leaves & nickname changes' },
+  roles: { name: 'Roles', emoji: '🧲', desc: 'Role add/remove & role creates/updates' },
+  channels: { name: 'Channels', emoji: '📁', desc: 'Channel creates, updates & deletions' },
+  voice: { name: 'Voice', emoji: '🔊', desc: 'Voice joins, leaves, moves & mute/deafens' },
+  server: { name: 'Server', emoji: '🌐', desc: 'Invites, emojis, stickers & guild updates' }
 };
 
 /**
@@ -131,12 +131,9 @@ export function buildLogCard({
   timestamp = new Date()
 }) {
   const catInfo = LOG_CATEGORIES[category] || LOG_CATEGORIES.server;
-  const accent = catInfo.color;
-
   const container = new ContainerBuilder();
-  container.setAccentColor(accent);
 
-  // 1. Heading
+  // 1. Heading (event type identified by emoji + bold title)
   const titleText = `## ${emoji} ${eventName}`;
   const userAvatar = thumbnail || user?.displayAvatarURL?.({ extension: 'png', size: 128 }) || null;
 
@@ -253,7 +250,6 @@ export async function dispatchLog(guild, { category = 'server', cardPayload }) {
 export async function buildLogsPanel(guild, activeCategory = 'all') {
   const config = await getLogConfig(guild.id);
   const container = new ContainerBuilder();
-  container.setAccentColor(theme.logColors.blue);
 
   const isEnabled = config.enabled;
   const globalChanDisplay = config.globalChannelId ? `<#${config.globalChannelId}>` : '_None (Not configured)_';

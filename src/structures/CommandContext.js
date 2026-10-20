@@ -230,10 +230,12 @@ export class CommandContext {
         time,
         filter: async (i) => {
           if (i.user.id !== this.user.id) {
-            await i.reply({
-              flags: MessageFlags.Ephemeral,
-              content: "This isn't for you."
-            }).catch(() => {});
+            await i.reply(errorCard({
+              title: 'Interaction Restricted',
+              reason: "This interactive session belongs to another user.",
+              fix: 'Run the command yourself to open your own session.',
+              ephemeral: true
+            })).catch(() => {});
             return false;
           }
           return filter ? filter(i) : true;

@@ -9,7 +9,10 @@ import {
   UserSelectMenuBuilder,
   ChannelSelectMenuBuilder,
   ChannelType,
-  PermissionFlagsBits
+  PermissionFlagsBits,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder
 } from 'discord.js';
 import {
   getTempChannel,
@@ -82,18 +85,47 @@ import * as format from '../utils/ui/format.js';
 import { logger } from '../utils/logger.js';
 
 /**
+ * Converts any simple string into a compliant borderless Components V2 container card
+ */
+function v2TextCard(text, flags = MessageFlags.Ephemeral) {
+  const container = new ContainerBuilder();
+  let title = '## 💬 Notice';
+  if (text.startsWith('❌') || text.startsWith('⛔') || text.startsWith('🛑')) {
+    title = '## 🛑 Action Failed';
+  } else if (text.startsWith('⚠️')) {
+    title = '## ⚠️ Notice';
+  } else if (text.startsWith('✅') || text.startsWith('🟢') || text.startsWith('👑') || text.startsWith('👍') || text.startsWith('🔔')) {
+    title = '## ✅ Success';
+  }
+
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(title));
+  container.addSeparatorComponents(new SeparatorBuilder());
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(String(text)));
+
+  const isEphemeral = (flags & MessageFlags.Ephemeral) === MessageFlags.Ephemeral || flags === 64;
+  return {
+    flags: isEphemeral ? (MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral) : MessageFlags.IsComponentsV2,
+    components: [container]
+  };
+}
+
+/**
  * Safe helper to update panel messages without failing on uncached channels
  */
 async function safeUpdatePanel(interaction, payload) {
+  const safePayload = {
+    ...payload,
+    flags: MessageFlags.IsComponentsV2
+  };
   if (interaction.deferred || interaction.replied) {
-    return interaction.editReply(payload).catch(err => {
+    return interaction.editReply(safePayload).catch(err => {
       logger.debug({ err }, 'Interaction editReply fallback to message.edit');
-      return interaction.message?.edit(payload).catch(() => {});
+      return interaction.message?.edit(safePayload).catch(() => {});
     });
   }
-  return interaction.update(payload).catch(err => {
+  return interaction.update(safePayload).catch(err => {
     logger.debug({ err }, 'Interaction update fallback to message.edit');
-    return interaction.message?.edit(payload).catch(() => {});
+    return interaction.message?.edit(safePayload).catch(() => {});
   });
 }
 
@@ -106,6 +138,35 @@ export async function handleFeedbackVoiceInteraction(interaction) {
   const customId = interaction.customId;
   if (!customId) {
     return false;
+  }
+
+  // Intercept text replies to ensure pure Components V2 compliance across all router branches
+  if (typeof interaction.reply === 'function') {
+    const origReply = interaction.reply.bind(interaction);
+    interaction.reply = (options) => {
+      if (options && typeof options === 'object' && options.content && !options.components) {
+        return origReply(v2TextCard(options.content, options.flags));
+      }
+      return origReply(options);
+    };
+  }
+  if (typeof interaction.editReply === 'function') {
+    const origEditReply = interaction.editReply.bind(interaction);
+    interaction.editReply = (options) => {
+      if (options && typeof options === 'object' && options.content && !options.components) {
+        return origEditReply(v2TextCard(options.content, options.flags));
+      }
+      return origEditReply(options);
+    };
+  }
+  if (typeof interaction.followUp === 'function') {
+    const origFollowUp = interaction.followUp.bind(interaction);
+    interaction.followUp = (options) => {
+      if (options && typeof options === 'object' && options.content && !options.components) {
+        return origFollowUp(v2TextCard(options.content, options.flags));
+      }
+      return origFollowUp(options);
+    };
   }
 
   // Direct compatibility with temp feedback customIds
@@ -195,10 +256,7 @@ export async function handleFeedbackVoiceInteraction(interaction) {
     }
   } catch (err) {
     logger.error({ err, customId }, 'Error in central interaction router');
-    const errMsg = {
-      content: '❌ An error occurred while processing this action. Please try again in a moment.',
-      flags: MessageFlags.Ephemeral
-    };
+    const errMsg = v2TextCard('❌ An error occurred while processing this action. Please try again in a moment.', MessageFlags.Ephemeral);
     if (interaction.deferred || interaction.replied) {
       await interaction.followUp(errMsg).catch(() => {});
     } else {

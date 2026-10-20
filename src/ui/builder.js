@@ -338,18 +338,6 @@ export class ComponentBuilder {
   }
 
   /**
-   * Sets accent color on the container
-   * @param {number} color
-   * @returns {ComponentBuilder}
-   */
-  setAccentColor(color) {
-    if (color !== undefined) {
-      this.container.setAccentColor(color);
-    }
-    return this;
-  }
-
-  /**
    * Marks the response as ephemeral
    * @param {boolean} [ephemeral=true]
    * @returns {ComponentBuilder}
@@ -472,7 +460,7 @@ export class ComponentBuilder {
     if (thumbnail) builder.setThumbnail(thumbnail);
     if (image) builder.addMediaGallery(image);
     if (buttons && buttons.length > 0) builder.addButtons(buttons);
-    if (color !== null && color !== undefined) builder.setAccentColor(color);
+    // Containers remain borderless dark cards without accent colors
     return builder.build();
   }
 }

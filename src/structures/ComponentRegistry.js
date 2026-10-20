@@ -110,10 +110,14 @@ export class ComponentRegistry {
       if (handler.authorOnly) {
         const originalAuthorId = interaction.message?.interaction?.user?.id;
         if (originalAuthorId && interaction.user.id !== originalAuthorId) {
-          await interaction.reply({
-            flags: MessageFlags.Ephemeral,
-            content: "You cannot interact with this component because you didn't initiate the command."
-          }).catch(() => {});
+          if (typeof interaction.reply === 'function') {
+            await interaction.reply(errorCard({
+              title: 'Component Restricted',
+              reason: "You cannot interact with this component because you didn't initiate the command.",
+              fix: 'Run the command yourself to use its interactive components.',
+              ephemeral: true
+            })).catch(() => {});
+          }
           return true;
         }
       }
@@ -137,9 +141,9 @@ export class ComponentRegistry {
       });
 
       if (interaction.deferred || interaction.replied) {
-        await interaction.followUp(errPayload).catch(() => {});
+        await interaction.followUp?.(errPayload).catch(() => {});
       } else {
-        await interaction.reply(errPayload).catch(() => {});
+        await interaction.reply?.(errPayload).catch(() => {});
       }
       return true;
     }

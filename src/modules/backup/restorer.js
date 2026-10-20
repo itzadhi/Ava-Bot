@@ -4,7 +4,6 @@ import {
 } from 'discord.js';
 import { logAudit } from '../../db/audit.js';
 import { logger } from '../../utils/logger.js';
-import { sanitizeEmbeds, sanitizeEmbedForSend, componentsToEmbed } from '../../utils/embed.js';
 
 /**
  * Validates bot permissions before attempting a restore

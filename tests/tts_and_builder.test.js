@@ -258,7 +258,7 @@ test('Router: Intercepts fb:cb:modal and publishes component to target channel',
   assert.equal(handled, true, 'Router must handle fb:cb:modal interaction');
   assert.ok(targetSentPayload, 'Target channel must have received component message');
   assert.equal(targetSentPayload.flags, MessageFlags.IsComponentsV2);
-  assert.ok(modalReplied.content.includes('Component Published'));
+  assert.ok((modalReplied.content || JSON.stringify(modalReplied)).includes('Component Published'));
 });
 
 test('Bot Profile Panel: Renders full interactive panel with headings, subheadings, - bullets and bold formatting', async () => {

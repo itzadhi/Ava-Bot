@@ -16,6 +16,7 @@ import { theme } from '../../config/theme.js';
 import * as format from '../../utils/ui/format.js';
 import { getGuildSettings } from '../../db/guilds.js';
 import { getBrandLogo } from '../../ui/theme.js';
+import { errorCard } from '../../utils/ui/builders.js';
 
 // Import module panels for direct rendering
 import { buildAutoModPanel } from '../automod/panel.js';
@@ -52,7 +53,6 @@ export const MODULE_ITEMS = [
  */
 export async function buildDashboardPayload({ guild, user, client, sessionId }) {
   const container = new ContainerBuilder();
-  container.setAccentColor(theme.accent);
 
   const settings = (await getGuildSettings(guild.id)) || {};
   const logo = getBrandLogo(client);
@@ -173,7 +173,6 @@ export async function renderModulePanelById(moduleId, guild) {
  */
 function renderLogsShortcutPanel(guildSettings, guild) {
   const container = new ContainerBuilder();
-  container.setAccentColor(theme.logColors.blue);
 
   const logChannelId = guildSettings.log_channel_id || guildSettings.automod_log_channel_id;
 
@@ -254,10 +253,12 @@ export async function startDashboardSession(ctx) {
         time: 120000,
         filter: async (i) => {
           if (i.user.id !== ctx.user.id) {
-            await i.reply({
-              flags: MessageFlags.Ephemeral,
-              content: '⚠️ This dashboard session was opened by someone else. Run `/panel` to open your own!'
-            }).catch(() => {});
+            await i.reply(errorCard({
+              title: 'Dashboard Restricted',
+              reason: 'This dashboard session was opened by someone else.',
+              fix: 'Run /panel to open your own control session.',
+              ephemeral: true
+            })).catch(() => {});
             return false;
           }
           return true;
@@ -313,4 +314,48 @@ export async function startDashboardSession(ctx) {
       }
     } catch (_) {}
   });
+}
+
+/**
+ * Global fallback handler for dash:* interactions outside active collector
+ * @param {import('discord.js').Interaction} interaction
+ */
+export async function handleDashboardInteraction(interaction) {
+  const customId = interaction.customId;
+  if (!customId?.startsWith('dash:')) return false;
+  if (interaction.deferred || interaction.replied) return true;
+
+  try {
+    if (customId === 'dash:close' || customId.startsWith('dash:close:')) {
+      await interaction.update({ components: [] }).catch(() => {});
+      return true;
+    }
+
+    if (customId === 'dash:return' || customId.startsWith('dash:return:')) {
+      const sessionId = `${interaction.guildId}_${interaction.user.id}_${Date.now()}`;
+      const dash = await buildDashboardPayload({
+        guild: interaction.guild,
+        user: interaction.user,
+        client: interaction.client,
+        sessionId
+      });
+      await interaction.update(dash).catch(() => {});
+      return true;
+    }
+
+    let targetModule = null;
+    if (customId.startsWith('dash:sel:')) {
+      targetModule = interaction.values?.[0];
+    } else if (customId.startsWith('dash:open:')) {
+      const parts = customId.split(':');
+      targetModule = parts[2];
+    }
+
+    if (targetModule && interaction.guild) {
+      const panelPayload = await renderModulePanelById(targetModule, interaction.guild);
+      await interaction.update(panelPayload).catch(() => {});
+      return true;
+    }
+  } catch (_) {}
+  return true;
 }

@@ -5,7 +5,6 @@ import { createBackupRecord } from '../../db/backups.js';
 import { progressCard } from '../../ui/cards.js';
 import { logAudit } from '../../db/audit.js';
 import { logger } from '../../utils/logger.js';
-import { extractMessagePayload } from '../../utils/embed.js';
 
 /**
  * Creates a server snapshot and saves it to storage and database

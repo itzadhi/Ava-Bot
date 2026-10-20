@@ -21,6 +21,7 @@ import {
 import { getGuildSettings } from '../../db/guilds.js';
 import { ttsEngine } from '../voice/tts/engine.js';
 import { logger } from '../../utils/logger.js';
+import { errorCard, successCard, warnCard } from '../../ui/cards.js';
 
 /**
  * Maps suggestion status to human-readable badges and accent colors
@@ -122,17 +123,19 @@ export async function handleSuggestionVote(interaction, suggestionId, voteType) 
 
   const suggestion = await getSuggestionById(suggestionId);
   if (!suggestion) {
-    return interaction.followUp({
-      content: '❌ Suggestion not found or has been deleted.',
-      flags: MessageFlags.Ephemeral
-    });
+    return interaction.followUp(errorCard({
+      title: 'Suggestion Not Found',
+      reason: 'Suggestion not found or has been deleted.',
+      ephemeral: true
+    }));
   }
 
   if (suggestion.status !== 'pending') {
-    return interaction.followUp({
-      content: '⚠️ Voting is closed on this suggestion as it has already been moderated.',
-      flags: MessageFlags.Ephemeral
-    });
+    return interaction.followUp(warnCard({
+      title: 'Voting Closed',
+      body: 'Voting is closed on this suggestion as it has already been moderated.',
+      ephemeral: true
+    }));
   }
 
   const { action, upvotes, downvotes, currentVote } = await castVote(
@@ -157,10 +160,12 @@ export async function handleSuggestionVote(interaction, suggestionId, voteType) 
   else if (action === 'switched') feedbackMsg = `🔄 Switched your vote to **${voteType === 'up' ? 'Yes' : 'No'}**.`;
   else if (action === 'removed') feedbackMsg = `↩️ Removed your vote from this suggestion.`;
 
-  return interaction.followUp({
-    content: feedbackMsg,
-    flags: MessageFlags.Ephemeral
-  });
+  return interaction.followUp(successCard({
+    title: 'Vote Registered',
+    lines: [feedbackMsg],
+    body: feedbackMsg,
+    ephemeral: true
+  }));
 }
 
 /**
@@ -170,28 +175,31 @@ export async function handleSuggestionModeration(interaction, suggestionId, acti
   // Check staff authorization
   const isAuthorized = await checkStaffPermission(interaction);
   if (!isAuthorized) {
-    return interaction.reply({
-      content: '⛔ You need the configured Staff role or Manage Server permission to moderate suggestions.',
-      flags: MessageFlags.Ephemeral
-    });
+    return interaction.reply(errorCard({
+      title: 'Missing Staff Role',
+      reason: 'You need the configured Staff role or Manage Server permission to moderate suggestions.',
+      ephemeral: true
+    }));
   }
 
   const suggestion = await getSuggestionById(suggestionId);
   if (!suggestion) {
-    return interaction.reply({
-      content: '❌ Suggestion not found or has already been deleted.',
-      flags: MessageFlags.Ephemeral
-    });
+    return interaction.reply(errorCard({
+      title: 'Suggestion Not Found',
+      reason: 'Suggestion not found or has already been deleted.',
+      ephemeral: true
+    }));
   }
 
   if (action === 'del') {
     await interaction.deferUpdate().catch(() => {});
     await deleteSuggestion(suggestionId);
     await interaction.message.delete().catch(() => {});
-    return interaction.followUp({
-      content: `🗑️ Suggestion \`${suggestionId}\` has been deleted by <@${interaction.user.id}>.`,
-      flags: MessageFlags.Ephemeral
-    });
+    return interaction.followUp(successCard({
+      title: 'Suggestion Deleted',
+      body: `🗑️ Suggestion \`${suggestionId}\` has been deleted by <@${interaction.user.id}>.`,
+      ephemeral: true
+    }));
   }
 
   await interaction.deferUpdate().catch(() => {});
@@ -228,10 +236,11 @@ export async function handleSuggestionModeration(interaction, suggestionId, acti
     await ttsEngine.queueAnnouncement(interaction.guild, suggestion.author_id, speechText);
   }
 
-  return interaction.followUp({
-    content: `✅ Suggestion marked as **${STATUS_CONFIG[newStatus].label}** by <@${interaction.user.id}>.`,
-    flags: MessageFlags.Ephemeral
-  });
+  return interaction.followUp(successCard({
+    title: 'Suggestion Moderated',
+    body: `✅ Suggestion marked as **${STATUS_CONFIG[newStatus].label}** by <@${interaction.user.id}>.`,
+    ephemeral: true
+  }));
 }
 
 /**

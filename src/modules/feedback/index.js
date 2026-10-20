@@ -163,7 +163,7 @@ export function buildFeedbackCard(params) {
   const createdDate = params.created_at ? new Date(params.created_at) : new Date();
   const createdUnix = Math.floor(createdDate.getTime() / 1000);
 
-  // Neutral Container with NO sidebar color (no setAccentColor)
+  // Neutral Container with NO sidebar color
   const c = new ContainerBuilder();
 
   // 1. Dynamic Sentiment Header
@@ -271,7 +271,7 @@ export function buildFeedbackCard(params) {
  * Builds the public Feedback Panel with comprehensive guides and dual review/suggestion actions
  */
 export function buildFeedbackPanel(botAvatarURL) {
-  // Neutral Container with NO sidebar color (no setAccentColor)
+  // Neutral Container with NO sidebar color
   const c = new ContainerBuilder();
 
   c.addSectionComponents(
@@ -332,7 +332,7 @@ export function buildFeedbackPanel(botAvatarURL) {
  * Builds the Screenshot Prompt with step-by-step instructions
  */
 export function buildImagePrompt() {
-  // Neutral Container with NO sidebar color (no setAccentColor)
+  // Neutral Container with NO sidebar color
   const c = new ContainerBuilder();
 
   c.addTextDisplayComponents(

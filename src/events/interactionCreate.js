@@ -8,32 +8,36 @@ import { componentRegistry } from '../structures/ComponentRegistry.js';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
 import { handleFeedbackVoiceInteraction } from '../modules/router.js';
+import { handleDashboardInteraction } from '../modules/panel/index.js';
+import { handleHelpInteraction } from '../modules/help/panel.js';
 
 export async function onInteractionCreate(interaction) {
   try {
-    // 0. Central Router for Suggestions, Feedback, JTC & TTS (fb:*)
+    // 0. Central Router for Suggestions, Feedback, JTC, TTS & Logs (fb:*)
     if (interaction.customId?.startsWith('fb:') || (interaction.isModalSubmit() && interaction.customId?.startsWith('fb:'))) {
       const handled = await handleFeedbackVoiceInteraction(interaction);
       if (handled) return;
     }
 
-    // 1. Owner Panel Routing
+    // 1. Dashboard Routing (dash:*)
+    if (interaction.customId?.startsWith('dash:')) {
+      const handled = await handleDashboardInteraction(interaction);
+      if (handled) return;
+    }
+
+    // 2. Help Menu Routing (help:*)
+    if (interaction.customId?.startsWith('help:')) {
+      const handled = await handleHelpInteraction(interaction);
+      if (handled) return;
+    }
+
+    // 3. Owner Panel Routing (owner:*)
     if (interaction.customId?.startsWith('owner:') || (interaction.isModalSubmit() && interaction.customId?.startsWith('owner:'))) {
       return handleOwnerInteraction(interaction);
     }
 
-    // 2. Dynamic Component & Modal Routing
+    // 4. Dynamic Component & Modal Routing
     if (interaction.isButton() || interaction.isAnySelectMenu() || interaction.isModalSubmit()) {
-      if (interaction.guild) {
-        const isOwner = interaction.guild.ownerId === interaction.user.id || config.OWNER_IDS.includes(interaction.user.id);
-        if (!isOwner) {
-          return interaction.reply({
-            flags: 64,
-            content: '⚠️ Only the server owner can interact with this panel.'
-          });
-        }
-      }
-
       const handled = await componentRegistry.dispatch(interaction);
       if (handled) return;
     }
@@ -46,7 +50,7 @@ export async function onInteractionCreate(interaction) {
       return interaction.reply(errorCard({
         title: 'Command Not Found',
         reason: `Command /${interaction.commandName} is not recognized.`,
-        fix: 'Available commands are /backup, /setting, and /chatlog.',
+        fix: 'Use /help to see all available commands.',
         ephemeral: true
       }));
     }

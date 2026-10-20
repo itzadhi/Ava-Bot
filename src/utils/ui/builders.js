@@ -80,7 +80,7 @@ export function packActionRows(components = []) {
 
 /**
  * Core Components V2 Container Builder
- * Single container, rich markdown, optional thumbnail accessory, accent color, and action rows.
+ * Single container, rich markdown, optional thumbnail accessory, NO sidebar color strip, and action rows.
  * Strict V2: NEVER includes 'content' or 'embeds' properties.
  */
 export function buildContainer({
@@ -89,7 +89,6 @@ export function buildContainer({
   lines = [],
   description = null,
   thumbnail = null,
-  accent = theme.accent,
   footer = theme.footer.text,
   components = [],
   files = [],
@@ -98,10 +97,7 @@ export function buildContainer({
   const container = new ContainerBuilder();
   const attachedFiles = Array.isArray(files) ? [...files] : [];
 
-  // Accent color
-  if (accent !== null && accent !== undefined) {
-    container.setAccentColor(accent);
-  }
+  // NO SIDEBAR COLOR: Containers are always clean, borderless dark cards
 
   let activeThumbnail = thumbnail;
   if (activeThumbnail && typeof activeThumbnail === 'string' && activeThumbnail.startsWith('attachment://logo.jpg')) {
@@ -190,7 +186,7 @@ export function buildContainer({
 }
 
 /**
- * Success Card (Emerald accent #57F287, ✅ emoji)
+ * Success Card (✅ emoji, pure borderless dark container)
  */
 export function successCard({
   title = 'Action Completed',
@@ -218,7 +214,6 @@ export function successCard({
     title,
     glyph: theme.emojis.success,
     lines: allLines,
-    accent: theme.colors.success,
     footer,
     components: mergedComponents,
     files,
@@ -227,7 +222,7 @@ export function successCard({
 }
 
 /**
- * Error Card (Crimson accent #ED4245, ❌ emoji)
+ * Error Card (❌ emoji, pure borderless dark container)
  */
 export function errorCard({
   title = 'Execution Error',
@@ -254,7 +249,6 @@ export function errorCard({
     title,
     glyph: theme.emojis.error,
     lines: diagnosticLines,
-    accent: theme.colors.error,
     footer,
     components: mergedComponents,
     files,
@@ -263,7 +257,7 @@ export function errorCard({
 }
 
 /**
- * Warning Card (Yellow accent #FEE75C, ⚠️ emoji)
+ * Warning Card (⚠️ emoji, pure borderless dark container)
  */
 export function warnCard({
   title = 'Warning',
@@ -286,7 +280,6 @@ export function warnCard({
     title,
     glyph: theme.emojis.warn,
     lines: allLines,
-    accent: theme.colors.warn,
     footer,
     components: mergedComponents,
     files,
@@ -295,7 +288,7 @@ export function warnCard({
 }
 
 /**
- * Information Card (Blurple accent #5865F2, ℹ️ emoji)
+ * Information Card (ℹ️ emoji, pure borderless dark container)
  */
 export function infoCard({
   title = 'Information',
@@ -320,7 +313,6 @@ export function infoCard({
     glyph: theme.emojis.info,
     lines: allLines,
     thumbnail,
-    accent: theme.colors.info,
     footer,
     components: mergedComponents,
     files,
@@ -360,7 +352,6 @@ export function confirmCard({
     title,
     glyph: danger ? theme.emojis.warn : theme.emojis.info,
     lines: [text || details || 'Please confirm whether you want to proceed with this operation.'],
-    accent: danger ? theme.colors.error : theme.colors.warn,
     footer,
     components: [row],
     ephemeral
@@ -379,8 +370,7 @@ export function paginatedCard({
   footer = null,
   extraButtons = [],
   extraRows = [],
-  thumbnail = null,
-  accent = theme.accent
+  thumbnail = null
 } = {}) {
   const safeTotal = totalPages || (Array.isArray(pages) && pages.length > 0 ? pages.length : 1);
   const safePage = Math.min(Math.max(currentPage, 1), safeTotal);
@@ -425,7 +415,6 @@ export function paginatedCard({
     glyph: theme.emojis.sparkle,
     lines: [pageContent],
     thumbnail,
-    accent,
     footer: pageFooter,
     components: rows
   });
@@ -443,7 +432,6 @@ export function panelCard({
   selects = [],
   thumbnail = null,
   footer = 'Manage Server Required • Argoni Dashboard',
-  accent = theme.accent,
   isEnabled = null
 } = {}) {
   let statusBadge = '';
@@ -487,9 +475,22 @@ export function panelCard({
     glyph: theme.emojis.gear,
     lines,
     thumbnail,
-    accent: isEnabled === false ? theme.colors.dark : accent,
     footer,
     components: allComponents
+  });
+}
+
+/**
+ * Text Card - Converts any simple text into a compliant borderless Components V2 message
+ */
+export function textCard(text, { title = null, glyph = '', footer = theme.footer.text, components = [], ephemeral = false } = {}) {
+  return buildContainer({
+    title,
+    glyph,
+    lines: [text],
+    footer,
+    components,
+    ephemeral
   });
 }
 
@@ -519,78 +520,78 @@ export function createButton({
 }
 
 /**
- * Resolves button style string/number to ButtonStyle
- */
-function resolveButtonStyle(style) {
-  if (typeof style === 'number') return style;
-  const s = String(style || '').toLowerCase();
-  if (s === 'primary' || s === 'blurple') return ButtonStyle.Primary;
-  if (s === 'success' || s === 'green') return ButtonStyle.Success;
-  if (s === 'danger' || s === 'red') return ButtonStyle.Danger;
-  if (s === 'link') return ButtonStyle.Link;
-  return ButtonStyle.Secondary;
-}
-
-/**
  * Creates a StringSelectMenuBuilder
  */
 export function createStringSelect({
-  id,
+  id = null,
+  customId = null,
   placeholder = 'Select an option...',
   options = [],
   minValues = 1,
   maxValues = 1,
   disabled = false
-}) {
-  const select = new StringSelectMenuBuilder()
-    .setCustomId(id)
+} = {}) {
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId(id || customId || `select_${Date.now()}`)
     .setPlaceholder(placeholder)
     .setMinValues(minValues)
     .setMaxValues(maxValues)
     .setDisabled(disabled);
 
   if (Array.isArray(options) && options.length > 0) {
-    select.addOptions(options.slice(0, 25));
+    menu.addOptions(
+      options.map(opt => ({
+        label: String(opt.label || opt.name || opt.value).slice(0, 100),
+        value: String(opt.value || opt.id).slice(0, 100),
+        description: opt.description ? String(opt.description).slice(0, 100) : undefined,
+        emoji: opt.emoji || undefined,
+        default: Boolean(opt.default)
+      }))
+    );
   }
-  return select;
+
+  return menu;
 }
 
 /**
  * Creates a ChannelSelectMenuBuilder
  */
 export function createChannelSelect({
-  id,
+  id = null,
+  customId = null,
   placeholder = 'Select a channel...',
   channelTypes = [],
   minValues = 1,
   maxValues = 1,
   disabled = false
-}) {
-  const select = new ChannelSelectMenuBuilder()
-    .setCustomId(id)
+} = {}) {
+  const menu = new ChannelSelectMenuBuilder()
+    .setCustomId(id || customId || `ch_select_${Date.now()}`)
     .setPlaceholder(placeholder)
     .setMinValues(minValues)
     .setMaxValues(maxValues)
     .setDisabled(disabled);
 
   if (Array.isArray(channelTypes) && channelTypes.length > 0) {
-    select.setChannelTypes(channelTypes);
+    menu.setChannelTypes(channelTypes);
   }
-  return select;
+
+  return menu;
 }
 
 /**
  * Creates a RoleSelectMenuBuilder
  */
 export function createRoleSelect({
-  id,
+  id = null,
+  customId = null,
   placeholder = 'Select a role...',
   minValues = 1,
   maxValues = 1,
   disabled = false
-}) {
+} = {}) {
   return new RoleSelectMenuBuilder()
-    .setCustomId(id)
+    .setCustomId(id || customId || `role_select_${Date.now()}`)
     .setPlaceholder(placeholder)
     .setMinValues(minValues)
     .setMaxValues(maxValues)
@@ -598,31 +599,87 @@ export function createRoleSelect({
 }
 
 /**
- * Creates a ModalBuilder with text input fields
+ * Creates a ModalBuilder with TextInput rows
  */
 export function createModal({
-  id,
-  title,
+  id = null,
+  customId = null,
+  title = 'Modal Form',
+  inputs = [],
   fields = []
-}) {
+} = {}) {
   const modal = new ModalBuilder()
-    .setCustomId(id)
-    .setTitle(format.truncate(title, 45, ''));
+    .setCustomId(id || customId || `modal_${Date.now()}`)
+    .setTitle(title.slice(0, 45));
 
-  for (const f of fields) {
-    const input = new TextInputBuilder()
-      .setCustomId(f.id)
-      .setLabel(format.truncate(f.label, 45, ''))
-      .setStyle(f.style === 'paragraph' || f.paragraph ? TextInputStyle.Paragraph : TextInputStyle.Short)
-      .setRequired(f.required !== false);
-
-    if (f.placeholder) input.setPlaceholder(format.truncate(f.placeholder, 100, ''));
-    if (f.value) input.setValue(String(f.value));
-    if (f.minLength) input.setMinLength(f.minLength);
-    if (f.maxLength) input.setMaxLength(f.maxLength);
-
-    modal.addComponents(new ActionRowBuilder().addComponents(input));
+  const allInputs = (Array.isArray(inputs) && inputs.length > 0) ? inputs : (Array.isArray(fields) ? fields : []);
+  for (const input of allInputs) {
+    const textInput = createTextInput(input);
+    modal.addComponents(new ActionRowBuilder().addComponents(textInput));
   }
 
   return modal;
 }
+
+/**
+ * Creates a TextInputBuilder
+ */
+export function createTextInput({
+  id = null,
+  customId = null,
+  label = 'Input',
+  style = TextInputStyle.Short,
+  paragraph = false,
+  placeholder = '',
+  value = null,
+  required = true,
+  minLength = null,
+  maxLength = null
+} = {}) {
+  const input = new TextInputBuilder()
+    .setCustomId(id || customId || `input_${Date.now()}`)
+    .setLabel(label.slice(0, 45))
+    .setStyle(paragraph || style === TextInputStyle.Paragraph || style === 'paragraph' ? TextInputStyle.Paragraph : TextInputStyle.Short)
+    .setRequired(required);
+
+  if (placeholder) input.setPlaceholder(String(placeholder).slice(0, 100));
+  if (value) input.setValue(String(value));
+  if (minLength !== null) input.setMinLength(minLength);
+  if (maxLength !== null) input.setMaxLength(maxLength);
+
+  return input;
+}
+
+/**
+ * Helper to resolve ButtonStyle strings or integers
+ */
+function resolveButtonStyle(style) {
+  if (typeof style === 'number') return style;
+  switch (String(style).toLowerCase()) {
+    case 'primary': return ButtonStyle.Primary;
+    case 'secondary': return ButtonStyle.Secondary;
+    case 'success': return ButtonStyle.Success;
+    case 'danger': return ButtonStyle.Danger;
+    case 'link': return ButtonStyle.Link;
+    default: return ButtonStyle.Secondary;
+  }
+}
+
+export default {
+  buildContainer,
+  successCard,
+  errorCard,
+  warnCard,
+  infoCard,
+  confirmCard,
+  paginatedCard,
+  panelCard,
+  textCard,
+  createButton,
+  createStringSelect,
+  createChannelSelect,
+  createRoleSelect,
+  createModal,
+  createTextInput,
+  packActionRows
+};

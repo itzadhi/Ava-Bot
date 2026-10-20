@@ -125,7 +125,7 @@ async function runPreview() {
       console.log(`Attached Files: ${payload.files.map(f => f.name).join(', ')}`);
     }
     const json = payload.components[0].toJSON();
-    console.log(`Accent Color: ${json.accent_color}`);
+    console.log(`Borderless (no sidebar color): ${json.accent_color === undefined}`);
     console.log(`Child components: ${json.components?.length || 0}`);
   }
 }

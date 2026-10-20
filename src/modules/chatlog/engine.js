@@ -8,7 +8,6 @@ import { progressCard } from '../../ui/cards.js';
 import { addJob } from '../../services/queue.js';
 import { logAudit } from '../../db/audit.js';
 import { logger } from '../../utils/logger.js';
-import { sanitizeEmbeds, sanitizeEmbedForSend, componentsToEmbed, extractMessagePayload } from '../../utils/embed.js';
 
 // Continuous real-time ring buffer per channel (Channel ID -> Array<MessagePayload>)
 const channelVaultBuffer = new Map();
@@ -16,6 +15,33 @@ const channelVaultBuffer = new Map();
 const flushTimers = new Map();
 // Maximum messages to retain per channel in the live memory ring buffer
 const MAX_RING_BUFFER = 300;
+
+/**
+ * Normalizes a Discord message into a structured payload for archiving
+ * @param {import('discord.js').Message} m
+ */
+export function extractMessagePayload(m) {
+  if (!m) return null;
+  const attachments = Array.from(m.attachments?.values?.() || []).map(a => ({
+    id: a.id,
+    name: a.name,
+    url: a.url,
+    size: a.size,
+    contentType: a.contentType
+  }));
+
+  return {
+    id: m.id,
+    authorId: m.author?.id || '0',
+    authorName: m.author?.username || 'User',
+    authorAvatar: typeof m.author?.displayAvatarURL === 'function' ? m.author.displayAvatarURL() : null,
+    content: m.content || '',
+    createdAt: m.createdAt ? m.createdAt.toISOString() : new Date().toISOString(),
+    attachments,
+    components: Array.from(m.components || []).map(c => typeof c?.toJSON === 'function' ? c.toJSON() : c),
+    referenceMessageId: m.reference?.messageId || null
+  };
+}
 
 /**
  * Automatically records a live message into the real-time channel vault.

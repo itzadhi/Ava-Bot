@@ -2,35 +2,17 @@ import { config } from '../config.js';
 
 /**
  * Global Theme & Design System Tokens (Single Source of Truth)
- * Everything visual reads from this configuration.
+ * Components V2 Clean Dark Design System - ZERO sidebar color / NO accent strip.
  */
 export const theme = {
-  // Primary brand accent color (used on containers)
-  accent: 0x5865F2, // Blurple
-
-  // Category & status accent colors
+  // Color tokens for text/markdown reference (NO accent color - containers are borderless)
   colors: {
-    accent: 0x5865F2,
     success: 0x57F287,
     error: 0xED4245,
     warn: 0xFEE75C,
     warning: 0xFEE75C,
     info: 0x5865F2,
-    purple: 0x9B59B6,
-    orange: 0xE67E22,
-    dark: 0x2B2D31,
-    neutral: 0x2B2D31,
-    blurple: 0x5865F2,
-    fuchsia: 0xEB459E
-  },
-
-  // Log category specific colors
-  logColors: {
-    red: 0xED4245,     // bans, kicks, deletions
-    orange: 0xE67E22,  // warnings, message edits
-    green: 0x57F287,   // joins, creates
-    blue: 0x5865F2,    // info, updates
-    purple: 0x9B59B6   // voice, role changes
+    neutral: 0x2B2D31
   },
 
   // Standardized Emoji Set (custom emoji tokens with robust Unicode fallbacks)

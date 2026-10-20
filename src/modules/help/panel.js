@@ -14,6 +14,7 @@ import { theme } from '../../config/theme.js';
 import * as format from '../../utils/ui/format.js';
 import { registry } from '../../structures/CommandRegistry.js';
 import { getBrandLogo } from '../../ui/theme.js';
+import { errorCard } from '../../utils/ui/builders.js';
 
 export const CATEGORY_DEFINITIONS = {
   main: [
@@ -104,7 +105,6 @@ export const CATEGORY_DEFINITIONS = {
  */
 export function buildHelpMenuPayload({ user, client, prefix = 'a!', sessionId }) {
   const container = new ContainerBuilder();
-  container.setAccentColor(theme.accent);
 
   const totalCommands = registry.getAll().length;
   const botName = client?.user?.username || 'Argoni';
@@ -232,7 +232,6 @@ export function buildCategoryHelpPayload({
   const pageCommands = commandsList.slice(startIdx, startIdx + pageSize);
 
   const container = new ContainerBuilder();
-  container.setAccentColor(theme.accent);
 
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(`## ${catDef.emoji} ${catDef.name} Commands`)
@@ -320,10 +319,12 @@ export async function startHelpSession(ctx) {
         time: 120000,
         filter: async (i) => {
           if (i.user.id !== ctx.user.id) {
-            await i.reply({
-              flags: MessageFlags.Ephemeral,
-              content: '⚠️ This help menu is bound to another user. Run `&help` to open your own!'
-            }).catch(() => {});
+            await i.reply(errorCard({
+              title: 'Help Menu Restricted',
+              reason: 'This help menu is bound to another user.',
+              fix: 'Run /help or &help to open your own menu.',
+              ephemeral: true
+            })).catch(() => {});
             return false;
           }
           return i.customId.endsWith(sessionId);
@@ -393,4 +394,64 @@ export async function startHelpSession(ctx) {
       }
     } catch (_) {}
   });
+}
+
+/**
+ * Global fallback handler for help:* interactions outside active collector
+ * @param {import('discord.js').Interaction} interaction
+ */
+export async function handleHelpInteraction(interaction) {
+  const customId = interaction.customId;
+  if (!customId?.startsWith('help:')) return false;
+  if (interaction.deferred || interaction.replied) return true;
+
+  try {
+    if (customId.startsWith('help:close:')) {
+      await interaction.update({ components: [] }).catch(() => {});
+      return true;
+    }
+
+    const prefix = 'a!';
+    const sessionId = customId.split(':').pop() || `${Date.now()}`;
+
+    if (customId.startsWith('help:back:')) {
+      const menuPayload = buildHelpMenuPayload({
+        user: interaction.user,
+        client: interaction.client,
+        prefix,
+        sessionId
+      });
+      await interaction.update(menuPayload).catch(() => {});
+      return true;
+    }
+
+    if (customId.startsWith('help:sel_main:') || customId.startsWith('help:sel_extra:')) {
+      const categoryId = interaction.values?.[0];
+      if (categoryId) {
+        const categoryPayload = buildCategoryHelpPayload({
+          categoryId,
+          prefix,
+          sessionId,
+          page: 1
+        });
+        await interaction.update(categoryPayload).catch(() => {});
+        return true;
+      }
+    }
+
+    if (customId.startsWith('help:page:')) {
+      const parts = customId.split(':');
+      const categoryId = parts[2];
+      const targetPage = parseInt(parts[3], 10) || 1;
+      const pagePayload = buildCategoryHelpPayload({
+        categoryId,
+        prefix,
+        sessionId,
+        page: targetPage
+      });
+      await interaction.update(pagePayload).catch(() => {});
+      return true;
+    }
+  } catch (_) {}
+  return true;
 }

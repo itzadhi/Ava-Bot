@@ -7,6 +7,7 @@ import {
 import { getGuildSettings } from '../../db/guilds.js';
 import { addJob } from '../../services/queue.js';
 import { logger } from '../../utils/logger.js';
+import { buildContainer } from '../../utils/ui/builders.js';
 
 /**
  * Handles message sync event with loop prevention
@@ -67,10 +68,15 @@ export async function handleMessageSync(message) {
             files: attachments
           });
         } else if (targetChannel.permissionsFor(targetGuild.members.me)?.has(PermissionFlagsBits.SendMessages)) {
-          sentMsg = await targetChannel.send({
-            content: `**${message.author.username}** (${message.guild.name}):\n${message.content}\n${timeHeader}`,
-            files: attachments
-          });
+          sentMsg = await targetChannel.send(buildContainer({
+            title: `${message.author.username} [Sync]`,
+            lines: [
+              `**Server:** ${message.guild.name}`,
+              message.content || '_No text content_',
+              timeHeader
+            ],
+            thumbnail: message.author.displayAvatarURL?.()
+          }));
         }
 
         if (sentMsg) {

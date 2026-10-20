@@ -47,7 +47,7 @@ import {
 } from '../src/utils/ui/index.js';
 
 test('Theme configuration exports expected tokens and links', () => {
-  assert.equal(typeof theme.accent, 'number');
+  assert.equal(theme.accent, undefined, 'theme.accent must be removed');
   assert.ok(theme.colors.success);
   assert.ok(theme.colors.error);
   assert.ok(theme.colors.warn);
@@ -117,11 +117,10 @@ test('truncate handles limits without cutting mentions or code blocks', () => {
   assert.ok(cutCode.includes('```'));
 });
 
-test('buildContainer produces compliant Components V2 payload', () => {
+test('buildContainer produces compliant Components V2 payload with NO sidebar color', () => {
   const payload = buildContainer({
     title: 'Container Title',
     lines: ['Line 1', 'Line 2'],
-    accent: theme.colors.purple,
     footer: 'Footer subtext'
   });
 
@@ -129,7 +128,7 @@ test('buildContainer produces compliant Components V2 payload', () => {
   assert.equal(payload.components.length, 1);
   const json = payload.components[0].toJSON();
   assert.ok(json.components.length >= 2);
-  assert.equal(json.accent_color, theme.colors.purple);
+  assert.equal(json.accent_color, undefined, 'Container must have NO sidebar color strip');
 });
 
 test('Cards return single ContainerBuilder with IsComponentsV2 flag', () => {

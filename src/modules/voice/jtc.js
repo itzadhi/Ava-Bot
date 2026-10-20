@@ -16,6 +16,7 @@ import { getGuildSettings } from '../../db/guilds.js';
 import { buildControlCard, refreshControlMessage } from './control.js';
 import { ttsEngine } from './tts/engine.js';
 import { logger } from '../../utils/logger.js';
+import { infoCard } from '../../ui/cards.js';
 
 // In-flight join-creation lock to prevent race conditions from join-spamming
 const creatingMembers = new Set();
@@ -355,10 +356,12 @@ export async function transferRoomOwnership(channel, record, newOwnerId, reason 
     // Refresh control message in place
     await refreshControlMessage(channel);
 
-    // Announce ownership transfer in channel chat
-    await channel.send({
-      content: `👑 **Room Ownership Transferred:** <@${newOwnerId}> is now the room owner.`
-    }).catch(() => {});
+    // Announce ownership transfer in channel chat with Components V2
+    await channel.send(infoCard({
+      title: 'Room Ownership Transferred',
+      body: `👑 <@${newOwnerId}> is now the room owner.`,
+      subtext: 'Join-to-Create • Argoni Voice'
+    })).catch(() => {});
 
     logger.info({ channelId: channel.id, newOwnerId, reason }, 'Transferred room ownership');
     return true;

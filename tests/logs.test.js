@@ -31,10 +31,10 @@ test('buildLogCard: produces compliant Components V2 cards with category colors'
   assert.equal(banCard.flags, MessageFlags.IsComponentsV2);
   assert.equal(banCard.components.length, 1);
   const banJson = banCard.components[0].toJSON();
-  assert.equal(banJson.accent_color, theme.logColors.red);
+  assert.equal(banJson.accent_color, undefined, 'Log card must have NO sidebar color strip');
   assert.deepEqual(banCard.allowedMentions, { parse: [] });
 
-  // 2. Message Edit Card with Diff Block (Orange Accent)
+  // 2. Message Edit Card with Diff Block
   const editCard = buildLogCard({
     eventName: 'Message Edited',
     emoji: '📝',
@@ -47,9 +47,9 @@ test('buildLogCard: produces compliant Components V2 cards with category colors'
 
   assert.equal(editCard.flags, MessageFlags.IsComponentsV2);
   const editJson = editCard.components[0].toJSON();
-  assert.equal(editJson.accent_color, theme.logColors.orange);
+  assert.equal(editJson.accent_color, undefined);
 
-  // 3. Member Join Card (Green Accent)
+  // 3. Member Join Card
   const joinCard = buildLogCard({
     eventName: 'Member Joined',
     emoji: '📥',
@@ -57,9 +57,9 @@ test('buildLogCard: produces compliant Components V2 cards with category colors'
     user: dummyUser
   });
   const joinJson = joinCard.components[0].toJSON();
-  assert.equal(joinJson.accent_color, theme.logColors.green);
+  assert.equal(joinJson.accent_color, undefined);
 
-  // 4. Voice Channel Switch Card (Purple Accent)
+  // 4. Voice Channel Switch Card
   const voiceCard = buildLogCard({
     eventName: 'Voice Channel Switched',
     emoji: '🔄',
@@ -68,7 +68,7 @@ test('buildLogCard: produces compliant Components V2 cards with category colors'
     details: ['From: <#111>', 'To: <#222>']
   });
   const voiceJson = voiceCard.components[0].toJSON();
-  assert.equal(voiceJson.accent_color, theme.logColors.purple);
+  assert.equal(voiceJson.accent_color, undefined);
 });
 
 test('getLogConfig & updateLogConfig: persists settings and category toggles', async () => {

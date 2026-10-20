@@ -326,7 +326,7 @@ test('Router: correctly intercepts fb:* and ignores non-fb customIds', async () 
       roles: { everyone: { id: 'everyone_role' } }
     },
     deferUpdate: async () => {},
-    followUp: async (data) => { jtcFollowUp = data.content; }
+    followUp: async (data) => { jtcFollowUp = data.content || JSON.stringify(data); }
   };
 
   // Seed temp channel for creator

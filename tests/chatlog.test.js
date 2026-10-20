@@ -92,7 +92,6 @@ test('recordLiveMessage continuously records chat in real-time buffer', async ()
     content: 'Autonomous live chat message 1',
     createdAt: new Date(),
     attachments: new Map(),
-    embeds: [],
     components: []
   };
 
@@ -104,7 +103,6 @@ test('recordLiveMessage continuously records chat in real-time buffer', async ()
     content: 'Autonomous live chat message 2 with rich data',
     createdAt: new Date(),
     attachments: new Map(),
-    embeds: [],
     components: []
   };
 
