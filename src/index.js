@@ -41,6 +41,8 @@ import { handleStickyRoleMemberLeave, handleStickyRoleMemberRejoin } from './mod
 import { handleAutoRoleMemberJoin } from './modules/autorole/engine.js';
 import { registerLogListeners } from './modules/logs/listeners.js';
 import { startTicketScheduler, stopTicketScheduler, handleMemberLeave, handleChannelDelete } from './modules/tickets/autoclose.js';
+import { handleTicketImageDrop } from './modules/tickets/panel.js';
+import { getTicketByChannel, updateTicketLastMessage } from './db/tickets.js';
 
 /**
  * ArgoniClient - Reusable Discord Bot Client powered by Components V2 & Supabase
@@ -78,6 +80,24 @@ export class ArgoniClient extends Client {
     // Attach default core event listeners
     this.on('interactionCreate', onInteractionCreate);
     this.on('messageCreate', async (message) => {
+      // 1. Intercept drag-and-drop image uploads for ticket panels
+      const isImgDrop = await handleTicketImageDrop(message).catch(() => false);
+      if (isImgDrop) return;
+
+      // 2. Protect active ticket channels from unwanted module interference
+      const isTicketChan = message.channel.name?.startsWith('ticket-') ||
+                           message.channel.name?.startsWith('tkt-') ||
+                           Boolean(await getTicketByChannel(message.guild?.id, message.channel?.id).catch(() => null));
+
+      if (isTicketChan) {
+        // Keep ticket active by updating last_message_at
+        updateTicketLastMessage(message.guild?.id, message.channel?.id).catch(() => {});
+
+        // Ticket channels are strictly exempted from AutoMod, AutoSuggest, AutoFeedback, Sticky Notes, and MessageSync
+        await onMessageCreate(message);
+        return;
+      }
+
       // Real-time AutoMod protection scanning
       const isAutoMod = await handleAutoModMessage(message).catch(() => false);
       if (isAutoMod) return;
@@ -131,7 +151,8 @@ export class ArgoniClient extends Client {
           tag: readyClient.user.tag,
           id: readyClient.user.id,
           guilds: readyClient.guilds.cache.size,
-          ping: Math.round(readyClient.ws.ping)
+          ping: Math.round(readyClient.ws.ping),
+          commandCount: registry.getAll().length
         });
       } else {
         logger.info(`✓ Logged in as ${readyClient.user.tag} (ID: ${readyClient.user.id})`);

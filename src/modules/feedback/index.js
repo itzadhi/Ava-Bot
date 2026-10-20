@@ -443,6 +443,7 @@ export async function handleFeedbackModalSubmit(interaction) {
 
   pendingFeedbackImages.set(interaction.user.id, {
     guildId: guild.id,
+    channelId: interaction.channelId,
     targetChannelId: targetChannel.id,
     ratingNum,
     review,
@@ -492,6 +493,7 @@ export async function handleFeedbackImageUpload(message) {
 
   const pending = pendingFeedbackImages.get(message.author.id);
   if (!pending) return false;
+  if (pending.channelId && message.channel.id !== pending.channelId) return false;
 
   const attachment = message.attachments?.find(a =>
     a.contentType?.startsWith('image/') || /\.(png|jpe?g|webp|gif)$/i.test(a.name || '')
@@ -669,15 +671,10 @@ export async function handleAutoFeedback(message) {
   const guildSettings = await getGuildSettings(message.guild.id);
   if (guildSettings?.feedback_enabled === false) return false;
 
-  let isFeedbackChannel = false;
-  if (guildSettings?.feedback_channel_id) {
-    isFeedbackChannel = guildSettings.feedback_channel_id === message.channel.id;
-  } else if (message.channel?.name && /(feedback|review)/i.test(message.channel.name)) {
-    isFeedbackChannel = true;
-    await updateGuildSettings(message.guild.id, { feedback_channel_id: message.channel.id }).catch(() => {});
+  // Channel Matching: Must be explicitly configured feedback_channel_id
+  if (!guildSettings?.feedback_channel_id || guildSettings.feedback_channel_id !== message.channel.id) {
+    return false;
   }
-
-  if (!isFeedbackChannel) return false;
 
   const content = message.content?.trim();
   const guildPrefix = guildSettings?.prefix || 'a!';

@@ -10,7 +10,7 @@ import {
   PermissionFlagsBits,
   MessageFlags
 } from 'discord.js';
-import { errorCard, successCard } from '../../ui/cards.js';
+import { errorCard, successCard, infoCard } from '../../ui/cards.js';
 import { container } from '../../utils/ui/components.js';
 import {
   getTicketById,
@@ -40,7 +40,12 @@ import {
 import { generateAndSaveTranscript } from './transcript.js';
 import { buildRatingFeedbackModal, handleRatingSubmission } from './ratings.js';
 import { renderTicketSettingsDashboard } from './settings.js';
-import { renderPanelManagerDashboard, buildPublishedPanelCard } from './panel.js';
+import {
+  renderPanelManagerDashboard,
+  buildPublishedPanelCard,
+  renderPanelImageConfigCard,
+  pendingPanelUploads
+} from './panel.js';
 import { logger } from '../../utils/logger.js';
 
 /**
@@ -69,6 +74,23 @@ export async function handleTicketInteraction(interaction) {
       if (action === 'sel') {
         const panelId = arg1;
         const categoryId = interaction.values?.[0] || 'default';
+
+        // Asynchronously reset panel dropdown menu state on client
+        if (interaction.message?.editable) {
+          Promise.resolve().then(async () => {
+            try {
+              const [panel, categories] = await Promise.all([
+                getTicketPanel(panelId),
+                getTicketCategories(interaction.guildId)
+              ]);
+              if (panel) {
+                const refreshed = await buildPublishedPanelCard({ panel, categories });
+                await interaction.message.edit(refreshed).catch(() => {});
+              }
+            } catch (_) {}
+          });
+        }
+
         await handleOpenTicketFlow({ interaction, categoryId, panelId });
         return true;
       }
@@ -513,6 +535,36 @@ export async function handleTicketInteraction(interaction) {
 
       const guild = interaction.guild;
 
+      if (action === 'panel_sel') {
+        await interaction.deferUpdate().catch(() => {});
+        const selectedPanelId = interaction.values?.[0];
+        const payload = await renderPanelManagerDashboard(guild, selectedPanelId);
+        return interaction.editReply(payload);
+      }
+
+      if (action === 'cat_sel') {
+        await interaction.deferUpdate().catch(() => {});
+        const panelId = arg1;
+        const panel = await getTicketPanel(panelId);
+        if (panel) {
+          const selectedCategories = interaction.values || [];
+          const updated = await saveTicketPanel({ ...panel, category_ids: selectedCategories });
+          if (panel.channel_id && panel.message_id) {
+            try {
+              const targetChan = guild.channels.cache.get(panel.channel_id);
+              const msg = await targetChan?.messages.fetch(panel.message_id).catch(() => null);
+              if (msg) {
+                const categories = await getTicketCategories(guild.id);
+                const updatedCard = await buildPublishedPanelCard({ panel: updated, categories });
+                await msg.edit(updatedCard).catch(() => {});
+              }
+            } catch (_) {}
+          }
+        }
+        const payload = await renderPanelManagerDashboard(guild, panelId);
+        return interaction.editReply(payload);
+      }
+
       if (action === 'deploy_chan') {
         const panelId = arg1;
         const targetChannelId = interaction.values?.[0];
@@ -591,13 +643,223 @@ export async function handleTicketInteraction(interaction) {
         return interaction.editReply(payload);
       }
 
+      if (action === 'edit_btn') {
+        const panelId = arg1;
+        const panel = await getTicketPanel(panelId);
+        if (!panel) return true;
+
+        const modal = new ModalBuilder()
+          .setCustomId(`tkt:mgr:edit_modal:${panel.id}`)
+          .setTitle('Edit Panel Content');
+
+        const titleInput = new TextInputBuilder()
+          .setCustomId('panel_title')
+          .setLabel('Panel Title')
+          .setStyle(TextInputStyle.Short)
+          .setValue(panel.title || 'Support Tickets')
+          .setRequired(true);
+
+        const descInput = new TextInputBuilder()
+          .setCustomId('panel_desc')
+          .setLabel('Panel Description')
+          .setStyle(TextInputStyle.Paragraph)
+          .setValue(panel.description || '')
+          .setRequired(false);
+
+        const emojiInput = new TextInputBuilder()
+          .setCustomId('panel_emoji')
+          .setLabel('Panel / Button Emoji')
+          .setStyle(TextInputStyle.Short)
+          .setValue(panel.button_emoji || '🎫')
+          .setRequired(false);
+
+        modal.addComponents(
+          new ActionRowBuilder().addComponents(titleInput),
+          new ActionRowBuilder().addComponents(descInput),
+          new ActionRowBuilder().addComponents(emojiInput)
+        );
+        await interaction.showModal(modal);
+        return true;
+      }
+
+      if (action === 'edit_modal') {
+        await interaction.deferUpdate().catch(() => {});
+        const panelId = arg1;
+        const panel = await getTicketPanel(panelId);
+        if (panel) {
+          const title = interaction.fields.getTextInputValue('panel_title')?.trim() || panel.title;
+          const description = interaction.fields.getTextInputValue('panel_desc')?.trim() || '';
+          const emoji = interaction.fields.getTextInputValue('panel_emoji')?.trim() || '🎫';
+
+          const updated = await saveTicketPanel({
+            ...panel,
+            title,
+            description,
+            button_emoji: emoji
+          });
+
+          if (panel.channel_id && panel.message_id) {
+            try {
+              const targetChan = guild.channels.cache.get(panel.channel_id);
+              const msg = await targetChan?.messages.fetch(panel.message_id).catch(() => null);
+              if (msg) {
+                const categories = await getTicketCategories(guild.id);
+                const updatedCard = await buildPublishedPanelCard({ panel: updated, categories });
+                await msg.edit(updatedCard).catch(() => {});
+              }
+            } catch (_) {}
+          }
+        }
+        const payload = await renderPanelManagerDashboard(guild, panelId);
+        return interaction.editReply(payload);
+      }
+
+      if (action === 'img_btn') {
+        await interaction.deferUpdate().catch(() => {});
+        const panelId = arg1;
+        const payload = await renderPanelImageConfigCard(guild, panelId);
+        return interaction.editReply(payload);
+      }
+
+      if (action === 'arm_drop') {
+        const panelId = arg1;
+        const imgType = arg2; // 'banner' or 'thumbnail'
+        pendingPanelUploads.set(interaction.user.id, {
+          panelId,
+          type: imgType,
+          channelId: interaction.channelId,
+          expiresAt: Date.now() + 60000
+        });
+
+        const typeLabel = imgType === 'banner' ? 'Banner' : 'Thumbnail';
+        return interaction.reply({
+          ...infoCard({
+            title: `Upload ${typeLabel} (Drag & Drop)`,
+            subtitle: `**Drag and drop or upload your image file directly into this channel now.**\n` +
+                      `• Target: **${imgType === 'banner' ? 'Top Media Banner' : 'Header Thumbnail Icon'}**\n` +
+                      `• Formats: PNG, JPG, GIF, WebP\n` +
+                      `• Waiting for your upload (60s timer)...`
+          }),
+          ephemeral: true
+        });
+      }
+
+      if (action === 'img_modal_open') {
+        const panelId = arg1;
+        const panel = await getTicketPanel(panelId);
+        if (!panel) return true;
+
+        const modal = new ModalBuilder()
+          .setCustomId(`tkt:mgr:img_modal:${panel.id}`)
+          .setTitle('Set Panel Banner & Thumbnail URLs');
+
+        const bannerInput = new TextInputBuilder()
+          .setCustomId('panel_banner')
+          .setLabel('Banner Image URL (Top Media Banner)')
+          .setPlaceholder('https://example.com/banner.png')
+          .setStyle(TextInputStyle.Short)
+          .setValue(panel.banner_url || '')
+          .setRequired(false);
+
+        const thumbInput = new TextInputBuilder()
+          .setCustomId('panel_thumb')
+          .setLabel('Thumbnail Image URL (Header Icon)')
+          .setPlaceholder('https://example.com/thumbnail.png')
+          .setStyle(TextInputStyle.Short)
+          .setValue(panel.thumbnail_url || '')
+          .setRequired(false);
+
+        modal.addComponents(
+          new ActionRowBuilder().addComponents(bannerInput),
+          new ActionRowBuilder().addComponents(thumbInput)
+        );
+        await interaction.showModal(modal);
+        return true;
+      }
+
+      if (action === 'img_modal') {
+        await interaction.deferUpdate().catch(() => {});
+        const panelId = arg1;
+        const panel = await getTicketPanel(panelId);
+        if (panel) {
+          const banner = interaction.fields.getTextInputValue('panel_banner')?.trim() || null;
+          const thumb = interaction.fields.getTextInputValue('panel_thumb')?.trim() || null;
+
+          const updated = await saveTicketPanel({
+            ...panel,
+            banner_url: banner,
+            thumbnail_url: thumb
+          });
+
+          if (panel.channel_id && panel.message_id) {
+            try {
+              const targetChan = guild.channels.cache.get(panel.channel_id);
+              const msg = await targetChan?.messages.fetch(panel.message_id).catch(() => null);
+              if (msg) {
+                const categories = await getTicketCategories(guild.id);
+                const updatedCard = await buildPublishedPanelCard({ panel: updated, categories });
+                await msg.edit(updatedCard).catch(() => {});
+              }
+            } catch (_) {}
+          }
+        }
+        const payload = await renderPanelImageConfigCard(guild, panelId);
+        return interaction.editReply(payload);
+      }
+
+      if (action === 'clear_images') {
+        await interaction.deferUpdate().catch(() => {});
+        const panelId = arg1;
+        const panel = await getTicketPanel(panelId);
+        if (panel) {
+          const updated = await saveTicketPanel({
+            ...panel,
+            banner_url: null,
+            thumbnail_url: null
+          });
+
+          if (panel.channel_id && panel.message_id) {
+            try {
+              const targetChan = guild.channels.cache.get(panel.channel_id);
+              const msg = await targetChan?.messages.fetch(panel.message_id).catch(() => null);
+              if (msg) {
+                const categories = await getTicketCategories(guild.id);
+                const updatedCard = await buildPublishedPanelCard({ panel: updated, categories });
+                await msg.edit(updatedCard).catch(() => {});
+              }
+            } catch (_) {}
+          }
+        }
+        const payload = await renderPanelImageConfigCard(guild, panelId);
+        return interaction.editReply(payload);
+      }
+
+      if (action === 'back_dash') {
+        await interaction.deferUpdate().catch(() => {});
+        const panelId = arg1;
+        const payload = await renderPanelManagerDashboard(guild, panelId);
+        return interaction.editReply(payload);
+      }
+
       if (action === 'style_btn') {
         await interaction.deferUpdate().catch(() => {});
         const panelId = arg1;
         const panel = await getTicketPanel(panelId);
         if (panel) {
           const newStyle = panel.style === 'buttons' ? 'select' : 'buttons';
-          await saveTicketPanel({ ...panel, style: newStyle });
+          const updated = await saveTicketPanel({ ...panel, style: newStyle });
+
+          if (panel.channel_id && panel.message_id) {
+            try {
+              const targetChan = guild.channels.cache.get(panel.channel_id);
+              const msg = await targetChan?.messages.fetch(panel.message_id).catch(() => null);
+              if (msg) {
+                const categories = await getTicketCategories(guild.id);
+                const updatedCard = await buildPublishedPanelCard({ panel: updated, categories });
+                await msg.edit(updatedCard).catch(() => {});
+              }
+            } catch (_) {}
+          }
         }
         const payload = await renderPanelManagerDashboard(guild, panelId);
         return interaction.editReply(payload);

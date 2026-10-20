@@ -376,8 +376,10 @@ export async function transferRoomOwnership(channel, record, newOwnerId, reason 
  * Deletes orphaned channels, removes empty leftovers, and synchronizes DB
  */
 export async function reconcileTempChannels(client) {
-  logger.info('Starting startup reconciliation for temporary voice channels...');
   const records = await getAllTempChannels();
+  if (!records || records.length === 0) return;
+
+  logger.info('Starting startup reconciliation for temporary voice channels...');
   let deletedCount = 0;
   let activeCount = 0;
 

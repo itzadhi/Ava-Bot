@@ -3,7 +3,13 @@ import assert from 'node:assert/strict';
 import { MessageFlags, Collection, PermissionFlagsBits } from 'discord.js';
 import { ticketDb } from '../src/db/tickets.js';
 import { ensureDefaultCategories, checkCategoryAccess, checkStaffAccess } from '../src/modules/tickets/categories.js';
-import { buildPublishedPanelCard, renderPanelManagerDashboard } from '../src/modules/tickets/panel.js';
+import {
+  buildPublishedPanelCard,
+  renderPanelManagerDashboard,
+  renderPanelImageConfigCard,
+  handleTicketImageDrop,
+  pendingPanelUploads
+} from '../src/modules/tickets/panel.js';
 import { buildTicketControlCard } from '../src/modules/tickets/controls.js';
 import { buildTicketLogCard } from '../src/modules/tickets/logs.js';
 import { renderHtmlTranscript } from '../src/modules/tickets/transcript.js';
@@ -16,7 +22,7 @@ import closeCommand from '../src/commands/tickets/close.js';
 import reopenCommand from '../src/commands/tickets/reopen.js';
 
 test('Ticket Database: settings and caching work with default values', async () => {
-  const guildId = 'test_guild_tkt_1';
+  const guildId = `tkt_tst_${Date.now()}_1`;
   const settings = await ticketDb.getSettings(guildId);
   assert.ok(settings, 'Settings should return an object');
   assert.equal(settings.guild_id, guildId);
@@ -36,7 +42,7 @@ test('Ticket Database: settings and caching work with default values', async () 
 });
 
 test('Ticket Database: sequential ticket numbers increment atomically per guild', async () => {
-  const guildId = 'test_guild_seq_1';
+  const guildId = `seq_tst_${Date.now()}_2`;
   const num1 = await ticketDb.getNextTicketNumber(guildId);
   const num2 = await ticketDb.getNextTicketNumber(guildId);
   const num3 = await ticketDb.getNextTicketNumber(guildId);
@@ -47,7 +53,7 @@ test('Ticket Database: sequential ticket numbers increment atomically per guild'
 });
 
 test('Ticket Database: categories and default seeding', async () => {
-  const guildId = 'test_guild_cat_1';
+  const guildId = `cat_tst_${Date.now()}_3`;
   const defaults = await ensureDefaultCategories(guildId);
   assert.ok(defaults.length >= 3, 'Default categories should seed General, Billing, and Report');
 
@@ -75,7 +81,7 @@ test('Ticket Database: categories and default seeding', async () => {
 });
 
 test('Ticket Database: panels, blacklist, macros, and notes CRUD', async () => {
-  const guildId = 'test_guild_crud_1';
+  const guildId = `crud_tst_${Date.now()}_4`;
 
   // Panels
   const panel = await ticketDb.savePanel({
@@ -322,3 +328,190 @@ test('Ticket Commands: definitions, subcommands, and permissions', () => {
   assert.equal(closeCommand.name, 'close');
   assert.equal(reopenCommand.name, 'reopen');
 });
+
+test('Ticket UI: Banner, thumbnail, and dropdown select menus render properly in panels and control cards', async () => {
+  const panel = {
+    id: 'p_img_1',
+    title: 'Support Hub',
+    description: 'Select a department below',
+    style: 'select',
+    banner_url: 'https://images.unsplash.com/photo-banner.jpg',
+    thumbnail_url: 'https://images.unsplash.com/photo-thumb.jpg'
+  };
+
+  const categories = [
+    { id: 'cat_billing', name: 'Billing', emoji: '💳', description: 'Store orders' },
+    { id: 'cat_tech', name: 'Technical Support', emoji: '🛠️', description: 'Server bugs' }
+  ];
+
+  // 1. Published Panel with Banner, Thumbnail, and Select Dropdown
+  const panelPayload = await buildPublishedPanelCard({ panel, categories });
+  assert.equal(panelPayload.flags, MessageFlags.IsComponentsV2);
+  const panelJson = panelPayload.components[0].toJSON();
+
+  // Ensure MediaGallery exists for banner
+  const mediaGallery = panelJson.components.find(c => c.type === 12);
+  assert.ok(mediaGallery, 'Panel should render MediaGallery for banner_url');
+  assert.equal(mediaGallery.items[0].description, undefined);
+
+  // Ensure Section with Thumbnail exists for thumbnail
+  const sectionWithThumb = panelJson.components.find(c => c.type === 9 && c.accessory?.type === 11);
+  assert.ok(sectionWithThumb, 'Panel should render Section with Thumbnail accessory for thumbnail_url');
+
+  // Ensure Select Menu ActionRow exists
+  const selectRow = panelJson.components.find(c => c.type === 1 && c.components?.[0]?.type === 3);
+  assert.ok(selectRow, 'Panel should render StringSelectMenu row when style is select');
+  assert.equal(selectRow.components[0].custom_id, `tkt:panel:sel:${panel.id}`);
+  assert.equal(selectRow.components[0].options.length, 2);
+
+  // 2. In-Ticket Control Card with Banner and Thumbnail
+  const ticket = {
+    id: 'tkt_img_1',
+    ticket_number: 77,
+    owner_id: 'user_123',
+    owner_username: 'Tester',
+    category_name: 'Billing Support',
+    priority: 'urgent',
+    status: 'open',
+    claimed_by: null,
+    created_at: new Date().toISOString(),
+    banner_url: 'https://images.unsplash.com/ticket-banner.jpg',
+    thumbnail_url: 'https://images.unsplash.com/ticket-thumb.jpg'
+  };
+
+  const controlCard = buildTicketControlCard({ ticket });
+  assert.equal(controlCard.flags, MessageFlags.IsComponentsV2);
+  const controlJson = controlCard.components[0].toJSON();
+
+  const ctlMedia = controlJson.components.find(c => c.type === 12);
+  assert.ok(ctlMedia, 'Control card should render MediaGallery for banner_url');
+
+  const ctlThumb = controlJson.components.find(c => c.type === 9 && c.accessory?.type === 11);
+  assert.ok(ctlThumb, 'Control card should render Section with Thumbnail accessory for thumbnail_url');
+
+  // Verify management tools select menu
+  const toolsMenuRow = controlJson.components.find(c => c.type === 1 && c.components?.[0]?.custom_id?.startsWith('tkt:ctl:tools_sel'));
+  assert.ok(toolsMenuRow, 'Control card should contain tools select menu');
+});
+
+test('Ticket UI: Panel image settings card renders with Components V2 and drag & drop action buttons', async () => {
+  const guild = { id: 'guild_img_test_1', name: 'Test Server' };
+  const panel = await ticketDb.savePanel({
+    guild_id: guild.id,
+    title: 'Support Desk',
+    description: 'Help panel description',
+    banner_url: 'https://cdn.example.com/banner.png',
+    thumbnail_url: 'https://cdn.example.com/thumb.png'
+  });
+
+  const payload = await renderPanelImageConfigCard(guild, panel.id);
+  assert.equal(payload.flags, MessageFlags.IsComponentsV2);
+  assert.equal(payload.components.length, 1);
+
+  const json = payload.components[0].toJSON();
+  assert.equal(json.accent_color, undefined, 'Must not have accent color');
+
+  // Verify MediaGallery for banner
+  const mediaGallery = json.components.find(c => c.type === 12);
+  assert.ok(mediaGallery, 'Should render banner in MediaGallery');
+
+  // Verify Section with Thumbnail
+  const thumbSection = json.components.find(c => c.type === 9 && c.accessory?.type === 11);
+  assert.ok(thumbSection, 'Should render thumbnail accessory in Section');
+
+  // Verify Drag & Drop Action buttons
+  const rows = json.components.filter(c => c.type === 1);
+  assert.ok(rows.length >= 2, 'Should have 2 action rows');
+
+  const armBannerBtn = rows[0].components.find(b => b.custom_id === `tkt:mgr:arm_drop:${panel.id}:banner`);
+  const armThumbBtn = rows[0].components.find(b => b.custom_id === `tkt:mgr:arm_drop:${panel.id}:thumbnail`);
+  const modalBtn = rows[0].components.find(b => b.custom_id === `tkt:mgr:img_modal_open:${panel.id}`);
+  const clearBtn = rows[1].components.find(b => b.custom_id === `tkt:mgr:clear_images:${panel.id}`);
+  const backBtn = rows[1].components.find(b => b.custom_id === `tkt:mgr:back_dash:${panel.id}`);
+
+  assert.ok(armBannerBtn, 'Should have Upload Banner (Drag & Drop) button');
+  assert.ok(armThumbBtn, 'Should have Upload Thumbnail (Drag & Drop) button');
+  assert.ok(modalBtn, 'Should have Enter URLs button');
+  assert.ok(clearBtn, 'Should have Clear Images button');
+  assert.ok(backBtn, 'Should have Back to Dashboard button');
+});
+
+test('Ticket Drag & Drop: handleTicketImageDrop handles user file drop and updates panel banner/thumbnail', async () => {
+  const guildId = `guild_drop_${Date.now()}`;
+  const channelId = `chan_drop_${Date.now()}`;
+  const userId = `user_drop_${Date.now()}`;
+
+  const panel = await ticketDb.savePanel({
+    guild_id: guildId,
+    title: 'Drop Test Panel',
+    banner_url: null,
+    thumbnail_url: null
+  });
+
+  // 1. Arm drag and drop for banner
+  pendingPanelUploads.set(userId, {
+    panelId: panel.id,
+    type: 'banner',
+    channelId,
+    expiresAt: Date.now() + 60000
+  });
+
+  let deleted = false;
+  let sentCard = null;
+
+  const mockMessage = {
+    author: { id: userId, bot: false },
+    guild: { id: guildId, channels: { cache: new Collection() } },
+    channel: {
+      id: channelId,
+      send: async (payload) => {
+        sentCard = payload;
+        return { id: 'sent_1' };
+      }
+    },
+    attachments: new Collection([
+      ['att_1', {
+        name: 'header_banner.png',
+        contentType: 'image/png',
+        url: 'https://cdn.discordapp.com/attachments/header_banner.png'
+      }]
+    ]),
+    delete: async () => { deleted = true; }
+  };
+
+  const handled = await handleTicketImageDrop(mockMessage);
+  assert.equal(handled, true);
+  assert.equal(deleted, true, 'User raw upload message should be cleaned up');
+  assert.ok(sentCard, 'Should send confirmation card');
+  assert.equal(sentCard.flags, MessageFlags.IsComponentsV2);
+
+  // Verify panel record updated in DB
+  const refreshedPanel = await ticketDb.getPanel(panel.id);
+  assert.equal(refreshedPanel.banner_url, 'https://cdn.discordapp.com/attachments/header_banner.png');
+  assert.equal(pendingPanelUploads.has(userId), false, 'Pending upload should be cleared');
+});
+
+test('Ticket Activity: updateTicketLastMessage updates timestamp and clears inactivity warning', async () => {
+  const guildId = `act_guild_${Date.now()}`;
+  const channelId = `act_chan_${Date.now()}`;
+
+  const ticket = await ticketDb.createTicket({
+    guildId,
+    channelId,
+    ticketNumber: 88,
+    ownerId: 'owner_act',
+    ownerUsername: 'ActOwner'
+  });
+
+  // Set stale activity and warning
+  await ticketDb.updateTicket(ticket.id, {
+    last_message_at: new Date(Date.now() - 36000000).toISOString(),
+    warning_sent_at: new Date(Date.now() - 3600000).toISOString()
+  });
+
+  const updated = await ticketDb.updateTicketLastMessage(guildId, channelId);
+  assert.ok(updated);
+  assert.equal(updated.warning_sent_at, null);
+  assert.ok(new Date(updated.last_message_at).getTime() > Date.now() - 5000);
+});
+

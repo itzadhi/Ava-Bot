@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS public.ticket_panels (
     title TEXT NOT NULL DEFAULT 'Support Tickets',
     description TEXT NOT NULL DEFAULT 'Need assistance? Open a ticket below to contact our support team.',
     banner_url TEXT,
+    thumbnail_url TEXT,
     style TEXT NOT NULL DEFAULT 'select', -- 'buttons' | 'select' | 'single'
     button_label TEXT DEFAULT 'Open Ticket',
     button_emoji TEXT DEFAULT '🎫',
@@ -84,6 +85,8 @@ CREATE TABLE IF NOT EXISTS public.ticket_categories (
     name TEXT NOT NULL,
     emoji TEXT NOT NULL DEFAULT '🎫',
     description TEXT DEFAULT 'General inquiries and support',
+    banner_url TEXT,
+    thumbnail_url TEXT,
     channel_category_id TEXT, -- Discord category to create tickets in
     support_role_ids TEXT[] NOT NULL DEFAULT '{}',
     ping_role_ids TEXT[] NOT NULL DEFAULT '{}',
@@ -139,6 +142,8 @@ CREATE TABLE IF NOT EXISTS public.tickets (
     close_request_at TIMESTAMPTZ,
     control_message_id TEXT,
     question_answers JSONB NOT NULL DEFAULT '{}'::jsonb,
+    banner_url TEXT,
+    thumbnail_url TEXT,
     transcript_url TEXT,
     rating INT,
     last_message_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),

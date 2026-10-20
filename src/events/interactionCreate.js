@@ -89,6 +89,10 @@ export async function onInteractionCreate(interaction) {
         case 'boolean':
           args[opt.name] = interaction.options.getBoolean(opt.name);
           break;
+        case 'attachment':
+        case 'file':
+          args[opt.name] = interaction.options.getAttachment(opt.name);
+          break;
         case 'duration':
         case 'id':
         case 'choice':

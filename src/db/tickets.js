@@ -424,6 +424,18 @@ export async function updateTicket(ticketId, updates = {}) {
   return data || table.get(ticketId) || payload;
 }
 
+export async function updateTicketLastMessage(guildId, channelId) {
+  if (!guildId || !channelId) return null;
+  const ticket = await getTicketByChannel(guildId, channelId);
+  if (ticket && ticket.status !== 'closed') {
+    return updateTicket(ticket.id, {
+      last_message_at: new Date().toISOString(),
+      warning_sent_at: null
+    });
+  }
+  return null;
+}
+
 export async function getOpenTickets(guildId) {
   const { data, error } = await db
     .from('tickets')
@@ -937,6 +949,7 @@ export const ticketDb = {
   getTickets: searchTickets,
   searchTickets,
   updateTicket,
+  updateTicketLastMessage,
 
   addStaffNote: addTicketNote,
   getStaffNotes: getTicketNotes,

@@ -27,8 +27,11 @@ export async function handleMessageSync(message) {
   const sourceSettings = await getGuildSettings(message.guild.id);
   if (!sourceSettings.message_sync_enabled) return;
 
+  // Never sync private ticket channels or temporary voice channels
+  if (message.channel.name?.startsWith('ticket-') || message.channel.name?.startsWith('tkt-')) return;
+
   for (const sync of syncs) {
-    if (sync.source_channel && sync.source_channel !== message.channel.id) continue;
+    if (!sync.source_channel || sync.source_channel !== message.channel.id) continue;
 
     const targetGuild = message.client.guilds.cache.get(sync.target_guild);
     if (!targetGuild) continue;

@@ -145,6 +145,13 @@ export class CommandRegistry {
       const desc = arg.description || arg.name;
 
       switch (arg.type) {
+        case 'attachment':
+        case 'file':
+          builder.addAttachmentOption(opt =>
+            opt.setName(arg.name).setDescription(desc).setRequired(required)
+          );
+          break;
+
         case 'int':
         case 'integer':
           builder.addIntegerOption(opt =>

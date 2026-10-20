@@ -2,6 +2,9 @@ import {
   ContainerBuilder,
   TextDisplayBuilder,
   SectionBuilder,
+  ThumbnailBuilder,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
   SeparatorBuilder,
   ActionRowBuilder,
   ButtonBuilder,
@@ -11,7 +14,7 @@ import {
   MessageFlags
 } from 'discord.js';
 import * as format from '../../utils/ui/format.js';
-import { getTicketById } from '../../db/tickets.js';
+import { getTicketById, getTicketCategory } from '../../db/tickets.js';
 import { logger } from '../../utils/logger.js';
 
 const PRIORITY_CONFIG = {
@@ -27,7 +30,9 @@ const PRIORITY_CONFIG = {
 export function buildTicketControlCard({
   ticket,
   category = null,
-  welcomeText = null
+  welcomeText = null,
+  bannerUrl = null,
+  thumbnailUrl = null
 }) {
   const container = new ContainerBuilder();
 
@@ -35,13 +40,39 @@ export function buildTicketControlCard({
   const isClaimed = Boolean(ticket.claimed_by);
   const statusEmoji = ticket.status === 'closed' ? '🔒' : ticket.status === 'locked' ? '🔐' : '🎫';
 
-  // 1. Title Heading
+  // Active banner & thumbnail resolution
+  const activeBanner = bannerUrl || ticket.banner_url || category?.banner_url || null;
+  const activeThumbnail = thumbnailUrl || ticket.thumbnail_url || category?.thumbnail_url || null;
+
+  // 1. Banner Image (Top MediaGalleryBuilder if configured)
+  if (activeBanner) {
+    try {
+      const media = new MediaGalleryBuilder().addItems(
+        new MediaGalleryItemBuilder().setURL(activeBanner)
+      );
+      container.addMediaGalleryComponents(media);
+      container.addSeparatorComponents(new SeparatorBuilder());
+    } catch (_) {}
+  }
+
+  // 2. Title Heading (with optional Thumbnail accessory)
   const title = `## ${statusEmoji} ${ticket.category_name} — Ticket #${ticket.ticket_number}`;
-  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(title));
+  if (activeThumbnail) {
+    try {
+      const headerSection = new SectionBuilder()
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(title))
+        .setThumbnailAccessory(new ThumbnailBuilder().setURL(activeThumbnail));
+      container.addSectionComponents(headerSection);
+    } catch (_) {
+      container.addTextDisplayComponents(new TextDisplayBuilder().setContent(title));
+    }
+  } else {
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(title));
+  }
 
   container.addSeparatorComponents(new SeparatorBuilder());
 
-  // 2. Ticket Metadata Block
+  // 3. Ticket Metadata Block
   const createdUnix = Math.floor(new Date(ticket.created_at).getTime() / 1000);
   const claimText = isClaimed ? `👑 Claimed by <@${ticket.claimed_by}>` : '⏳ **Unclaimed** *(Click Claim to assign yourself)*';
 
@@ -54,7 +85,7 @@ export function buildTicketControlCard({
 
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(metaLines.join('\n')));
 
-  // 3. Question Form Answers (if any)
+  // 4. Question Form Answers (if any)
   const answers = ticket.question_answers || {};
   const answerEntries = Object.entries(answers);
 
@@ -67,7 +98,7 @@ export function buildTicketControlCard({
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(qaLines.join('\n\n')));
   }
 
-  // 4. Custom Welcome Note
+  // 5. Custom Welcome Note
   const note = welcomeText || category?.welcome_template || 'Thank you for reaching out! A staff member will assist you shortly. Use the controls below to manage this ticket.';
   container.addSeparatorComponents(new SeparatorBuilder());
   container.addTextDisplayComponents(
@@ -76,7 +107,7 @@ export function buildTicketControlCard({
 
   container.addSeparatorComponents(new SeparatorBuilder());
 
-  // 5. In-Ticket Controls: Row 1 (Primary Action Buttons)
+  // 6. In-Ticket Controls: Row 1 (Primary Action Buttons)
   const isClosed = ticket.status === 'closed';
 
   const row1 = new ActionRowBuilder().addComponents(
@@ -106,7 +137,7 @@ export function buildTicketControlCard({
       .setDisabled(isClosed)
   );
 
-  // 6. In-Ticket Controls: Row 2 (Staff & Tools Select Menu)
+  // 7. In-Ticket Controls: Row 2 (Staff & Tools Select Menu)
   const toolsMenu = new StringSelectMenuBuilder()
     .setCustomId(`tkt:ctl:tools_sel:${ticket.id}`)
     .setPlaceholder('Ticket management tools...');
@@ -194,7 +225,8 @@ export async function refreshTicketControlCard(channel, ticketId) {
     const message = await channel.messages.fetch(ticket.control_message_id).catch(() => null);
     if (!message) return null;
 
-    const payload = buildTicketControlCard({ ticket });
+    const category = ticket.category_id ? await getTicketCategory(ticket.category_id).catch(() => null) : null;
+    const payload = buildTicketControlCard({ ticket, category });
     await message.edit(payload).catch(err => {
       logger.warn({ err, ticketId }, 'Failed to edit ticket control message');
     });

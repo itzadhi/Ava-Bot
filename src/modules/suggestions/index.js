@@ -376,18 +376,8 @@ export async function handleAutoSuggest(message) {
   const guildSettings = await getGuildSettings(message.guild.id);
   if (guildSettings?.suggestions_enabled === false) return false;
 
-  // Channel Matching:
-  // 1. Explicitly configured suggestion_channel_id
-  // 2. Auto-detect if not yet set and channel name contains 'suggest' (e.g. #suggestions, #suggestion)
-  let isSuggestionChannel = false;
-  if (guildSettings?.suggestion_channel_id) {
-    isSuggestionChannel = guildSettings.suggestion_channel_id === message.channel.id;
-  } else if (message.channel?.name && /suggest/i.test(message.channel.name)) {
-    isSuggestionChannel = true;
-    await updateGuildSettings(message.guild.id, { suggestion_channel_id: message.channel.id }).catch(() => {});
-  }
-
-  if (!isSuggestionChannel) {
+  // Channel Matching: Must be explicitly configured suggestion_channel_id
+  if (!guildSettings?.suggestion_channel_id || guildSettings.suggestion_channel_id !== message.channel.id) {
     return false;
   }
 

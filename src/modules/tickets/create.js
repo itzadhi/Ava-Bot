@@ -317,13 +317,14 @@ export async function handleOpenTicketFlow({
     question_answers: questionAnswers
   };
 
+  // 11. Post In-Ticket Welcome Card (Pure Components V2 - NO legacy content)
   const welcomePayload = buildTicketControlCard({
     ticket: placeholderTicket,
     category,
     welcomeText: category?.welcome_template || settings.welcome_message
   });
 
-  // Role pings (if configured)
+  // Role & owner notification ping: send clean transient ping to trigger Discord push notification without corrupting V2 payload
   const pingMentions = [];
   if (category?.ping_role_ids && category.ping_role_ids.length > 0) {
     for (const rId of category.ping_role_ids) {
@@ -333,15 +334,25 @@ export async function handleOpenTicketFlow({
     }
   }
 
+  const pingTargets = [...pingMentions, `<@${user.id}>`].filter(Boolean);
+  if (pingTargets.length > 0) {
+    try {
+      const pingMsg = await ticketChannel.send({
+        content: pingTargets.join(' '),
+        allowedMentions: {
+          users: [user.id],
+          roles: category?.ping_role_ids || []
+        }
+      });
+      if (pingMsg?.deletable) {
+        await pingMsg.delete().catch(() => {});
+      }
+    } catch (_) {}
+  }
+
   let controlMsg = null;
   try {
-    const sendOptions = { ...welcomePayload };
-    if (pingMentions.length > 0) {
-      sendOptions.content = `${pingMentions.join(' ')} <@${user.id}>`;
-    } else {
-      sendOptions.content = `<@${user.id}>`;
-    }
-    controlMsg = await ticketChannel.send(sendOptions);
+    controlMsg = await ticketChannel.send(welcomePayload);
   } catch (err) {
     logger.warn({ err, channelId: ticketChannel.id }, 'Failed to post ticket welcome card');
   }
@@ -371,7 +382,7 @@ export async function handleOpenTicketFlow({
     ]
   }).catch(() => {});
 
-  // 14. Reply to user with Link Button to the channel
+  // 14. Reply to user with Link Button inside container (Pure Components V2)
   const linkRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setLabel('Go to Ticket')
@@ -379,19 +390,13 @@ export async function handleOpenTicketFlow({
       .setStyle(ButtonStyle.Link)
   );
 
-  return interaction.editReply({
-    ...successCard({
+  return interaction.editReply(
+    successCard({
       title: 'Ticket Created',
       subtitle: `Your ticket has been opened in <#${ticketChannel.id}>.`,
-      details: [
-        { label: 'Ticket', value: `#${ticketNumber}` },
-        { label: 'Category', value: catName }
-      ],
+      body: `**Ticket:** \`#${ticketNumber}\` · **Category:** \`${catName}\``,
+      rows: [linkRow],
       ephemeral: true
-    }),
-    components: [
-      ...successCard({ title: 'Ticket Created', subtitle: `Your ticket has been opened in <#${ticketChannel.id}>.` }).components,
-      linkRow
-    ]
-  });
+    })
+  );
 }

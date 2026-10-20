@@ -14,7 +14,7 @@ import { theme } from '../../config/theme.js';
 import * as format from '../../utils/ui/format.js';
 import { successCard, errorCard } from '../../ui/cards.js';
 import { renderTicketSettingsDashboard } from '../../modules/tickets/settings.js';
-import { renderPanelManagerDashboard } from '../../modules/tickets/panel.js';
+import { renderPanelManagerDashboard, buildPublishedPanelCard } from '../../modules/tickets/panel.js';
 import { checkStaffAccess } from '../../modules/tickets/categories.js';
 import {
   handleClaimToggle,
@@ -24,7 +24,7 @@ import {
   handleModifyUserAccess,
   handleAddStaffNote
 } from '../../modules/tickets/actions.js';
-import { buildTicketControlCard } from '../../modules/tickets/controls.js';
+import { buildTicketControlCard, refreshTicketControlCard } from '../../modules/tickets/controls.js';
 import { sendTicketLog } from '../../modules/tickets/logs.js';
 
 export default {
@@ -36,8 +36,29 @@ export default {
   subcommands: [
     {
       name: 'panel',
-      description: 'Open the ticket panel manager to create and publish panels',
-      args: []
+      description: 'Open ticket panel manager or configure panel banner and thumbnail',
+      args: [
+        { name: 'banner', description: 'Drag & drop image file or enter URL for banner', type: 'attachment', required: false },
+        { name: 'thumbnail', description: 'Drag & drop image file or enter URL for thumbnail', type: 'attachment', required: false },
+        { name: 'banner_url', description: 'Direct image URL for panel top banner', type: 'string', required: false },
+        { name: 'thumbnail_url', description: 'Direct image URL for panel thumbnail', type: 'string', required: false }
+      ]
+    },
+    {
+      name: 'banner',
+      description: 'Set the banner image for the current ticket or active panel (drag & drop or URL)',
+      args: [
+        { name: 'image', description: 'Drag and drop image file for banner', type: 'attachment', required: false },
+        { name: 'url', description: 'Direct image URL for banner', type: 'string', required: false }
+      ]
+    },
+    {
+      name: 'thumbnail',
+      description: 'Set the thumbnail image for the current ticket or active panel (drag & drop or URL)',
+      args: [
+        { name: 'image', description: 'Drag and drop image file for thumbnail', type: 'attachment', required: false },
+        { name: 'url', description: 'Direct image URL for thumbnail', type: 'string', required: false }
+      ]
     },
     {
       name: 'settings',
@@ -155,7 +176,7 @@ export default {
 
     const sub = (ctx.args.subcommand || '').toLowerCase();
 
-    // 1. Panel Manager Dashboard
+    // 1. Panel Manager Dashboard & Image Config
     if (sub === 'panel') {
       const hasPerm = ctx.member?.permissions?.has(PermissionFlagsBits.ManageGuild) || ctx.guild.ownerId === ctx.user.id;
       if (!hasPerm) {
@@ -165,8 +186,169 @@ export default {
           ephemeral: true
         }));
       }
-      const panelPayload = await renderPanelManagerDashboard({ guild: ctx.guild });
+
+      const bannerArg = (typeof ctx.args.banner === 'object' ? ctx.args.banner?.url : ctx.args.banner) || ctx.args.banner_url || null;
+      const thumbArg = (typeof ctx.args.thumbnail === 'object' ? ctx.args.thumbnail?.url : ctx.args.thumbnail) || ctx.args.thumbnail_url || null;
+
+      if (bannerArg || thumbArg) {
+        const panels = await ticketDb.getPanels(ctx.guild.id);
+        const targetPanel = panels[0] || await ticketDb.savePanel({
+          guild_id: ctx.guild.id,
+          title: 'Support Tickets',
+          description: 'Need help? Select an option below to open a ticket.',
+          style: 'select'
+        });
+
+        const updated = await ticketDb.savePanel({
+          ...targetPanel,
+          ...(bannerArg ? { banner_url: bannerArg } : {}),
+          ...(thumbArg ? { thumbnail_url: thumbArg } : {})
+        });
+
+        if (targetPanel.channel_id && targetPanel.message_id) {
+          try {
+            const chan = ctx.guild.channels.cache.get(targetPanel.channel_id);
+            const msg = await chan?.messages.fetch(targetPanel.message_id).catch(() => null);
+            if (msg) {
+              const categories = await ticketDb.getCategories(ctx.guild.id);
+              const refreshed = await buildPublishedPanelCard({ panel: updated, categories });
+              await msg.edit(refreshed).catch(() => {});
+            }
+          } catch (_) {}
+        }
+
+        const lines = [];
+        if (bannerArg) lines.push(`• **Banner:** [Preview Link](${bannerArg})`);
+        if (thumbArg) lines.push(`• **Thumbnail:** [Preview Link](${thumbArg})`);
+
+        return ctx.reply(successCard({
+          title: 'Panel Images Configured',
+          subtitle: `Updated image configuration for **${format.escapeMarkdown(updated.title)}**.`,
+          body: lines.join('\n'),
+          ephemeral: true
+        }));
+      }
+
+      const panelPayload = await renderPanelManagerDashboard(ctx.guild);
       return ctx.reply(panelPayload);
+    }
+
+    // Set Banner (Inside ticket channel or server panel)
+    if (sub === 'banner') {
+      const url = (typeof ctx.args.image === 'object' ? ctx.args.image?.url : ctx.args.image) || ctx.args.url?.trim() || null;
+      if (!url || !url.startsWith('http')) {
+        return ctx.reply(errorCard({
+          title: 'Invalid Image',
+          reason: 'Please drag & drop an image file or provide a valid direct image URL.',
+          ephemeral: true
+        }));
+      }
+
+      const currentTicket = await ticketDb.getTicketByChannel(ctx.guild.id, ctx.channel.id);
+      if (currentTicket) {
+        await ticketDb.updateTicket(currentTicket.id, { banner_url: url });
+        await refreshTicketControlCard(ctx.channel, currentTicket.id);
+        return ctx.reply(successCard({
+          title: 'Ticket Banner Set',
+          subtitle: `Updated top banner for **Ticket #${currentTicket.ticket_number}**.\n[View Image](${url})`,
+          ephemeral: false
+        }));
+      }
+
+      const hasPerm = ctx.member?.permissions?.has(PermissionFlagsBits.ManageGuild) || ctx.guild.ownerId === ctx.user.id;
+      if (!hasPerm) {
+        return ctx.reply(errorCard({
+          title: 'Permission Denied',
+          reason: 'You need the `Manage Server` permission to configure panel images.',
+          ephemeral: true
+        }));
+      }
+
+      const panels = await ticketDb.getPanels(ctx.guild.id);
+      const targetPanel = panels[0] || await ticketDb.savePanel({
+        guild_id: ctx.guild.id,
+        title: 'Support Tickets',
+        description: 'Need help? Select an option below to open a ticket.',
+        style: 'select'
+      });
+
+      const updated = await ticketDb.savePanel({ ...targetPanel, banner_url: url });
+      if (targetPanel.channel_id && targetPanel.message_id) {
+        try {
+          const chan = ctx.guild.channels.cache.get(targetPanel.channel_id);
+          const msg = await chan?.messages.fetch(targetPanel.message_id).catch(() => null);
+          if (msg) {
+            const categories = await ticketDb.getCategories(ctx.guild.id);
+            const refreshed = await buildPublishedPanelCard({ panel: updated, categories });
+            await msg.edit(refreshed).catch(() => {});
+          }
+        } catch (_) {}
+      }
+
+      return ctx.reply(successCard({
+        title: 'Panel Banner Set',
+        subtitle: `Updated banner for panel **${format.escapeMarkdown(updated.title)}**.\n[View Image](${url})`,
+        ephemeral: true
+      }));
+    }
+
+    // Set Thumbnail (Inside ticket channel or server panel)
+    if (sub === 'thumbnail') {
+      const url = (typeof ctx.args.image === 'object' ? ctx.args.image?.url : ctx.args.image) || ctx.args.url?.trim() || null;
+      if (!url || !url.startsWith('http')) {
+        return ctx.reply(errorCard({
+          title: 'Invalid Image',
+          reason: 'Please drag & drop an image file or provide a valid direct image URL.',
+          ephemeral: true
+        }));
+      }
+
+      const currentTicket = await ticketDb.getTicketByChannel(ctx.guild.id, ctx.channel.id);
+      if (currentTicket) {
+        await ticketDb.updateTicket(currentTicket.id, { thumbnail_url: url });
+        await refreshTicketControlCard(ctx.channel, currentTicket.id);
+        return ctx.reply(successCard({
+          title: 'Ticket Thumbnail Set',
+          subtitle: `Updated thumbnail icon for **Ticket #${currentTicket.ticket_number}**.\n[View Image](${url})`,
+          ephemeral: false
+        }));
+      }
+
+      const hasPerm = ctx.member?.permissions?.has(PermissionFlagsBits.ManageGuild) || ctx.guild.ownerId === ctx.user.id;
+      if (!hasPerm) {
+        return ctx.reply(errorCard({
+          title: 'Permission Denied',
+          reason: 'You need the `Manage Server` permission to configure panel images.',
+          ephemeral: true
+        }));
+      }
+
+      const panels = await ticketDb.getPanels(ctx.guild.id);
+      const targetPanel = panels[0] || await ticketDb.savePanel({
+        guild_id: ctx.guild.id,
+        title: 'Support Tickets',
+        description: 'Need help? Select an option below to open a ticket.',
+        style: 'select'
+      });
+
+      const updated = await ticketDb.savePanel({ ...targetPanel, thumbnail_url: url });
+      if (targetPanel.channel_id && targetPanel.message_id) {
+        try {
+          const chan = ctx.guild.channels.cache.get(targetPanel.channel_id);
+          const msg = await chan?.messages.fetch(targetPanel.message_id).catch(() => null);
+          if (msg) {
+            const categories = await ticketDb.getCategories(ctx.guild.id);
+            const refreshed = await buildPublishedPanelCard({ panel: updated, categories });
+            await msg.edit(refreshed).catch(() => {});
+          }
+        } catch (_) {}
+      }
+
+      return ctx.reply(successCard({
+        title: 'Panel Thumbnail Set',
+        subtitle: `Updated thumbnail for panel **${format.escapeMarkdown(updated.title)}**.\n[View Image](${url})`,
+        ephemeral: true
+      }));
     }
 
     // 2. Settings Dashboard

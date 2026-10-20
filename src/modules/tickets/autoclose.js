@@ -7,6 +7,7 @@ import {
 } from '../../db/tickets.js';
 import { handleCloseTicket } from './actions.js';
 import { sendTicketLog } from './logs.js';
+import { container } from '../../utils/ui/components.js';
 import { logger } from '../../utils/logger.js';
 
 let intervalId = null;
@@ -45,10 +46,14 @@ export async function scanInactiveTickets(client) {
       if (warningHours > 0 && !ticket.warning_sent_at) {
         const threshold = autocloseHours - warningHours;
         if (elapsedHours >= threshold && elapsedHours < autocloseHours) {
-          await channel.send({
-            content: `⚠️ <@${ticket.owner_id}>, **Inactivity Notice:** This ticket has been inactive for **${Math.floor(elapsedHours)} hours**.\n` +
+          const noticeCard = container({
+            title: 'Inactivity Notice',
+            lines: [
+              `⚠️ <@${ticket.owner_id}>, this ticket has been inactive for **${Math.floor(elapsedHours)} hours**.`,
               `It will automatically be closed in **${warningHours} hours** if no response is received.`
-          }).catch(() => {});
+            ]
+          });
+          await channel.send(noticeCard).catch(() => {});
 
           await updateTicket(ticket.id, { warning_sent_at: new Date().toISOString() });
           continue;
@@ -112,7 +117,7 @@ export async function handleChannelDelete(channel) {
   if (!channel?.id) return;
 
   try {
-    const ticket = await getTicketByChannel(channel.id);
+    const ticket = await getTicketByChannel(channel.guild?.id, channel.id);
     if (ticket && ticket.status !== 'closed') {
       await updateTicket(ticket.id, {
         status: 'closed',

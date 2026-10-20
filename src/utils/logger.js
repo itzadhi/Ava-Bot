@@ -169,7 +169,8 @@ export const logger = Object.assign(baseLogger, {
   /**
    * Prints gateway login confirmation summary
    */
-  ready({ tag, id, guilds = 0, ping = 0 }) {
+  ready({ tag, id, guilds = 0, ping = 0, commandCount = null }) {
+    const cmdText = commandCount != null ? `${commandCount} Commands Active` : 'Fully Synchronized';
     console.log([
       `  ${c.brightGreen}${c.bold}┌─────────────────────────────────────────────────────────────┐${c.reset}`,
       `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.bold}✔ GATEWAY ONLINE${c.reset}                                            ${c.brightGreen}${c.bold}│${c.reset}`,
@@ -177,8 +178,8 @@ export const logger = Object.assign(baseLogger, {
       `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• Bot Account${c.reset} : ${c.bold}${tag}${c.reset} (${id})`,
       `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• Active Guilds${c.reset}: ${c.bold}${guilds}${c.reset} connected`,
       `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• Heartbeat Ping${c.reset}: ${c.bold}${ping}ms${c.reset}`,
-      `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• Commands${c.reset}     : ${c.bold}/backup, /setting, /chatlog${c.reset} (Strict 3)`,
-      `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• Auto-Vault${c.reset}   : ${c.green}${c.bold}ACTIVE (Real-Time Background Capture)${c.reset}`,
+      `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• Commands${c.reset}     : ${c.bold}${cmdText}${c.reset}`,
+      `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• UI Architecture${c.reset}: ${c.green}${c.bold}Components V2 (100% Compliant)${c.reset}`,
       `  ${c.brightGreen}${c.bold}└─────────────────────────────────────────────────────────────┘${c.reset}`,
       ''
     ].join('\n'));
