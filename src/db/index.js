@@ -15,6 +15,7 @@ import * as suggestions from './suggestions.js';
 import * as feedback from './feedback.js';
 import * as voice from './voice.js';
 import * as panels from './panels.js';
+import * as tickets from './tickets.js';
 
 export const db = {
   client: getSupabase,
@@ -33,7 +34,8 @@ export const db = {
   suggestions,
   feedback,
   voice,
-  panels
+  panels,
+  tickets
 };
 
 export {
@@ -53,7 +55,8 @@ export {
   suggestions,
   feedback,
   voice,
-  panels
+  panels,
+  tickets
 };
 
 export default db;

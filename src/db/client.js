@@ -277,6 +277,19 @@ class MemoryStorage {
       }
     };
   }
+
+  async rpc(funcName, params = {}) {
+    if (funcName === 'next_ticket_number') {
+      const guildId = params.p_guild_id;
+      if (!this.tables.ticket_counters) this.tables.ticket_counters = new Map();
+      const current = this.tables.ticket_counters.get(guildId) || { guild_id: guildId, last_number: 0 };
+      const nextNum = (current.last_number || 0) + 1;
+      current.last_number = nextNum;
+      this.tables.ticket_counters.set(guildId, current);
+      return { data: nextNum, error: null };
+    }
+    return { data: null, error: { message: `RPC ${funcName} not supported in memory adapter` } };
+  }
 }
 
 const memoryDb = new MemoryStorage();
