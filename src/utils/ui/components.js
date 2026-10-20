@@ -180,9 +180,58 @@ export function infoCard(title, description, { fields = [], ephemeral = false, f
 }
 
 /**
+ * Information Card
+ */
+export function infoCard(arg1, arg2, opts = {}) {
+  let title = 'Information';
+  let description = '';
+  let options = opts;
+
+  if (typeof arg1 === 'object' && arg1 !== null) {
+    title = arg1.title || 'Information';
+    description = arg1.description || arg1.text || '';
+    options = arg1;
+  } else {
+    title = arg1 || 'Information';
+    description = arg2 || '';
+  }
+
+  const { fields = [], ephemeral = false, footer = null } = options;
+  const blocks = [
+    header(`${theme.emojis.info} ${title}`),
+    divider()
+  ];
+  if (description) {
+    blocks.push(new TextDisplayBuilder().setContent(description));
+  }
+  if (Array.isArray(fields) && fields.length > 0) {
+    const fieldLines = fields.map(f => format.kvLine(f.name || f.label, f.value));
+    blocks.push(new TextDisplayBuilder().setContent(fieldLines.join('\n')));
+  }
+  if (footer) {
+    blocks.push(new TextDisplayBuilder().setContent(format.subtext(footer)));
+  }
+  return container({ blocks, ephemeral });
+}
+
+/**
  * Success Card
  */
-export function successCard(title, description, { ephemeral = false, actions = [] } = {}) {
+export function successCard(arg1, arg2, opts = {}) {
+  let title = 'Success';
+  let description = '';
+  let options = opts;
+
+  if (typeof arg1 === 'object' && arg1 !== null) {
+    title = arg1.title || 'Success';
+    description = arg1.description || arg1.text || '';
+    options = arg1;
+  } else {
+    title = arg1 || 'Success';
+    description = arg2 || '';
+  }
+
+  const { ephemeral = false, actions = [] } = options;
   const blocks = [
     header(`${theme.emojis.success} ${title}`),
     divider()
@@ -199,11 +248,25 @@ export function successCard(title, description, { ephemeral = false, actions = [
 /**
  * Error Card
  */
-export function errorCard(title, reason, { hint = null, ephemeral = true } = {}) {
+export function errorCard(arg1, arg2, opts = {}) {
+  let title = 'Error';
+  let reason = '';
+  let options = opts;
+
+  if (typeof arg1 === 'object' && arg1 !== null) {
+    title = arg1.title || 'Error';
+    reason = arg1.reason || arg1.description || arg1.text || 'An unexpected error occurred.';
+    options = arg1;
+  } else {
+    title = arg1 || 'Error';
+    reason = arg2 || 'An unexpected error occurred.';
+  }
+
+  const { hint = options.fix || null, ephemeral = true } = options;
   const blocks = [
     header(`${theme.emojis.error} ${title}`),
     divider(),
-    new TextDisplayBuilder().setContent(reason || 'An unexpected error occurred.')
+    new TextDisplayBuilder().setContent(reason)
   ];
   if (hint) {
     blocks.push(new TextDisplayBuilder().setContent(format.subtext(`💡 Hint: ${hint}`)));
@@ -214,7 +277,21 @@ export function errorCard(title, reason, { hint = null, ephemeral = true } = {})
 /**
  * Warning Card
  */
-export function warnCard(title, warning, { hint = null, ephemeral = false } = {}) {
+export function warnCard(arg1, arg2, opts = {}) {
+  let title = 'Warning';
+  let warning = '';
+  let options = opts;
+
+  if (typeof arg1 === 'object' && arg1 !== null) {
+    title = arg1.title || 'Warning';
+    warning = arg1.warning || arg1.reason || arg1.description || '';
+    options = arg1;
+  } else {
+    title = arg1 || 'Warning';
+    warning = arg2 || '';
+  }
+
+  const { hint = null, ephemeral = false } = options;
   const blocks = [
     header(`${theme.emojis.warn} ${title}`),
     divider(),

@@ -14,71 +14,76 @@ import { theme } from '../../config/theme.js';
 import * as format from '../../utils/ui/format.js';
 import { registry } from '../../structures/CommandRegistry.js';
 import { getBrandLogo } from '../../ui/theme.js';
-import { errorCard } from '../../utils/ui/builders.js';
+import { errorCard } from '../../utils/ui/components.js';
+import { getGuildSettings } from '../../db/guilds.js';
 
+/**
+ * Category definitions matching Argoni's modular architecture.
+ * Organizes core tools into "Main Categories" and extended systems into "Extra Categories".
+ */
 export const CATEGORY_DEFINITIONS = {
   main: [
     {
       id: 'automod',
-      name: 'AutoMod & Protection',
-      emoji: '🛡️',
-      description: 'Filters, anti-spam, invites, words & moderation'
+      name: 'AutoMod Protection',
+      emoji: theme.emojis.categories.automod || '🛡️',
+      description: 'Filters, anti-spam, invites, words & automated moderation'
     },
     {
       id: 'backup',
       name: 'Server Snapshots',
-      emoji: '📦',
+      emoji: theme.emojis.categories.backup || '📦',
       description: 'Cross-server structural backups, restore & intervals'
     },
     {
       id: 'settings',
       name: 'Server Settings',
-      emoji: '⚙️',
-      description: 'Prefix, bot profile, staff hub & dashboard'
+      emoji: theme.emojis.categories.settings || '⚙️',
+      description: 'Prefix, bot profile, staff hub & central dashboard'
     },
     {
       id: 'voice',
       name: 'Voice & Speech',
-      emoji: '🔊',
+      emoji: theme.emojis.categories.voice || '🔊',
       description: 'Join-to-Create voice channels & TTS speech reader'
     },
     {
       id: 'logs',
       name: 'Server Logs',
-      emoji: '📢',
-      description: 'Audit logging events & log channel routing'
-    }
-  ],
-  extra: [
+      emoji: theme.emojis.categories.logs || '📢',
+      description: 'Components V2 audit logging events & channel routing'
+    },
     {
       id: 'autorole',
       name: 'Auto-Role',
-      emoji: '👤',
+      emoji: theme.emojis.categories.autorole || '👤',
       description: 'Welcome roles for joining members & bots'
     },
     {
       id: 'boosts',
-      name: 'Boost Tracking',
-      emoji: '🚀',
-      description: 'Boost detection, announcements & booster roles'
-    },
+      name: 'Boost Tracker',
+      emoji: theme.emojis.categories.boosts || '🚀',
+      description: 'Nitro booster celebrations, logs & tier roles'
+    }
+  ],
+  extra: [
     {
       id: 'sticky',
       name: 'Sticky Notes',
-      emoji: '📌',
-      description: 'Pinned messages kept at bottom of channels'
+      emoji: theme.emojis.categories.sticky || '📌',
+      description: 'Repositioning pinned channel notes & notices'
     },
     {
       id: 'stickyroles',
       name: 'Sticky Roles',
-      emoji: '🧲',
-      description: 'Re-assign member roles when rejoining'
+      emoji: theme.emojis.categories.stickyroles || '🧲',
+      description: 'Re-assign member roles upon server rejoin'
     },
     {
       id: 'suggestions',
       name: 'Suggestions',
-      emoji: '💡',
-      description: 'Community suggestions, upvotes & staff review'
+      emoji: theme.emojis.categories.staff || '💡',
+      description: 'Community suggestions, upvotes, threads & staff review'
     },
     {
       id: 'feedback',
@@ -89,14 +94,76 @@ export const CATEGORY_DEFINITIONS = {
     {
       id: 'chatlog',
       name: 'Chatlog Vault',
-      emoji: '💬',
-      description: 'Encrypted message backups & webhook replay'
+      emoji: theme.emojis.categories.chatlog || '💬',
+      description: 'AES-256 encrypted chat disaster recovery archive'
+    },
+    {
+      id: 'botprofile',
+      name: 'Bot Profile',
+      emoji: theme.emojis.categories.botprofile || '🎨',
+      description: 'Per-guild nickname, avatar, banner & about me bio'
     }
   ]
 };
 
 /**
- * Builds the initial Main Help Menu Container
+ * Creates the two category StringSelectMenus (Main & Extra) with a Home option
+ * @param {string} sessionId
+ * @param {string} [currentCat=null]
+ */
+function createHelpSelectRows(sessionId, currentCat = null) {
+  const mainOptions = [
+    {
+      label: 'Home',
+      value: 'home',
+      description: 'Return to the main help overview',
+      emoji: '🏠',
+      default: currentCat === 'home'
+    },
+    ...CATEGORY_DEFINITIONS.main.map(cat => ({
+      label: cat.name,
+      value: cat.id,
+      description: cat.description,
+      emoji: cat.emoji,
+      default: currentCat === cat.id
+    }))
+  ];
+
+  const extraOptions = [
+    {
+      label: 'Home',
+      value: 'home',
+      description: 'Return to the main help overview',
+      emoji: '🏠',
+      default: currentCat === 'home'
+    },
+    ...CATEGORY_DEFINITIONS.extra.map(cat => ({
+      label: cat.name,
+      value: cat.id,
+      description: cat.description,
+      emoji: cat.emoji,
+      default: currentCat === cat.id
+    }))
+  ];
+
+  const mainSelect = new StringSelectMenuBuilder()
+    .setCustomId(`help:sel_main:${sessionId}`)
+    .setPlaceholder('Main Categories')
+    .addOptions(mainOptions);
+
+  const extraSelect = new StringSelectMenuBuilder()
+    .setCustomId(`help:sel_extra:${sessionId}`)
+    .setPlaceholder('Extra Categories')
+    .addOptions(extraOptions);
+
+  return [
+    new ActionRowBuilder().addComponents(mainSelect),
+    new ActionRowBuilder().addComponents(extraSelect)
+  ];
+}
+
+/**
+ * Builds the initial Main Help Menu Container (pixel-matched to reference layout)
  * @param {object} options
  * @param {import('discord.js').User} options.user
  * @param {import('discord.js').Client} options.client
@@ -107,92 +174,55 @@ export function buildHelpMenuPayload({ user, client, prefix = 'a!', sessionId })
   const container = new ContainerBuilder();
 
   const totalCommands = registry.getAll().length;
-  const botName = client?.user?.username || 'Argoni';
-  const botAvatar = getBrandLogo(client);
+  const botName = theme.botName || client?.user?.username || 'Argoni';
+  const dot = theme.emojis.dot || '•';
+  const arrow = theme.emojis.arrow || '❯';
+  const butterfly = theme.emojis.butterfly || '🦋';
 
   // 1. Heading
   container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(`## ${theme.emojis.sparkle} Help Menu`)
+    new TextDisplayBuilder().setContent('# Help Menu')
   );
 
-  // 2. Lines + Link Buttons
-  const infoLines = [
-    `Type ${format.code(`${prefix}help`)} to get more info`,
-    `Total Commands available: ${format.code(totalCommands)}`
+  // 2. Three bullet lines using the cyan dot emoji & masked links
+  const userAvatar = user?.displayAvatarURL ? user.displayAvatarURL() : 'https://discord.com';
+  const displayName = user?.displayName || user?.username || 'there';
+
+  const bulletBlock = [
+    `${dot} **Type \`${prefix}help\` to get more info**`,
+    `${dot} **Total Commands available: \`${totalCommands}\`**`,
+    `${dot} [Invite](${theme.links.invite}) | [Website](${theme.links.website}) | [Support](${theme.links.support})`
   ].join('\n');
 
-  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(infoLines));
-
-  const linkRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setLabel('Invite Bot')
-      .setStyle(ButtonStyle.Link)
-      .setURL(theme.links.invite)
-      .setEmoji(theme.emojis.link),
-    new ButtonBuilder()
-      .setLabel('Website')
-      .setStyle(ButtonStyle.Link)
-      .setURL(theme.links.website)
-      .setEmoji('🌐'),
-    new ButtonBuilder()
-      .setLabel('Support Server')
-      .setStyle(ButtonStyle.Link)
-      .setURL(theme.links.support)
-      .setEmoji('💬')
-  );
-  container.addActionRowComponents(linkRow);
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(bulletBlock));
 
   // 3. Separator
   container.addSeparatorComponents(new SeparatorBuilder());
 
-  // 4. Greeting Section with Bot Avatar Thumbnail
-  const greetingText = `Hey **${user?.username || 'there'}**!\nI'm **${botName}**, your friendly companion.`;
-  const greetingSection = new SectionBuilder()
-    .addTextDisplayComponents(new TextDisplayBuilder().setContent(greetingText))
-    .setThumbnailAccessory(new ThumbnailBuilder().setURL(botAvatar));
-  container.addSectionComponents(greetingSection);
-
-  // 5. Prefix & instructions
-  const promptLines = [
-    `Prefix for this server: ${format.code(prefix)}`,
-    'Pick from the menu to continue!'
+  // 4. Greeting Block with butterfly & chevrons
+  const greetingBlock = [
+    `${butterfly} Hey [**${displayName}**](${userAvatar})!`,
+    `I'm **${botName}**, your friendly companion.`,
+    '',
+    `   ${arrow} Prefix for this server: **${prefix}**`,
+    `   ${arrow} Pick from the menu to continue!`
   ].join('\n');
-  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(promptLines));
 
-  // 6. Separator
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(greetingBlock));
+
+  // 5. Separator
   container.addSeparatorComponents(new SeparatorBuilder());
 
-  // 7. Two Select Menus
-  const mainSelect = new StringSelectMenuBuilder()
-    .setCustomId(`help:sel_main:${sessionId}`)
-    .setPlaceholder('📂 Main Categories...')
-    .addOptions(
-      CATEGORY_DEFINITIONS.main.map(cat => ({
-        label: cat.name,
-        value: cat.id,
-        description: cat.description,
-        emoji: cat.emoji
-      }))
-    );
-
-  const extraSelect = new StringSelectMenuBuilder()
-    .setCustomId(`help:sel_extra:${sessionId}`)
-    .setPlaceholder('✨ Extra Categories...')
-    .addOptions(
-      CATEGORY_DEFINITIONS.extra.map(cat => ({
-        label: cat.name,
-        value: cat.id,
-        description: cat.description,
-        emoji: cat.emoji
-      }))
-    );
-
-  container.addActionRowComponents(new ActionRowBuilder().addComponents(mainSelect));
-  container.addActionRowComponents(new ActionRowBuilder().addComponents(extraSelect));
+  // 6. Two Select Menus (Main & Extra)
+  const selectRows = createHelpSelectRows(sessionId, 'home');
+  for (const row of selectRows) {
+    container.addActionRowComponents(row);
+  }
 
   return {
     flags: MessageFlags.IsComponentsV2,
-    components: [container]
+    components: [container],
+    allowedMentions: format.allowedMentionsNone
   };
 }
 
@@ -214,7 +244,6 @@ export function buildCategoryHelpPayload({
     description: 'Commands in this category'
   };
 
-  // Find commands mapped to this category (match category or alias)
   const allCommands = registry.getAll();
   const matchedCommands = allCommands.filter(cmd => {
     const c = (cmd.category || '').toLowerCase();
@@ -222,9 +251,9 @@ export function buildCategoryHelpPayload({
     return c === categoryId || c.includes(categoryId) || n.includes(categoryId);
   });
 
-  const commandsList = matchedCommands.length > 0 ? matchedCommands : allCommands.slice(0, 8);
+  const commandsList = matchedCommands.length > 0 ? matchedCommands : allCommands.slice(0, 10);
 
-  const pageSize = 10;
+  const pageSize = 8;
   const totalPages = Math.max(1, Math.ceil(commandsList.length / pageSize));
   const safePage = Math.min(Math.max(page, 1), totalPages);
 
@@ -232,77 +261,93 @@ export function buildCategoryHelpPayload({
   const pageCommands = commandsList.slice(startIdx, startIdx + pageSize);
 
   const container = new ContainerBuilder();
+  const dot = theme.emojis.dot || '•';
 
+  // 1. Category Heading + Subtext Description
   container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(`## ${catDef.emoji} ${catDef.name} Commands`)
+    new TextDisplayBuilder().setContent(`## ${catDef.emoji} ${catDef.name} Commands\n-# ${catDef.description}`)
   );
 
   container.addSeparatorComponents(new SeparatorBuilder());
 
+  // 2. Command list
   const formattedLines = pageCommands.map(cmd => {
-    const usage = cmd.usage || `${prefix}${cmd.name}`;
-    return `${format.code(`/${cmd.name}`)} — ${cmd.description || 'No description provided.'}\n${format.subtext(`Usage: ${usage}`)}`;
+    const usage = cmd.usage ? `${prefix}${cmd.usage}` : `${prefix}${cmd.name}`;
+    const desc = cmd.description || 'No description provided.';
+    const aliases = Array.isArray(cmd.aliases) && cmd.aliases.length > 0
+      ? ` • Aliases: ${cmd.aliases.map(a => format.code(a)).join(', ')}`
+      : '';
+    return `${dot} ${format.code(`${prefix}${cmd.name}`)} — ${desc}\n-# Usage: \`${usage}\`${aliases}`;
   });
 
   const fullText = formattedLines.length > 0
     ? formattedLines.join('\n\n')
     : '_No commands currently active in this category._';
 
-  const footerText = `Page ${safePage}/${totalPages} • Type ${prefix}help to return • Argoni`;
-  container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(`${fullText}\n\n${format.subtext(footerText)}`)
-  );
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(fullText));
 
+  // 3. Separator
   container.addSeparatorComponents(new SeparatorBuilder());
 
-  const controlButtons = [
+  // 4. Navigation Buttons: Home, Prev, Next, Close
+  const navRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`help:back:${sessionId}`)
-      .setLabel('Back to Menu')
-      .setEmoji('◀')
+      .setLabel('Home')
       .setStyle(ButtonStyle.Secondary)
-  ];
-
-  if (totalPages > 1) {
-    controlButtons.push(
-      new ButtonBuilder()
-        .setCustomId(`help:page:${categoryId}:${safePage - 1}:${sessionId}`)
-        .setLabel('Prev')
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(safePage <= 1),
-      new ButtonBuilder()
-        .setCustomId(`help:page:${categoryId}:${safePage + 1}:${sessionId}`)
-        .setLabel('Next')
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(safePage >= totalPages)
-    );
-  }
-
-  controlButtons.push(
+      .setEmoji('🏠'),
+    new ButtonBuilder()
+      .setCustomId(`help:page:${categoryId}:${safePage - 1}:${sessionId}`)
+      .setLabel('‹ Prev')
+      .setStyle(ButtonStyle.Primary)
+      .setDisabled(safePage <= 1),
+    new ButtonBuilder()
+      .setCustomId(`help:page_info:${sessionId}`)
+      .setLabel(`${safePage} / ${totalPages}`)
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(true),
+    new ButtonBuilder()
+      .setCustomId(`help:page:${categoryId}:${safePage + 1}:${sessionId}`)
+      .setLabel('Next ›')
+      .setStyle(ButtonStyle.Primary)
+      .setDisabled(safePage >= totalPages),
     new ButtonBuilder()
       .setCustomId(`help:close:${sessionId}`)
       .setLabel('Close')
-      .setEmoji('✕')
       .setStyle(ButtonStyle.Danger)
+      .setEmoji('✕')
   );
 
-  container.addActionRowComponents(new ActionRowBuilder().addComponents(controlButtons.slice(0, 5)));
+  container.addActionRowComponents(navRow);
+
+  // 5. Select Menus at bottom for instant switching
+  const selectRows = createHelpSelectRows(sessionId, categoryId);
+  for (const row of selectRows) {
+    container.addActionRowComponents(row);
+  }
 
   return {
     flags: MessageFlags.IsComponentsV2,
-    components: [container]
+    components: [container],
+    allowedMentions: format.allowedMentionsNone
   };
 }
 
 /**
- * Interactive Help Session Manager
- * Listens for category selection, back button, pagination, and handles timeout after 120s.
- * Only the invoker can interact.
+ * Initiates an interactive Help Session with collectors and ownership checks.
  * @param {import('../../structures/CommandContext.js').CommandContext} ctx
  */
 export async function startHelpSession(ctx) {
   const sessionId = `${ctx.user.id}_${Date.now()}`;
-  const prefix = ctx.prefix || 'a!';
+
+  // Fetch guild prefix from Supabase if in a guild
+  let prefix = theme.defaultPrefix || 'a!';
+  if (ctx.guild) {
+    try {
+      const settings = await getGuildSettings(ctx.guild.id);
+      if (settings?.prefix) prefix = settings.prefix;
+    } catch (_) {}
+  }
 
   const initialPayload = buildHelpMenuPayload({
     user: ctx.user,
@@ -319,12 +364,11 @@ export async function startHelpSession(ctx) {
         time: 120000,
         filter: async (i) => {
           if (i.user.id !== ctx.user.id) {
-            await i.reply(errorCard({
-              title: 'Help Menu Restricted',
-              reason: 'This help menu is bound to another user.',
-              fix: 'Run /help or &help to open your own menu.',
-              ephemeral: true
-            })).catch(() => {});
+            await i.reply(errorCard(
+              'Help Menu Restricted',
+              "Uh oh! That message doesn't belong to you.\nYou must run this command to interact with it.",
+              { ephemeral: true }
+            )).catch(() => {});
             return false;
           }
           return i.customId.endsWith(sessionId);
@@ -340,9 +384,7 @@ export async function startHelpSession(ctx) {
 
       if (customId.startsWith('help:close:')) {
         collector.stop('closed');
-        return interaction.update({
-          components: []
-        }).catch(() => {});
+        return interaction.update({ components: [] }).catch(() => {});
       }
 
       if (customId.startsWith('help:back:')) {
@@ -357,6 +399,16 @@ export async function startHelpSession(ctx) {
 
       if (customId.startsWith('help:sel_main:') || customId.startsWith('help:sel_extra:')) {
         const categoryId = interaction.values[0];
+        if (categoryId === 'home') {
+          const menuPayload = buildHelpMenuPayload({
+            user: ctx.user,
+            client: ctx.client,
+            prefix,
+            sessionId
+          });
+          return interaction.update(menuPayload);
+        }
+
         const categoryPayload = buildCategoryHelpPayload({
           categoryId,
           prefix,
@@ -379,14 +431,13 @@ export async function startHelpSession(ctx) {
         return interaction.update(pagePayload);
       }
     } catch (err) {
-      // Ignore errors on collector updates
+      // Ignore update errors safely
     }
   });
 
   collector.on('end', async (_, reason) => {
     if (reason === 'closed') return;
     try {
-      // Auto-disable components on timeout without errors
       if (ctx.isSlash) {
         await ctx.interaction?.editReply({ components: [] }).catch(() => {});
       } else if (ctx.replyMessage) {
@@ -427,6 +478,16 @@ export async function handleHelpInteraction(interaction) {
 
     if (customId.startsWith('help:sel_main:') || customId.startsWith('help:sel_extra:')) {
       const categoryId = interaction.values?.[0];
+      if (categoryId === 'home') {
+        const menuPayload = buildHelpMenuPayload({
+          user: interaction.user,
+          client: interaction.client,
+          prefix,
+          sessionId
+        });
+        await interaction.update(menuPayload).catch(() => {});
+        return true;
+      }
       if (categoryId) {
         const categoryPayload = buildCategoryHelpPayload({
           categoryId,
