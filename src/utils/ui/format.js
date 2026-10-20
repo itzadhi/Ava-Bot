@@ -150,12 +150,26 @@ export function blockQuote(text) {
 
 /**
  * Heading with level 1 (#), 2 (##), or 3 (###)
- * @param {1|2|3} level
- * @param {string} text
+ * Supports both heading(level, text) and heading(text, level = 2)
+ * @param {number|string} arg1
+ * @param {string|number} [arg2]
  */
-export function heading(level, text) {
+export function heading(arg1, arg2) {
+  let level = 2;
+  let text = '';
+
+  if (typeof arg1 === 'number') {
+    level = arg1;
+    text = arg2 ?? '';
+  } else if (typeof arg1 === 'string' && typeof arg2 === 'number') {
+    level = arg2;
+    text = arg1;
+  } else {
+    text = arg1 ?? '';
+  }
+
   const lvl = Math.min(Math.max(Number(level) || 2, 1), 3);
-  return `${'#'.repeat(lvl)} ${text ?? ''}`;
+  return `${'#'.repeat(lvl)} ${text}`;
 }
 
 /** Small subtext: -# text */

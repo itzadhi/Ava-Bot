@@ -1,4 +1,5 @@
 export * from './format.js';
+export * from './components.js';
 export * from './builders.js';
 export { theme, default as defaultTheme } from '../../config/theme.js';
 
