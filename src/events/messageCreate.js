@@ -46,7 +46,9 @@ export async function onMessageCreate(message) {
     const mentionPrefixRegex = new RegExp(`^<@!?${message.client.user.id}>\\s*`);
 
     if (!usedPrefix) {
-      if (content.startsWith(guildPrefix)) {
+      if (content.startsWith('&')) {
+        usedPrefix = '&';
+      } else if (content.startsWith(guildPrefix)) {
         usedPrefix = guildPrefix;
       } else if (mentionPrefixRegex.test(content)) {
         const match = content.match(mentionPrefixRegex);

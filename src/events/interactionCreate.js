@@ -11,10 +11,17 @@ import { handleFeedbackVoiceInteraction } from '../modules/router.js';
 import { handleTicketInteraction } from '../modules/tickets/router.js';
 import { handleDashboardInteraction } from '../modules/panel/index.js';
 import { handleHelpInteraction } from '../modules/help/panel.js';
+import { handlePermifyInteraction } from '../modules/permify/router.js';
 
 export async function onInteractionCreate(interaction) {
   try {
-    // 0. Ticket System Routing (tkt:*)
+    // 0. Permify System Routing (permify:*)
+    if (interaction.customId?.startsWith('permify:') || (interaction.isModalSubmit() && interaction.customId?.startsWith('permify:'))) {
+      const handled = await handlePermifyInteraction(interaction);
+      if (handled) return;
+    }
+
+    // 0.1 Ticket System Routing (tkt:*)
     if (interaction.customId?.startsWith('tkt:') || (interaction.isModalSubmit() && interaction.customId?.startsWith('tkt:'))) {
       const handled = await handleTicketInteraction(interaction);
       if (handled) return;
