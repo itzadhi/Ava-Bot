@@ -24,16 +24,50 @@ CREATE TABLE IF NOT EXISTS public.guild_roles (
 
 CREATE INDEX IF NOT EXISTS idx_guild_roles_guild ON public.guild_roles(guild_id);
 
--- 3. EXTEND GUILD SETTINGS FOR MULTI-ROLE AUTOROLE
+-- 3. EXTEND GUILD SETTINGS FOR AUTOROLE (Ensures both legacy and multi-role columns exist)
+ALTER TABLE public.guild_settings 
+ADD COLUMN IF NOT EXISTS autorole_enabled BOOLEAN DEFAULT TRUE;
+
+ALTER TABLE public.guild_settings 
+ADD COLUMN IF NOT EXISTS autorole_member_role_id TEXT;
+
 ALTER TABLE public.guild_settings 
 ADD COLUMN IF NOT EXISTS autorole_member_role_ids TEXT[] DEFAULT '{}'::TEXT[];
 
--- Safe migration: copy existing single autorole_member_role_id into autorole_member_role_ids array if present
-UPDATE public.guild_settings
-SET autorole_member_role_ids = ARRAY[autorole_member_role_id]
-WHERE autorole_member_role_id IS NOT NULL 
-  AND (autorole_member_role_ids IS NULL OR cardinality(autorole_member_role_ids) = 0);
+ALTER TABLE public.guild_settings 
+ADD COLUMN IF NOT EXISTS autorole_bot_role_id TEXT;
 
--- 4. EXTEND TICKET SETTINGS FOR ALLOWED MEMBER ROLES
-ALTER TABLE public.ticket_settings 
-ADD COLUMN IF NOT EXISTS allowed_role_ids TEXT[] DEFAULT '{}'::TEXT[];
+-- Safe data migration: copy existing single autorole_member_role_id into array if populated
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+          AND table_name = 'guild_settings' 
+          AND column_name = 'autorole_member_role_id'
+    ) THEN
+        EXECUTE '
+            UPDATE public.guild_settings
+            SET autorole_member_role_ids = ARRAY[autorole_member_role_id]
+            WHERE autorole_member_role_id IS NOT NULL 
+              AND (autorole_member_role_ids IS NULL OR cardinality(autorole_member_role_ids) = 0);
+        ';
+    END IF;
+END $$;
+
+-- 4. EXTEND TICKET SETTINGS FOR ALLOWED MEMBER ROLES (Conditional if ticket module exists)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+          AND table_name = 'ticket_settings'
+    ) THEN
+        EXECUTE '
+            ALTER TABLE public.ticket_settings 
+            ADD COLUMN IF NOT EXISTS allowed_role_ids TEXT[] DEFAULT ''{}''::TEXT[];
+        ';
+    END IF;
+END $$;
