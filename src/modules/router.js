@@ -2331,10 +2331,34 @@ async function routeAutoRoleInteraction(interaction, action, id) {
 
   const guildId = interaction.guildId;
 
-  // 1. Member Role Selection
+  // 1. Member Role Selection (Multi-role merge)
   if (action === 'mem_sel') {
-    const chosenRole = interaction.values?.[0] || null;
-    await updateGuildSettings(guildId, { autorole_member_role_id: chosenRole, autorole_enabled: true });
+    const pickedRoles = interaction.values || [];
+    const settings = await getGuildSettings(guildId);
+    const existing = Array.isArray(settings.autorole_member_role_ids) ? settings.autorole_member_role_ids : (settings.autorole_member_role_id ? [settings.autorole_member_role_id] : []);
+    const merged = Array.from(new Set([...existing, ...pickedRoles]));
+
+    await updateGuildSettings(guildId, {
+      autorole_member_role_ids: merged,
+      autorole_member_role_id: merged[0] || null,
+      autorole_enabled: true
+    });
+    const updated = await getGuildSettings(guildId);
+    await interaction.deferUpdate().catch(() => {});
+    return safeUpdatePanel(interaction, buildAutoRolePanel(updated, interaction.guild));
+  }
+
+  // 1.1 Remove single member role
+  if (action === 'mem_rem') {
+    const toRemove = interaction.values?.[0];
+    const settings = await getGuildSettings(guildId);
+    const existing = Array.isArray(settings.autorole_member_role_ids) ? settings.autorole_member_role_ids : (settings.autorole_member_role_id ? [settings.autorole_member_role_id] : []);
+    const filtered = existing.filter(id => id !== toRemove);
+
+    await updateGuildSettings(guildId, {
+      autorole_member_role_ids: filtered,
+      autorole_member_role_id: filtered[0] || null
+    });
     const updated = await getGuildSettings(guildId);
     await interaction.deferUpdate().catch(() => {});
     return safeUpdatePanel(interaction, buildAutoRolePanel(updated, interaction.guild));
@@ -2358,9 +2382,9 @@ async function routeAutoRoleInteraction(interaction, action, id) {
     return safeUpdatePanel(interaction, buildAutoRolePanel(updated, interaction.guild));
   }
 
-  // 4. Clear Member Role
+  // 4. Clear Member Roles
   if (action === 'clear_mem') {
-    await updateGuildSettings(guildId, { autorole_member_role_id: null });
+    await updateGuildSettings(guildId, { autorole_member_role_ids: [], autorole_member_role_id: null });
     const updated = await getGuildSettings(guildId);
     await interaction.deferUpdate().catch(() => {});
     return safeUpdatePanel(interaction, buildAutoRolePanel(updated, interaction.guild));

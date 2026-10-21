@@ -62,6 +62,7 @@ export function getDefaultTicketSettings(guildId) {
     min_server_age_days: 0,
     support_role_ids: [],
     admin_role_ids: [],
+    allowed_role_ids: [],
     log_channel_id: null,
     transcript_channel_id: null,
     autoclose_hours: 0,

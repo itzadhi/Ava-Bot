@@ -74,6 +74,7 @@ export async function getGuildSettings(guildId) {
     sticky_all_roles: true,
     autorole_enabled: true,
     autorole_member_role_id: null,
+    autorole_member_role_ids: [],
     autorole_bot_role_id: null
   };
 

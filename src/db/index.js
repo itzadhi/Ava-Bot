@@ -16,6 +16,8 @@ import * as feedback from './feedback.js';
 import * as voice from './voice.js';
 import * as panels from './panels.js';
 import * as tickets from './tickets.js';
+import * as permify from './permify.js';
+import { getGuildRoles } from './permify.js';
 
 export const db = {
   client: getSupabase,
@@ -35,7 +37,8 @@ export const db = {
   feedback,
   voice,
   panels,
-  tickets
+  tickets,
+  permify
 };
 
 export {
@@ -56,7 +59,9 @@ export {
   feedback,
   voice,
   panels,
-  tickets
+  tickets,
+  permify,
+  getGuildRoles
 };
 
 export default db;
