@@ -42,6 +42,7 @@ export const MODULE_ITEMS = [
   { id: 'staff', name: 'Suggestions & Feedback', emoji: '💡', desc: 'Staff queues, upvotes & reviews' },
   { id: 'chatlog', name: 'Chatlog Vault', emoji: '💬', desc: 'Encrypted message disaster archive' },
   { id: 'tickets', name: 'Ticket System', emoji: '🎫', desc: 'Panels, categories, controls & logs' },
+  { id: 'permify', name: 'Permify Wizard', emoji: '🔒', desc: 'Server permission wizard & role architect' },
   { id: 'botprofile', name: 'Bot Profile', emoji: '🎨', desc: 'Per-server nickname, avatar & bio' },
   { id: 'settings', name: 'General Settings', emoji: '⚙️', desc: 'Prefix, locale & core toggles' }
 ];
@@ -166,10 +167,52 @@ export async function renderModulePanelById(moduleId, guild) {
       return buildLogsPanel(guild);
     case 'tickets':
       return renderTicketSettingsDashboard({ guild, activeTab: 'general' });
+    case 'permify':
+      return renderPermifyShortcutPanel(guild);
     case 'settings':
     default:
       return renderStaffPanel({ guild, activeTab: 'settings' });
   }
+}
+
+/**
+ * Permify Wizard Shortcut Panel in Control Dashboard
+ */
+function renderPermifyShortcutPanel(guild) {
+  const container = new ContainerBuilder();
+
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(`## 🔒 Permify Permission Wizard\n-# Automatic server permission architect and role onboarding system`)
+  );
+  container.addSeparatorComponents(new SeparatorBuilder());
+
+  const lines = [
+    'Rebuild all server permissions cleanly with a single interactive Components V2 panel.',
+    '',
+    `${theme.emojis.dot} **Roles:** 3-tier hierarchy (Staff, Member, Owner)`,
+    `${theme.emojis.dot} **Channels:** Staff-only-speak categories and custom channel overrides`,
+    `${theme.emojis.dot} **Integrations:** Automatic sync to Autorole and Support Ticket systems`,
+    `${theme.emojis.dot} **Rollback:** Automated pre-run snapshots with 1-click Undo`,
+    '',
+    `*Run \`/permify\` or \`&permify\` in any channel to launch the interactive setup wizard.*`
+  ].join('\n');
+
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(lines));
+
+  const btnRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('dash:return')
+      .setLabel('Dashboard')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('◀️')
+  );
+
+  container.addActionRowComponents(btnRow);
+
+  return {
+    flags: MessageFlags.IsComponentsV2,
+    components: [container]
+  };
 }
 
 /**

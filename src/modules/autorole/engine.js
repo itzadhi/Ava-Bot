@@ -63,7 +63,11 @@ export async function handleAutoRoleMemberJoin(member) {
 
     if (assignableRoleIds.length > 0) {
       try {
-        await member.roles.add(assignableRoleIds, 'Argoni Auto-Role: Automated member role assignment');
+        if (assignableRoleIds.length === 1) {
+          await member.roles.add(assignableRoleIds[0], 'Argoni Auto-Role: Automated member role assignment');
+        } else {
+          await member.roles.add(assignableRoleIds, 'Argoni Auto-Role: Automated member role assignment');
+        }
         logger.info({
           guildId: guild.id,
           userId: member.id,

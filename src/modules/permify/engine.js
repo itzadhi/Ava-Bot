@@ -206,11 +206,11 @@ export async function executePermifyApply(interaction, session) {
       name: c.name,
       type: c.type,
       parentId: c.parentId,
-      overwrites: c.permissionOverwrites.cache.map(ow => ({
+      overwrites: Array.from(c.permissionOverwrites?.cache?.values() || []).map(ow => ({
         id: ow.id,
         type: ow.type,
-        allow: ow.allow.bitfield.toString(),
-        deny: ow.deny.bitfield.toString()
+        allow: ow.allow?.bitfield !== undefined ? ow.allow.bitfield.toString() : String(ow.allow || '0'),
+        deny: ow.deny?.bitfield !== undefined ? ow.deny.bitfield.toString() : String(ow.deny || '0')
       }))
     }))
   };

@@ -39,7 +39,7 @@ export const CATEGORY_DEFINITIONS = {
       id: 'settings',
       name: 'Server Settings',
       emoji: theme.emojis.categories.settings || '⚙️',
-      description: 'Prefix, bot profile, staff hub & central dashboard'
+      description: 'Prefix, bot profile, permission wizard, staff hub & central dashboard'
     },
     {
       id: 'voice',

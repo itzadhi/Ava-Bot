@@ -242,3 +242,53 @@ Ensure the bot has the following permissions in your server:
 | `/ticket blacklist`| `/ticket blacklist <add\|remove\|list>` | Restrict users/roles from creating tickets | Manage Server |
 | `/ticket macro` | `/ticket macro <use\|list\|add\|delete>`| Manage and trigger canned response templates | Staff |
 | `/ticket reviews`| `a!ticket reviews` | Display staff customer satisfaction leaderboard | Everyone |
+
+---
+
+## 🔒 Permify Server Permission Wizard
+
+Argoni includes an automated, first-time server permission architect and wizard accessible via `/permify` (or prefix `&permify` and `a!permify`). It presents an interactive, single-panel wizard that collects role groupings and channel configurations step-by-step, displays a full permission matrix preview, automatically rebuilds the entire server permission architecture, and connects the roles directly to the Autorole and Ticket support systems.
+
+### 🚀 Database Migration Setup
+Before running `/permify` in a production environment with remote database persistence, execute the following SQL migration in your [Supabase SQL Editor](https://supabase.com/dashboard):
+```sql
+supabase/migrations/20261021_permify.sql
+```
+*Note: The bot also contains full in-memory fallback support so the wizard can run immediately without data loss.*
+
+### 🛡️ Permissions & Authorization
+- **Who can run it**: Only the **Server Owner** or members with the **Administrator** permission.
+- **Bot Pre-Check**: The bot requires **Administrator**, or at minimum: `ManageChannels`, `ManageRoles`, `ViewChannel`, `SendMessages`, and `ManageMessages`.
+- **Session Concurrency**: Strict 1 active wizard per guild with a 30-second guild cooldown.
+- **Inactivity Timeout**: Sessions automatically expire and clean up after 15 minutes of inactivity.
+
+### 🎨 Visual & UI Design Rules
+1. **Components V2 ONLY**: Every card is rendered with `flags: MessageFlags.IsComponentsV2` without embeds or naked content.
+2. **NO SIDEBAR / NO COLOR STRIP**: Completely borderless cards (`setAccentColor`/`setColor` are never invoked).
+3. **100% GREY BUTTONS**: Every interactive button strictly uses `ButtonStyle.Secondary` (grey) or `ButtonStyle.Link` (link). Tell buttons apart by emoji and descriptive label.
+4. **Rich Typography**: `##` headings, `**bold**`, `-#` subtext, block quotes, mentions, ANSI code blocks, and live text progress bars (`▰▰▰▱▱▱▱ 3/7`).
+
+### 📋 The 7-Step Wizard Flow
+
+1. **Step 1 — Reset Scope**: Live channel counts (categories, text, voice, stage, forum) and existing overwrite totals. Includes a grey toggle to include/skip channels with custom overwrites.
+2. **Step 2 — Staff-Only-Speak Categories**: Paginated multi-select menu (25 per page) with page navigation, `Select Page`, `Clear Page`, and `Clear All` controls. In selected categories, Staff can speak and chat while Members can only view/read.
+3. **Step 3 — Staff-Only-Speak Channels**: Paginated multi-select for individual channels with type emojis (💬, 🔊, 📢, 🎭, 📋). Channels already covered under Step 2 categories are automatically marked and skipped.
+4. **Step 4 — Staff Roles**: Native multi-select `RoleSelectMenu` (1–25 roles) with hierarchy validation and a single-role drop menu.
+5. **Step 5 — Member Roles**: Native multi-select `RoleSelectMenu` with a grey toggle to automatically sync with the **Autorole** system.
+6. **Step 6 — Owner & Admin Roles**: Native multi-select `RoleSelectMenu` for executive leadership.
+7. **Step 7 — Preview & Confirm**: Full summary, ANSI permission matrix table, hide `@everyone` toggle, unroled member backfill toggle, and an "Apply Everything" modal requiring typing `CONFIRM`.
+
+### 🛡️ Permission Architecture Matrix
+
+| Role Group | Normal Community Channels | Staff-Only-Speak Channels | Server Log & Vault Channels | Ticket Support Category |
+| :--- | :--- | :--- | :--- | :--- |
+| **@everyone** | `DENIED View` (if hidden) | `DENIED View` | `DENIED View` | `DENIED View` |
+| **Member Roles** | `View + Send + Speak + React` | `View + Read History ONLY` | `DENIED View` | Open Ticket Panel view |
+| **Staff Roles** | `View + Send + Manage Messages` | `View + Send (No Manage)` | `View ONLY (No Send)` | `View + Manage Channels` |
+| **Owner Roles** | `Full Administrative Access` | `Full Access + Manage Msgs` | `Full Access` | `Full Administrative Access` |
+| **Argoni Bot** | `Full Lockout Protection` | `Full Lockout Protection` | `Full Lockout Protection` | `Full Lockout Protection` |
+
+### 🔄 Automatic Pre-Run Snapshots & Undo
+- **Pre-Execution Snapshot**: Prior to changing any overwrite, a full JSON snapshot of all channels, categories, and previous settings is saved into `permify_snapshots` (retaining the last 3 per guild).
+- **Rate-Limited Rebuild**: Sequential processing with rate-limit pacing and a live V2 progress card updated every ~5 channels.
+- **1-Click Undo**: If needed, click `Undo Last Run` on the final report card (or when reopening `/permify`) and type `UNDO` to restore the exact previous channel overwrites and settings.
