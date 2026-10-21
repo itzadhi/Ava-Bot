@@ -21,6 +21,7 @@ import {
   updateTicket,
   isBlacklisted
 } from '../../db/tickets.js';
+import { getGuildRoles } from '../../db/permify.js';
 import { checkCategoryAccess } from './categories.js';
 import { buildTicketControlCard } from './controls.js';
 import { sendTicketLog } from './logs.js';
@@ -261,6 +262,17 @@ export async function handleOpenTicketFlow({
           PermissionFlagsBits.AttachFiles,
           PermissionFlagsBits.EmbedLinks
         ]
+      });
+    }
+  }
+
+  // Deny regular member roles access so they cannot see private tickets
+  const guildRoles = await getGuildRoles(guild.id).catch(() => ({ member: [] }));
+  for (const roleId of guildRoles.member || []) {
+    if (!supportRoles.has(roleId)) {
+      overwrites.push({
+        id: roleId,
+        deny: [PermissionFlagsBits.ViewChannel]
       });
     }
   }

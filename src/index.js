@@ -43,6 +43,7 @@ import { registerLogListeners } from './modules/logs/listeners.js';
 import { startTicketScheduler, stopTicketScheduler, handleMemberLeave, handleChannelDelete } from './modules/tickets/autoclose.js';
 import { handleTicketImageDrop } from './modules/tickets/panel.js';
 import { getTicketByChannel, updateTicketLastMessage } from './db/tickets.js';
+import { autoRepairPermissionsAndTickets } from './modules/permify/repair.js';
 
 /**
  * ArgoniClient - Reusable Discord Bot Client powered by Components V2 & Supabase
@@ -193,6 +194,9 @@ export class ArgoniClient extends Client {
 
       startScheduler(readyClient);
       startTicketScheduler(readyClient);
+      await autoRepairPermissionsAndTickets(readyClient).catch(err => {
+        logger.warn({ err }, 'Error during automatic permission & ticket repair on startup');
+      });
     });
   }
 

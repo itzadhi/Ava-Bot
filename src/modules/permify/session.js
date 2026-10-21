@@ -39,7 +39,7 @@ export function createSession({ guildId, userId, channelId, messageId = null }) 
     staffRoleIds: [],
     memberRoleIds: [],
     ownerRoleIds: [],
-    hideEveryone: true,
+    hideEveryone: false,
     connectAutorole: true,
     backfillMembers: false,
     categoryPage: 1,

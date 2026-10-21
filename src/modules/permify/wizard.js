@@ -665,7 +665,7 @@ async function renderStep7(container, session, guild) {
     `\u001b[1;36mPERMISSION MATRIX\u001b[0m`,
     `Group        Normal Channels          Staff-Only Channels      Log/Vault Channels`,
     `---------------------------------------------------------------------------------`,
-    `@everyone    ${hideEveryone ? 'DENY View                ' : 'Untouched                '}DENY View                DENY View`,
+    `@everyone    ${hideEveryone ? 'DENY View                ' : 'View: ALLOWED            '}DENY View                DENY View`,
     `Members      View+Send+Speak          View ONLY (No Speak)     DENY View`,
     `Staff        View+Send+ManageMsgs     View+Send (No Manage)    View ONLY`,
     `Owners       Full Administrative      Full Administrative      Full Administrative`,
@@ -676,10 +676,10 @@ async function renderStep7(container, session, guild) {
     new TextDisplayBuilder().setContent(`${summaryLines}\n\n${format.ansiBlock(ansiMatrix)}`)
   );
 
-  // Toggle Controls Row: Hide @everyone & Backfill Members
+  // Toggle Controls Row: Restrict @everyone & Backfill Members
   const hideEveryoneBtn = greyButton({
     id: `permify:toggle_everyone:${guildId}:${userId}:${step}`,
-    label: hideEveryone ? '[✓] Hide channels from @everyone' : '[ ] Hide channels from @everyone',
+    label: hideEveryone ? '[✓] Restrict @everyone on normal channels' : '[ ] Restrict @everyone on normal channels',
     emoji: '🔒'
   });
 

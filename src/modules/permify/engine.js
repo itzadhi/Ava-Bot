@@ -9,7 +9,13 @@ import {
 } from 'discord.js';
 import { saveSnapshot, getLatestSnapshot, saveGuildRoles } from '../../db/permify.js';
 import { getGuildSettings, updateGuildSettings } from '../../db/guilds.js';
-import { getTicketSettings, updateTicketSettings, getTicketCategories } from '../../db/tickets.js';
+import {
+  getTicketSettings,
+  updateTicketSettings,
+  getTicketCategories,
+  getTicketPanels,
+  getOpenTickets
+} from '../../db/tickets.js';
 import { dispatchLog, buildLogCard } from '../logs/engine.js';
 import { greyButton } from '../../utils/ui/greyButton.js';
 import * as format from '../../utils/ui/format.js';
@@ -172,10 +178,12 @@ export async function executePermifyApply(interaction, session) {
   );
 
   // Identify special log & ticket channels
-  const [guildSettings, ticketSettings, ticketCategories] = await Promise.all([
+  const [guildSettings, ticketSettings, ticketCategories, ticketPanels, openTickets] = await Promise.all([
     getGuildSettings(guild.id).catch(() => ({})),
     getTicketSettings(guild.id).catch(() => null),
-    getTicketCategories(guild.id).catch(() => [])
+    getTicketCategories(guild.id).catch(() => []),
+    getTicketPanels(guild.id).catch(() => []),
+    getOpenTickets(guild.id).catch(() => [])
   ]);
 
   const logChannelIds = new Set([
@@ -189,6 +197,19 @@ export async function executePermifyApply(interaction, session) {
     ticketSettings?.channel_category_id,
     ...ticketCategories.map(tc => tc.channel_category_id)
   ].filter(Boolean));
+
+  const ticketPanelChannelIds = new Set(ticketPanels.map(p => p.channel_id).filter(Boolean));
+  const openTicketChannelIds = new Set(openTickets.map(t => t.channel_id).filter(Boolean));
+
+  // Determine if a channel is an active private ticket channel that MUST NOT be wiped
+  const isTicketChannel = (c) => {
+    if (openTicketChannelIds.has(c.id)) return true;
+    if (c.type === ChannelType.GuildText) {
+      if (c.name.startsWith('ticket-') || c.name.startsWith('tkt-')) return true;
+      if (c.parentId && ticketCategoryIds.has(c.parentId)) return true;
+    }
+    return false;
+  };
 
   // 2. Snapshot current overwrites & previous settings FIRST
   const snapshotData = {
@@ -217,9 +238,12 @@ export async function executePermifyApply(interaction, session) {
 
   await saveSnapshot(guild.id, userId, snapshotData);
 
+  // Exclude active ticket channels from being modified or wiped by Permify
+  const safeChannels = allChannels.filter(c => !isTicketChannel(c));
+
   // Separate categories and channels (categories first so children can sync)
-  const categories = allChannels.filter(c => c.type === ChannelType.GuildCategory);
-  const regularChannels = allChannels.filter(c => c.type !== ChannelType.GuildCategory);
+  const categories = safeChannels.filter(c => c.type === ChannelType.GuildCategory);
+  const regularChannels = safeChannels.filter(c => c.type !== ChannelType.GuildCategory);
   const orderedList = [...categories, ...regularChannels];
   const total = orderedList.length;
 
@@ -266,6 +290,8 @@ export async function executePermifyApply(interaction, session) {
 
       const isLogChannel = logChannelIds.has(chan.id);
       const isTicketCategory = ticketCategoryIds.has(chan.id);
+      const isTicketPanel = ticketPanelChannelIds.has(chan.id) ||
+        (chan.name.includes('ticket') && !isTicketCategory && !isLogChannel && !ticketCategoryIds.has(chan.parentId));
       const isStaffOnlyCategory = chan.type === ChannelType.GuildCategory && staffCategorySet.has(chan.id);
       const isStaffOnlyChannel = staffChannelSet.has(chan.id) || (chan.parentId && staffCategorySet.has(chan.parentId));
 
@@ -299,13 +325,20 @@ export async function executePermifyApply(interaction, session) {
           });
         }
       }
-      // 3. Ticket Category rule
+      // 3. Ticket Category rule: Private, denied to @everyone and Member roles
       else if (isTicketCategory) {
         newOverwrites.push({
           id: guild.id,
           type: 0,
           deny: [PermissionFlagsBits.ViewChannel]
         });
+        for (const roleId of memberRoleIds) {
+          newOverwrites.push({
+            id: roleId,
+            type: 0,
+            deny: [PermissionFlagsBits.ViewChannel]
+          });
+        }
         for (const roleId of staffRoleIds) {
           newOverwrites.push({
             id: roleId,
@@ -333,15 +366,54 @@ export async function executePermifyApply(interaction, session) {
           });
         }
       }
-      // 4. Staff-Only-Speak Categories or Channels
-      else if (isStaffOnlyCategory || isStaffOnlyChannel) {
-        if (hideEveryone) {
+      // 4. Ticket Panel Channels: Public to all to view/read, but chatting denied
+      else if (isTicketPanel) {
+        newOverwrites.push({
+          id: guild.id,
+          type: 0,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory],
+          deny: [PermissionFlagsBits.SendMessages]
+        });
+        for (const roleId of memberRoleIds) {
           newOverwrites.push({
-            id: guild.id,
+            id: roleId,
             type: 0,
-            deny: [PermissionFlagsBits.ViewChannel]
+            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory],
+            deny: [PermissionFlagsBits.SendMessages]
           });
         }
+        for (const roleId of staffRoleIds) {
+          newOverwrites.push({
+            id: roleId,
+            type: 0,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+              PermissionFlagsBits.ReadMessageHistory,
+              PermissionFlagsBits.ManageMessages
+            ]
+          });
+        }
+        for (const roleId of ownerRoleIds) {
+          newOverwrites.push({
+            id: roleId,
+            type: 0,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+              PermissionFlagsBits.ReadMessageHistory,
+              PermissionFlagsBits.ManageMessages
+            ]
+          });
+        }
+      }
+      // 5. Staff-Only-Speak Categories or Channels
+      else if (isStaffOnlyCategory || isStaffOnlyChannel) {
+        newOverwrites.push({
+          id: guild.id,
+          type: 0,
+          deny: [PermissionFlagsBits.ViewChannel]
+        });
         for (const roleId of memberRoleIds) {
           newOverwrites.push({
             id: roleId,
@@ -365,13 +437,19 @@ export async function executePermifyApply(interaction, session) {
           });
         }
       }
-      // 5. Normal Channels
+      // 6. Normal Community Channels: Everyone can view!
       else {
         if (hideEveryone) {
           newOverwrites.push({
             id: guild.id,
             type: 0,
             deny: [PermissionFlagsBits.ViewChannel]
+          });
+        } else {
+          newOverwrites.push({
+            id: guild.id,
+            type: 0,
+            allow: [PermissionFlagsBits.ViewChannel]
           });
         }
         for (const roleId of memberRoleIds) {
@@ -400,12 +478,12 @@ export async function executePermifyApply(interaction, session) {
       // Step C: Apply new overwrites to channel
       await chan.permissionOverwrites.set(newOverwrites);
 
-      // If category, sync child channels where appropriate
-      if (chan.type === ChannelType.GuildCategory) {
+      // If category, sync child channels where appropriate (NEVER lock ticket categories or ticket channels)
+      if (chan.type === ChannelType.GuildCategory && !ticketCategoryIds.has(chan.id)) {
         const children = chan.children?.cache || [];
         for (const child of children.values()) {
           // If child is NOT an individually customized channel, lock to category
-          if (!staffChannelSet.has(child.id)) {
+          if (!staffChannelSet.has(child.id) && !isTicketChannel(child) && !ticketPanelChannelIds.has(child.id)) {
             await child.lockPermissions().catch(() => {});
           }
         }

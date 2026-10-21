@@ -28,6 +28,7 @@ import { buildAutoRolePanel } from '../src/modules/autorole/panel.js';
 import { handleAutoRoleMemberJoin } from '../src/modules/autorole/engine.js';
 import { updateGuildSettings, getGuildSettings } from '../src/db/guilds.js';
 import { updateTicketSettings, getTicketSettings } from '../src/db/tickets.js';
+import { autoRepairPermissionsAndTickets } from '../src/modules/permify/repair.js';
 
 /**
  * Creates a mock guild with customizable channels and roles
@@ -86,6 +87,32 @@ function createMockGuild(options = {}) {
               delete: async () => overwrites.delete(ow.id)
             });
           }
+        },
+        edit: async (targetId, perms) => {
+          let existing = overwrites.get(targetId);
+          if (!existing) {
+            existing = {
+              id: targetId,
+              type: 0,
+              allow: new PermissionsBitField(),
+              deny: new PermissionsBitField(),
+              delete: async () => overwrites.delete(targetId)
+            };
+            overwrites.set(targetId, existing);
+          }
+          for (const [perm, val] of Object.entries(perms)) {
+            const flag = PermissionFlagsBits[perm];
+            if (flag) {
+              if (val === true) {
+                existing.allow.add(flag);
+                existing.deny.remove(flag);
+              } else if (val === false) {
+                existing.deny.add(flag);
+                existing.allow.remove(flag);
+              }
+            }
+          }
+          return existing;
         }
       },
       lockPermissions: async () => {
@@ -154,7 +181,11 @@ function createMockGuild(options = {}) {
     name: 'Scratch Test Guild',
     ownerId,
     roles: { cache: roles },
-    channels: { cache: channels },
+    channels: {
+      cache: channels,
+      fetch: async () => channels
+    },
+    addChannel: addMockChannel,
     members: {
       me: botMember,
       cache: members,
@@ -360,6 +391,20 @@ test('Apply Engine & Permission Matrix: Read back overwrites on normal, staff-on
   await updateGuildSettings(mockGuild.id, { log_channel_id: logChanId });
   await updateTicketSettings(mockGuild.id, { channel_category_id: tktCatId });
 
+  // Add an active ticket channel to ensure it is protected from permify reset
+  const activeTkt = mockGuild.addChannel({
+    id: `ticket_chan_1_${mockGuild.id}`,
+    name: 'ticket-0001',
+    type: ChannelType.GuildText
+  });
+  await activeTkt.permissionOverwrites.set([
+    {
+      id: 'owner_user_789',
+      type: 1,
+      allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
+    }
+  ]);
+
   const session = createSession({
     guildId: mockGuild.id,
     userId: mockGuild.ownerId,
@@ -371,7 +416,7 @@ test('Apply Engine & Permission Matrix: Read back overwrites on normal, staff-on
   session.ownerRoleIds = [ownerRole1];
   session.staffCategoryIds = [staffCatId];
   session.staffChannelIds = [staffChanId];
-  session.hideEveryone = true;
+  session.hideEveryone = false;
   session.connectAutorole = true;
 
   const mockInteraction = {
@@ -394,8 +439,9 @@ test('Apply Engine & Permission Matrix: Read back overwrites on normal, staff-on
   const normalOw = normalChan.permissionOverwrites.cache;
   // Bot allowed
   assert.ok(normalOw.get(botRoleId)?.allow.has(PermissionFlagsBits.ViewChannel));
-  // Everyone denied ViewChannel (hideEveryone ON)
-  assert.ok(normalOw.get(mockGuild.id)?.deny.has(PermissionFlagsBits.ViewChannel));
+  // Everyone ALLOWED ViewChannel on Normal Channels (so all members can view without roles)
+  assert.ok(normalOw.get(mockGuild.id)?.allow.has(PermissionFlagsBits.ViewChannel));
+  assert.equal(normalOw.get(mockGuild.id)?.deny.has(PermissionFlagsBits.ViewChannel), false);
   // Member has ViewChannel + SendMessages
   assert.ok(normalOw.get(member1)?.allow.has(PermissionFlagsBits.ViewChannel));
   assert.ok(normalOw.get(member1)?.allow.has(PermissionFlagsBits.SendMessages));
@@ -442,9 +488,16 @@ test('Apply Engine & Permission Matrix: Read back overwrites on normal, staff-on
   // 6. Read back overwrites on Ticket Category (`tktCatId`)
   const tktCat = mockGuild.channels.cache.get(tktCatId);
   const tktOw = tktCat.permissionOverwrites.cache;
+  // Everyone and Member roles strictly denied ViewChannel
   assert.ok(tktOw.get(mockGuild.id)?.deny.has(PermissionFlagsBits.ViewChannel));
+  assert.ok(tktOw.get(member1)?.deny.has(PermissionFlagsBits.ViewChannel));
   assert.ok(tktOw.get(staff1)?.allow.has(PermissionFlagsBits.ManageChannels));
   assert.ok(tktOw.get(ownerRole1)?.allow.has(PermissionFlagsBits.ManageChannels));
+
+  // 6b. Verify Active Ticket Channel was protected and NOT wiped
+  const activeTktOw = activeTkt.permissionOverwrites.cache;
+  assert.ok(activeTktOw.has('owner_user_789'), 'Active ticket creator overwrite must NOT be wiped');
+  assert.ok(activeTktOw.get('owner_user_789')?.allow.has(PermissionFlagsBits.ViewChannel));
 
   // 7. Verify Autorole integration updated settings
   const updatedGuildSettings = await getGuildSettings(mockGuild.id);
@@ -520,4 +573,59 @@ test('AutoRole Panel V2: Pure borderless container with 100% grey buttons', () =
   assert.equal(json.includes('"style":3'), false);
   assert.equal(json.includes('"style":4'), false);
   assert.ok(json.includes('"style":2'), 'Must use ButtonStyle.Secondary');
+});
+
+test('Auto-Repair Engine: Restores normal channels viewable and protects ticket channels across all guilds', async () => {
+  const mockGuild = createMockGuild({ categoryCount: 2, channelsPerCat: 1 });
+  const { staff1, member1 } = mockGuild.roleIds;
+
+  await saveGuildRoles(mockGuild.id, {
+    staff: [staff1],
+    member: [member1]
+  });
+
+  // 1. Create a misconfigured normal channel where @everyone is denied ViewChannel
+  const normalChan = mockGuild.channels.cache.find(c => c.name.startsWith('chat-'));
+  await normalChan.permissionOverwrites.set([
+    { id: mockGuild.id, type: 0, deny: [PermissionFlagsBits.ViewChannel] }
+  ]);
+
+  // 2. Create a misconfigured ticket channel where owner was stripped and member allowed
+  const ticketChan = mockGuild.addChannel({
+    id: `ticket_chan_repair_${mockGuild.id}`,
+    name: 'ticket-0099',
+    type: ChannelType.GuildText
+  });
+  ticketChan.topic = '🎫 Ticket #99 • Owner: victim_user (987654321) • Category: General Support';
+  ticketChan.messages = {
+    fetch: async () => new Collection()
+  };
+  await ticketChan.permissionOverwrites.set([
+    { id: mockGuild.id, type: 0, deny: [PermissionFlagsBits.ViewChannel] },
+    { id: member1, type: 0, allow: [PermissionFlagsBits.ViewChannel] }
+  ]);
+
+  const mockClient = {
+    guilds: {
+      cache: new Collection([[mockGuild.id, mockGuild]])
+    }
+  };
+
+  // Run Auto-Repair
+  const result = await autoRepairPermissionsAndTickets(mockClient);
+
+  assert.equal(result.guildsProcessed, 1);
+  assert.ok(result.normalChannelsRepaired >= 1);
+  assert.ok(result.ticketsRepaired >= 1);
+
+  // Assert normal channel @everyone now has ViewChannel: true (denies is false)
+  const normOw = normalChan.permissionOverwrites.cache.get(mockGuild.id);
+  assert.ok(normOw?.allow.has(PermissionFlagsBits.ViewChannel));
+  assert.equal(normOw?.deny.has(PermissionFlagsBits.ViewChannel), false);
+
+  // Assert ticket channel now has ticket creator allowed and member role denied
+  const tktOw = ticketChan.permissionOverwrites.cache;
+  assert.ok(tktOw.get(member1)?.deny.has(PermissionFlagsBits.ViewChannel), 'Member role must be denied in ticket');
+  assert.ok(tktOw.get('987654321')?.allow.has(PermissionFlagsBits.ViewChannel), 'Owner must have ViewChannel allowed');
+  assert.ok(tktOw.get('987654321')?.allow.has(PermissionFlagsBits.SendMessages), 'Owner must have SendMessages allowed');
 });
