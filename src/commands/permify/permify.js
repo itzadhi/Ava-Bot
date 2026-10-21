@@ -23,6 +23,7 @@ export default {
   description: 'First-time server permission setup wizard and role architect',
   category: 'settings',
   cooldown: 30, // 30-second per-guild cooldown
+  args: [],
   async execute(ctx) {
     if (!ctx.guild) {
       return ctx.reply(errorCard({
