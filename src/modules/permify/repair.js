@@ -8,6 +8,7 @@ import {
   getOpenTickets,
   createTicket
 } from '../../db/tickets.js';
+import { refreshTicketControlCard } from '../tickets/controls.js';
 import { logger } from '../../utils/logger.js';
 
 // Core Bot Permissions
@@ -97,7 +98,7 @@ export async function autoRepairPermissionsAndTickets(client) {
         // A. REPAIR ACTIVE TICKET CHANNELS
         if (isTktChan) {
           let ownerId = null;
-          const dbTicket = openTickets.find(t => t.channel_id === chan.id);
+          let dbTicket = openTickets.find(t => t.channel_id === chan.id);
           if (dbTicket?.owner_id) {
             ownerId = dbTicket.owner_id;
           }
@@ -168,14 +169,14 @@ export async function autoRepairPermissionsAndTickets(client) {
             if (!dbTicket) {
               const numMatch = chan.name.match(/\d+/);
               const ticketNum = numMatch ? parseInt(numMatch[0], 10) : 1;
-              await createTicket({
+              dbTicket = await createTicket({
                 guild_id: guildId,
                 channel_id: chan.id,
                 owner_id: ownerId,
                 ticket_number: ticketNum,
                 status: 'open',
                 category_id: ticketCategories[0]?.id || null
-              }).catch(() => {});
+              }).catch(() => null);
             }
           }
 
@@ -213,6 +214,11 @@ export async function autoRepairPermissionsAndTickets(client) {
           await chan.permissionOverwrites.set(tktOverwrites).catch(err => {
             logger.warn({ err, channelId: chan.id }, 'Failed to set private overwrites on ticket channel');
           });
+
+          if (dbTicket) {
+            await refreshTicketControlCard(chan, dbTicket.id).catch(() => {});
+          }
+
           summary.ticketsRepaired++;
           continue;
         }

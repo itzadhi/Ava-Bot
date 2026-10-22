@@ -193,7 +193,7 @@ test('Feedback: Card builder, modals, and status resolution', async () => {
   // Verify modal structure
   const modal = buildFeedbackModal('room_123');
   assert.ok(modal.data.custom_id.includes('room_123'));
-  assert.equal(modal.components.length, 4, 'Modal must have 4 text inputs (rating, review, suggestion, image)');
+  assert.equal(modal.components.length, 3, 'Modal must have 3 text inputs (rating, review, image)');
 
   // Verify stars helper and sentiment
   assert.equal(buildStars(5), '⭐⭐⭐⭐⭐');

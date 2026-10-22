@@ -24,6 +24,8 @@ import {
 } from '../../db/feedback.js';
 import { getGuildSettings, updateGuildSettings } from '../../db/guilds.js';
 import { checkStaffPermission } from '../suggestions/index.js';
+import * as format from '../../utils/ui/format.js';
+import { greyButton } from '../../utils/ui/greyButton.js';
 import { logger } from '../../utils/logger.js';
 
 // Map storing pending screenshot uploads: userId -> { guildId, targetChannelId, ratingNum, review, suggestion, timeout, editFn }
@@ -56,18 +58,19 @@ export function getRatingSentiment(rating) {
 }
 
 /**
- * Builds the Feedback Submission Modal with rating, review, suggestions, and screenshot URL
+ * Builds the Feedback Submission Modal with rating, review, and optional screenshot URL
  */
 export function buildFeedbackModal(contextStr = '0') {
   const modal = new ModalBuilder()
     .setCustomId(`fb:fbk:modal:${contextStr}`)
-    .setTitle('Feedback & Suggestions');
+    .setTitle('Submit a Review');
 
   const ratingInput = new TextInputBuilder()
     .setCustomId('rating')
     .setLabel('Rate our service / server (1–5) *')
     .setStyle(TextInputStyle.Short)
-    .setPlaceholder('1 to 5 (5 is best)')
+    .setPlaceholder('5')
+    .setValue('5')
     .setRequired(true)
     .setMinLength(1)
     .setMaxLength(1);
@@ -78,28 +81,19 @@ export function buildFeedbackModal(contextStr = '0') {
     .setStyle(TextInputStyle.Paragraph)
     .setPlaceholder('Tell us about your experience, what went well, or what needs work...')
     .setRequired(true)
-    .setMinLength(5)
+    .setMinLength(2)
     .setMaxLength(2000);
-
-  const suggestionInput = new TextInputBuilder()
-    .setCustomId('suggestion')
-    .setLabel('Suggestions & Ideas (optional)')
-    .setStyle(TextInputStyle.Paragraph)
-    .setPlaceholder('What improvements, new features, or changes would you suggest?')
-    .setRequired(false)
-    .setMaxLength(1000);
 
   const imageInput = new TextInputBuilder()
     .setCustomId('image_url')
-    .setLabel('Screenshot URL (optional)')
+    .setLabel('Screenshot / Image URL (optional)')
     .setStyle(TextInputStyle.Short)
-    .setPlaceholder('https://... — or leave blank to upload a file after')
+    .setPlaceholder('https://... (or leave blank)')
     .setRequired(false);
 
   modal.addComponents(
     new ActionRowBuilder().addComponents(ratingInput),
     new ActionRowBuilder().addComponents(reviewInput),
-    new ActionRowBuilder().addComponents(suggestionInput),
     new ActionRowBuilder().addComponents(imageInput)
   );
 
@@ -128,139 +122,66 @@ export function buildFeedbackReplyModal(feedbackId) {
 }
 
 /**
- * Builds the Components V2 Feedback container card with rich sentiment, suggestions, and user info
+ * Builds the Components V2 Feedback container card matching the reference feedback layout
  * @param {object} params
  */
 export function buildFeedbackCard(params) {
   const rating = params.rating !== undefined && params.rating !== null ? parseInt(params.rating, 10) : 5;
   const review = params.review || params.message || '';
-  const suggestion = params.suggestion || params.context?.suggestion || null;
-  const category = params.category || 'General';
-  const status = (params.status || 'unread').toLowerCase();
   const reply = params.reply || null;
   const repliedBy = params.replied_by || null;
   const imageUrl = params.imageUrl || params.image_url || null;
-  const feedbackId = params.id || null;
 
   let username = 'User';
-  let userId = '0';
   let avatarURL = 'https://cdn.discordapp.com/embed/avatars/0.png';
 
   if (params.user) {
     username = params.user.username || params.user.tag || 'User';
-    userId = params.user.id || '0';
     avatarURL = typeof params.user.displayAvatarURL === 'function'
       ? params.user.displayAvatarURL({ size: 256, extension: 'png' })
       : (params.user.avatarURL || avatarURL);
   } else {
     username = params.author_username || 'User';
-    userId = params.author_id || '0';
     avatarURL = params.author_avatar || avatarURL;
   }
 
   const stars = buildStars(rating);
-  const sentiment = getRatingSentiment(rating);
-  const createdDate = params.created_at ? new Date(params.created_at) : new Date();
-  const createdUnix = Math.floor(createdDate.getTime() / 1000);
 
-  // Neutral Container with NO sidebar color
+  // Clean container matching reference screenshot (NO accent/sidebar color)
   const c = new ContainerBuilder();
 
-  // 1. Dynamic Sentiment Header
-  let headerTitle = '## 💬 New Community Feedback';
-  if (rating === 5) headerTitle = '## 🌟 Outstanding Feedback Received';
-  else if (rating === 4) headerTitle = '## 👍 Positive Feedback Received';
-  else if (rating === 3) headerTitle = '## 💬 Constructive Feedback Received';
-  else if (rating <= 2) headerTitle = '## ⚠️ Critical Feedback & Review';
+  // Header & Content Section with Thumbnail
+  const activeThumbnail = imageUrl || avatarURL;
+  const bodyText = `### Feedback by ${format.escapeMarkdown(username)}\n\n> ${format.escapeMarkdown(review).replace(/\n/g, '\n> ')}\n\n**Rating**\n${stars}`;
 
-  c.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(headerTitle)
-  );
+  const section = new SectionBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(bodyText));
 
-  c.addSeparatorComponents(
-    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-  );
-
-  // 2. Review & Rating with Avatar Thumbnail Section
-  const ratingScoreStr = !isNaN(rating) ? `**${rating} / 5** · *${sentiment}*` : '*Not Rated*';
-  let reviewSectionBody = `### 📝 Review\n> *" ${review.replace(/\n/g, '\n> ')} "*\n\n${stars}  ${ratingScoreStr}`;
-
-  if (suggestion) {
-    reviewSectionBody += `\n\n### 💡 Suggested Improvements & Ideas\n> *" ${suggestion.replace(/\n/g, '\n> ')} "*`;
-  }
-
-  c.addSectionComponents(
-    new SectionBuilder()
-      .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(reviewSectionBody)
-      )
-      .setThumbnailAccessory(new ThumbnailBuilder().setURL(avatarURL))
-  );
-
-  c.addSeparatorComponents(
-    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-  );
-
-  // 3. User & Meta Information
-  let statusBadge = '🟡 Unread';
-  if (status === 'resolved') statusBadge = '🟢 Resolved';
-  else if (status === 'read') statusBadge = '🔵 Reviewed';
-
-  const userMention = userId && userId !== '0' ? `<@${userId}>` : `**${username}**`;
-  let metaContent =
-    `👤 **Reviewer:** **${username}** (${userMention})\n` +
-    `📅 **Submitted:** <t:${createdUnix}:f> (<t:${createdUnix}:R>)\n` +
-    `🏷️ **Category:** \`${category}\`  ·  📌 **Status:** ${statusBadge}`;
-
-  if (feedbackId) {
-    metaContent += `  ·  🆔 \`${feedbackId}\``;
-  }
-
-  c.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(metaContent)
-  );
-
-  // 4. Staff Reply Section (if replied)
-  if (reply) {
-    c.addSeparatorComponents(
-      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-    );
-    c.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(
-        `### 💬 Staff Response\n> *" ${reply.replace(/\n/g, '\n> ')} "*\n-# Responded by **${repliedBy || 'Staff'}**`
-      )
-    );
-  }
-
-  // 5. Screenshot / Image Attachment
-  if (imageUrl && imageUrl.startsWith('http')) {
+  if (activeThumbnail) {
     try {
-      c.addSeparatorComponents(
-        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(false)
-      );
-      const g = new MediaGalleryBuilder();
-      g.addItems(new MediaGalleryItemBuilder().setURL(imageUrl));
-      c.addMediaGalleryComponents(g);
+      section.setThumbnailAccessory(new ThumbnailBuilder().setURL(activeThumbnail));
     } catch (_) {}
   }
 
-  c.addSeparatorComponents(
-    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-  );
+  c.addSectionComponents(section);
 
-  // 6. Action Row: Leave a Review & Submit Suggestion
+  // Staff Reply Section (if any)
+  if (reply) {
+    c.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
+    c.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `### 💬 Staff Response\n> ${format.escapeMarkdown(reply).replace(/\n/g, '\n> ')}\n-# Responded by **${repliedBy || 'Staff'}**`
+      )
+    );
+  }
+
+  // Action Row: Submit a Review (100% grey button)
   c.addActionRowComponents(
     new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('fb:fbk:open_modal:0')
-        .setLabel('Leave a Review')
-        .setEmoji('✍️')
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId('fb:sug:open_modal:0')
-        .setLabel('Submit Suggestion')
-        .setEmoji('💡')
-        .setStyle(ButtonStyle.Secondary)
+      greyButton({
+        id: 'open_feedback_modal',
+        label: 'Submit a Review'
+      })
     )
   );
 
@@ -268,19 +189,17 @@ export function buildFeedbackCard(params) {
 }
 
 /**
- * Builds the public Feedback Panel with comprehensive guides and dual review/suggestion actions
+ * Builds the public Feedback Panel matching the clean review hub layout
  */
 export function buildFeedbackPanel(botAvatarURL) {
-  // Neutral Container with NO sidebar color
   const c = new ContainerBuilder();
 
   c.addSectionComponents(
     new SectionBuilder()
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `# 💬 Feedback & Suggestions Hub\n` +
-          `Your feedback and creative suggestions directly guide our server updates, bot features, and community events!\n` +
-          `Share your honest thoughts, rate your experience, or propose changes — staff review every single submission.`
+          `# 💬 Feedback & Reviews Hub\n` +
+          `Your feedback helps us continuously improve the server and our community! Share your thoughts and rate your experience.`
         )
       )
       .setThumbnailAccessory(
@@ -292,36 +211,12 @@ export function buildFeedbackPanel(botAvatarURL) {
     new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
   );
 
-  c.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(
-      `### 📌 What You Can Share\n` +
-      `⭐ **Rating (1 to 5 Stars):** Evaluate server vibe, bot reliability, voice rooms, or staff support.\n` +
-      `📝 **Detailed Review:** Tell us what you enjoy or what friction points you experienced.\n` +
-      `💡 **Suggestions & Ideas:** Share specific features, quality-of-life tweaks, or new ideas you'd love to see.\n` +
-      `📸 **Media & Proof:** Attach screenshot URLs or drop images right after submitting to illustrate bugs or UI issues.\n\n` +
-      `### 🛡️ Submission Guidelines\n` +
-      `• **Be constructive:** Honest feedback helps us improve; please provide details or examples.\n` +
-      `• **Stay respectful:** All submissions must follow Discord TOS and server community rules.\n` +
-      `• **Direct Staff Replies:** Server staff can review and reply directly to your feedback via DM.`
-    )
-  );
-
-  c.addSeparatorComponents(
-    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-  );
-
   c.addActionRowComponents(
     new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('fb:fbk:open_modal:0')
-        .setLabel('Write a Review')
-        .setEmoji('✍️')
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId('fb:sug:open_modal:0')
-        .setLabel('Submit Suggestion')
-        .setEmoji('💡')
-        .setStyle(ButtonStyle.Secondary)
+      greyButton({
+        id: 'open_feedback_modal',
+        label: 'Submit a Review'
+      })
     )
   );
 
@@ -370,7 +265,6 @@ export async function handleFeedbackModalSubmit(interaction) {
 
   const ratingStr = interaction.fields.getTextInputValue('rating');
   const review = interaction.fields.getTextInputValue('review');
-  const suggestion = (interaction.fields.fields?.has('suggestion') ? interaction.fields.getTextInputValue('suggestion') : '')?.trim() || null;
   const imageUrl = (interaction.fields.fields?.has('image_url') ? interaction.fields.getTextInputValue('image_url') : '')?.trim() || null;
 
   const ratingNum = parseInt(ratingStr, 10);
@@ -416,43 +310,14 @@ export async function handleFeedbackModalSubmit(interaction) {
     return interaction.editReply({ components: [err], flags: MessageFlags.IsComponentsV2 });
   }
 
-  // If screenshot URL is already provided
-  if (imageUrl && imageUrl.startsWith('http')) {
-    return publishFeedbackSubmission({
-      interaction,
-      guild,
-      targetChannel,
-      ratingNum,
-      review,
-      suggestion,
-      imageUrl
-    });
-  }
-
-  // Otherwise, set 60-second pending image upload prompt
-  const timeoutId = setTimeout(async () => {
-    const pending = pendingFeedbackImages.get(interaction.user.id);
-    if (!pending) return;
-    pendingFeedbackImages.delete(interaction.user.id);
-    const expired = new ContainerBuilder();
-    expired.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`⚠️ Image upload timed out — your review was **not** posted. Run \`/feedback\` to try again.`)
-    );
-    await interaction.editReply({ components: [expired], flags: MessageFlags.IsComponentsV2 }).catch(() => {});
-  }, 60_000);
-
-  pendingFeedbackImages.set(interaction.user.id, {
-    guildId: guild.id,
-    channelId: interaction.channelId,
-    targetChannelId: targetChannel.id,
+  return publishFeedbackSubmission({
+    interaction,
+    guild,
+    targetChannel,
     ratingNum,
     review,
-    suggestion,
-    timeout: timeoutId,
-    editFn: (data) => interaction.editReply(data)
+    imageUrl: imageUrl && imageUrl.startsWith('http') ? imageUrl : null
   });
-
-  return interaction.editReply(buildImagePrompt());
 }
 
 /**
@@ -561,7 +426,6 @@ async function publishFeedbackSubmission({
   targetChannel,
   ratingNum,
   review,
-  suggestion = null,
   imageUrl
 }) {
   if (!targetChannel) {
@@ -577,29 +441,22 @@ async function publishFeedbackSubmission({
     channel: targetChannel,
     author: interaction.user,
     message: review,
-    suggestion,
     rating: ratingNum,
     imageUrl: imageUrl || null
   });
 
   const stars = buildStars(ratingNum);
-  const sentiment = getRatingSentiment(ratingNum);
 
   const success = new ContainerBuilder();
   let successText =
-    `### ✅ Feedback Submitted Successfully!\n` +
-    `Your review is now live in <#${targetChannel.id}>.\n\n` +
-    `⭐ **Rating:** ${stars} (**${ratingNum}/5** · *${sentiment}*)\n` +
-    `📝 **Review:** *" ${review.length > 80 ? review.slice(0, 77) + '...' : review} "*\n`;
+    `### ✅ Review Published!\n` +
+    `Your feedback has been published in <#${targetChannel.id}>.\n\n` +
+    `**Rating:** ${stars} (${ratingNum}/5)\n` +
+    `> ${format.escapeMarkdown(review)}\n`;
 
-  if (suggestion) {
-    successText += `💡 **Suggestion:** *" ${suggestion.length > 80 ? suggestion.slice(0, 77) + '...' : suggestion} "*\n`;
-  }
   if (imageUrl) {
-    successText += `📸 **Attachment:** Screenshot included\n`;
+    successText += `\n📸 **Attachment:** Screenshot included\n`;
   }
-
-  successText += `\n❤️ *Thank you for taking the time — your feedback genuinely helps!*`;
 
   success.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(successText)

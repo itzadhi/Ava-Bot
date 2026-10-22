@@ -14,7 +14,14 @@ import {
   MessageFlags
 } from 'discord.js';
 import * as format from '../../utils/ui/format.js';
-import { getTicketById, getTicketCategory } from '../../db/tickets.js';
+import { greyButton } from '../../utils/ui/greyButton.js';
+import {
+  getTicketById,
+  getTicketByChannel,
+  getTicketCategory,
+  updateTicket,
+  recoverTicketFromChannel
+} from '../../db/tickets.js';
 import { logger } from '../../utils/logger.js';
 
 const PRIORITY_CONFIG = {
@@ -111,30 +118,30 @@ export function buildTicketControlCard({
   const isClosed = ticket.status === 'closed';
 
   const row1 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`tkt:ctl:claim:${ticket.id}`)
-      .setLabel(isClaimed ? 'Unclaim' : 'Claim')
-      .setEmoji(isClaimed ? '🙋‍♂️' : '✋')
-      .setStyle(isClaimed ? ButtonStyle.Secondary : ButtonStyle.Primary)
-      .setDisabled(isClosed),
-    new ButtonBuilder()
-      .setCustomId(`tkt:ctl:close:${ticket.id}`)
-      .setLabel('Close')
-      .setEmoji('🔒')
-      .setStyle(ButtonStyle.Danger)
-      .setDisabled(isClosed),
-    new ButtonBuilder()
-      .setCustomId(`tkt:ctl:close_req:${ticket.id}`)
-      .setLabel('Close Request')
-      .setEmoji('📩')
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(isClosed),
-    new ButtonBuilder()
-      .setCustomId(`tkt:ctl:priority:${ticket.id}`)
-      .setLabel('Priority')
-      .setEmoji('⚡')
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(isClosed)
+    greyButton({
+      id: `tkt:ctl:claim:${ticket.id}`,
+      label: isClaimed ? 'Unclaim' : 'Claim',
+      emoji: isClaimed ? '↩️' : '✋',
+      disabled: isClosed
+    }),
+    greyButton({
+      id: `tkt:ctl:close:${ticket.id}`,
+      label: 'Close',
+      emoji: '🔒',
+      disabled: isClosed
+    }),
+    greyButton({
+      id: `tkt:ctl:close_req:${ticket.id}`,
+      label: 'Close Request',
+      emoji: '📩',
+      disabled: isClosed
+    }),
+    greyButton({
+      id: `tkt:ctl:priority:${ticket.id}`,
+      label: 'Priority',
+      emoji: '⚡',
+      disabled: isClosed
+    })
   );
 
   // 7. In-Ticket Controls: Row 2 (Staff & Tools Select Menu)
@@ -219,10 +226,28 @@ export async function refreshTicketControlCard(channel, ticketId) {
   if (!channel || !channel.isTextBased()) return null;
 
   try {
-    const ticket = await getTicketById(ticketId);
-    if (!ticket || !ticket.control_message_id) return null;
+    let ticket = await getTicketById(ticketId, channel.guildId, channel.id);
+    if (!ticket && channel.guildId) {
+      ticket = await getTicketByChannel(channel.guildId, channel.id);
+    }
+    if (!ticket && channel.name?.startsWith('ticket-')) {
+      ticket = await recoverTicketFromChannel(channel).catch(() => null);
+    }
+    if (!ticket) return null;
 
-    const message = await channel.messages.fetch(ticket.control_message_id).catch(() => null);
+    let message = ticket.control_message_id
+      ? await channel.messages.fetch(ticket.control_message_id).catch(() => null)
+      : null;
+
+    if (!message) {
+      const msgs = await channel.messages.fetch({ limit: 10 }).catch(() => []);
+      const botId = channel.client?.user?.id;
+      message = msgs.find(m => (!botId || m.author.id === botId) && m.components?.length > 0) || null;
+      if (message) {
+        await updateTicket(ticket.id, { control_message_id: message.id }).catch(() => {});
+      }
+    }
+
     if (!message) return null;
 
     const category = ticket.category_id ? await getTicketCategory(ticket.category_id).catch(() => null) : null;

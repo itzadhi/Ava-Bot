@@ -31,33 +31,65 @@ import { logger } from '../../utils/logger.js';
 const userCooldowns = new Map();
 
 /**
- * Builds a Modal for category custom questions
+ * Builds the mandatory Ticket Reason modal (with any optional category custom questions appended)
  */
-export async function buildTicketQuestionsModal(category, panelId = '0') {
-  const questions = await getCategoryQuestions(category.id);
-  const modal = new ModalBuilder()
-    .setCustomId(`tkt:modal_open:${category.id}:${panelId}`)
-    .setTitle(`${category.name.slice(0, 40)} Form`);
+export async function buildOpenTicketReasonModal(categoryOrId, panelId = '0') {
+  let category = null;
+  let categoryId = 'default';
 
-  for (let i = 0; i < Math.min(questions.length, 5); i++) {
-    const q = questions[i];
-    const input = new TextInputBuilder()
-      .setCustomId(`q_${i}`)
-      .setLabel(q.label.slice(0, 45))
-      .setStyle(q.style === 'short' ? TextInputStyle.Short : TextInputStyle.Paragraph)
-      .setRequired(q.required !== false)
-      .setMinLength(q.min_length || 0)
-      .setMaxLength(Math.min(q.max_length || 1000, 1000));
-
-    if (q.placeholder) {
-      input.setPlaceholder(q.placeholder.slice(0, 100));
+  if (categoryOrId) {
+    if (typeof categoryOrId === 'object') {
+      category = categoryOrId;
+      categoryId = category.id || 'default';
+    } else if (categoryOrId !== 'default') {
+      categoryId = categoryOrId;
+      category = await getTicketCategory(categoryId).catch(() => null);
     }
+  }
 
-    modal.addComponents(new ActionRowBuilder().addComponents(input));
+  const catTitle = category?.name ? `${category.name.slice(0, 30)} Ticket` : 'Open Ticket';
+
+  const modal = new ModalBuilder()
+    .setCustomId(`tkt:modal_open:${categoryId}:${panelId}`)
+    .setTitle(catTitle.slice(0, 45));
+
+  // 1. Mandatory Reason field
+  const reasonInput = new TextInputBuilder()
+    .setCustomId('ticket_reason')
+    .setLabel('Reason for opening ticket *')
+    .setStyle(TextInputStyle.Paragraph)
+    .setPlaceholder('Describe your issue or what you need assistance with...')
+    .setRequired(true)
+    .setMinLength(3)
+    .setMaxLength(1000);
+
+  modal.addComponents(new ActionRowBuilder().addComponents(reasonInput));
+
+  // 2. Additional category questions if configured (up to 4 more)
+  if (category?.id) {
+    const questions = await getCategoryQuestions(category.id).catch(() => []);
+    for (let i = 0; i < Math.min(questions.length, 4); i++) {
+      const q = questions[i];
+      const qInput = new TextInputBuilder()
+        .setCustomId(`q_${i}`)
+        .setLabel(q.label.slice(0, 45))
+        .setStyle(q.style === 'short' ? TextInputStyle.Short : TextInputStyle.Paragraph)
+        .setRequired(q.required !== false)
+        .setMinLength(q.min_length || 0)
+        .setMaxLength(Math.min(q.max_length || 1000, 1000));
+
+      if (q.placeholder) {
+        qInput.setPlaceholder(q.placeholder.slice(0, 100));
+      }
+
+      modal.addComponents(new ActionRowBuilder().addComponents(qInput));
+    }
   }
 
   return modal;
 }
+
+export const buildTicketQuestionsModal = buildOpenTicketReasonModal;
 
 /**
  * Validates pre-flight requirements and opens a ticket channel
@@ -66,7 +98,8 @@ export async function handleOpenTicketFlow({
   interaction,
   categoryId,
   panelId = '0',
-  questionAnswers = {}
+  questionAnswers = {},
+  reason = null
 }) {
   const guild = interaction.guild;
   const member = interaction.member;
@@ -185,13 +218,14 @@ export async function handleOpenTicketFlow({
     }));
   }
 
-  // 7. Check if Category has Questions and this wasn't from a Modal Submission
-  if (category && Object.keys(questionAnswers).length === 0) {
-    const questions = await getCategoryQuestions(category.id);
-    if (questions.length > 0) {
-      const modal = await buildTicketQuestionsModal(category, panelId);
-      return interaction.showModal(modal);
-    }
+  // 7. Check if Reason/Form was already provided
+  if (!reason && Object.keys(questionAnswers).length === 0) {
+    const modal = await buildOpenTicketReasonModal(category || categoryId, panelId);
+    return interaction.showModal(modal);
+  }
+
+  if (reason && !questionAnswers['Reason']) {
+    questionAnswers['Reason'] = reason;
   }
 
   // Defer ephemeral response while creating channel
@@ -236,6 +270,7 @@ export async function handleOpenTicketFlow({
         PermissionFlagsBits.SendMessages,
         PermissionFlagsBits.ManageChannels,
         PermissionFlagsBits.ManageMessages,
+        PermissionFlagsBits.ManageWebhooks,
         PermissionFlagsBits.AttachFiles,
         PermissionFlagsBits.EmbedLinks,
         PermissionFlagsBits.ReadMessageHistory
@@ -312,26 +347,21 @@ export async function handleOpenTicketFlow({
   // Record cooldown
   userCooldowns.set(cdKey, Date.now());
 
-  // 11. Post Welcome Card into the Ticket Channel
-  const placeholderTicket = {
-    id: `temp_${Date.now()}`,
-    guild_id: guild.id,
-    channel_id: ticketChannel.id,
-    ticket_number: ticketNumber,
-    category_id: category?.id || null,
-    category_name: catName,
-    owner_id: user.id,
-    owner_username: user.tag || user.username,
-    status: 'open',
-    priority: 'normal',
-    claimed_by: null,
-    created_at: new Date().toISOString(),
-    question_answers: questionAnswers
-  };
+  // 11. Persist to Database FIRST to establish permanent ticket record
+  const createdRecord = await createTicket({
+    guildId: guild.id,
+    channelId: ticketChannel.id,
+    ticketNumber,
+    categoryId: category?.id || null,
+    categoryName: catName,
+    ownerId: user.id,
+    ownerUsername: user.tag || user.username,
+    questionAnswers
+  });
 
-  // 11. Post In-Ticket Welcome Card (Pure Components V2 - NO legacy content)
+  // 12. Post In-Ticket Welcome Card (Pure Components V2 with real permanent ticket ID)
   const welcomePayload = buildTicketControlCard({
-    ticket: placeholderTicket,
+    ticket: createdRecord,
     category,
     welcomeText: category?.welcome_template || settings.welcome_message
   });
@@ -365,24 +395,52 @@ export async function handleOpenTicketFlow({
   let controlMsg = null;
   try {
     controlMsg = await ticketChannel.send(welcomePayload);
+    if (controlMsg) {
+      await updateTicket(createdRecord.id, { control_message_id: controlMsg.id });
+      createdRecord.control_message_id = controlMsg.id;
+    }
   } catch (err) {
     logger.warn({ err, channelId: ticketChannel.id }, 'Failed to post ticket welcome card');
   }
 
-  // 12. Persist to Database
-  const createdRecord = await createTicket({
-    guildId: guild.id,
-    channelId: ticketChannel.id,
-    ticketNumber,
-    categoryId: category?.id || null,
-    categoryName: catName,
-    ownerId: user.id,
-    ownerUsername: user.tag || user.username,
-    controlMessageId: controlMsg?.id || null,
-    questionAnswers
-  });
+  // 13. Send user's opening reason message using user's profile pic and display name (Webhook relay)
+  const userReason = reason || questionAnswers['Reason'] || questionAnswers['reason'] || null;
+  if (userReason && userReason.trim()) {
+    try {
+      const avatarURL = typeof user.displayAvatarURL === 'function'
+        ? user.displayAvatarURL({ extension: 'png', size: 256 })
+        : (user.avatarURL || 'https://cdn.discordapp.com/embed/avatars/0.png');
+      const displayName = member.displayName || user.displayName || user.username;
 
-  // 13. Audit Log Event
+      let webhook = null;
+      try {
+        webhook = await ticketChannel.createWebhook({
+          name: 'Ticket User Relay',
+          avatar: avatarURL
+        });
+      } catch (whErr) {
+        logger.debug({ err: whErr.message }, 'Could not create ticket relay webhook');
+      }
+
+      if (webhook) {
+        await webhook.send({
+          content: userReason.trim(),
+          username: displayName,
+          avatarURL: avatarURL
+        });
+        await webhook.delete('Argoni temporary ticket relay').catch(() => {});
+      } else {
+        // Fallback if bot lacks ManageWebhooks
+        await ticketChannel.send({
+          content: `> **${format.escapeMarkdown(displayName)}**: ${format.escapeMarkdown(userReason.trim())}`
+        }).catch(() => {});
+      }
+    } catch (relayErr) {
+      logger.warn({ err: relayErr.message }, 'Failed to relay user reason in ticket channel');
+    }
+  }
+
+  // 14. Audit Log Event
   sendTicketLog(guild, {
     eventTitle: 'Ticket Opened',
     emoji: '🎫',

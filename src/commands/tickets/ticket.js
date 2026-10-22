@@ -391,7 +391,10 @@ export default {
     }
 
     // --- Channel-Specific Commands Below ---
-    const ticket = await ticketDb.getTicketByChannel(ctx.guild.id, ctx.channel.id);
+    let ticket = await ticketDb.getTicketByChannel(ctx.guild.id, ctx.channel.id);
+    if (!ticket && ctx.channel.name?.startsWith('ticket-')) {
+      ticket = await ticketDb.recoverTicketFromChannel(ctx.channel).catch(() => null);
+    }
     if (!ticket) {
       return ctx.reply(errorCard({
         title: 'Not a Ticket Channel',

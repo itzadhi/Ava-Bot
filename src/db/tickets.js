@@ -303,19 +303,20 @@ export async function saveCategoryQuestions(categoryId, questions = []) {
 // ─────────────────────────────────────────────────────────────────────────────
 // 6. TICKETS (LIFECYCLE)
 // ─────────────────────────────────────────────────────────────────────────────
-export async function createTicket({
-  guildId,
-  channelId,
-  ticketNumber,
-  ownerId,
-  ownerUsername,
-  categoryId = null,
-  categoryName = 'Support',
-  panelId = null,
-  questionAnswers = {},
-  priority = 'normal'
-}) {
-  const id = `tkt_${guildId}_${ticketNumber}`;
+export async function createTicket(ticketData = {}) {
+  const guildId = ticketData.guildId || ticketData.guild_id;
+  const channelId = ticketData.channelId || ticketData.channel_id;
+  const ticketNumber = ticketData.ticketNumber || ticketData.ticket_number || 1;
+  const ownerId = ticketData.ownerId || ticketData.owner_id;
+  const ownerUsername = ticketData.ownerUsername || ticketData.owner_username || 'user';
+  const categoryId = ticketData.categoryId || ticketData.category_id || null;
+  const categoryName = ticketData.categoryName || ticketData.category_name || 'General Support';
+  const controlMessageId = ticketData.controlMessageId || ticketData.control_message_id || null;
+  const questionAnswers = ticketData.questionAnswers || ticketData.question_answers || {};
+  const priority = ticketData.priority || 'normal';
+  const status = ticketData.status || 'open';
+
+  const id = ticketData.id || `tkt_${guildId}_${ticketNumber}`;
   const record = {
     id,
     guild_id: guildId,
@@ -325,46 +326,131 @@ export async function createTicket({
     owner_username: ownerUsername,
     category_id: categoryId,
     category_name: categoryName,
-    panel_id: panelId,
+    control_message_id: controlMessageId,
     question_answers: questionAnswers,
     priority,
-    status: 'open',
-    claimed_by: null,
-    claimed_at: null,
-    closed_by: null,
-    closed_at: null,
-    close_reason: null,
-    close_request_from: null,
-    close_request_at: null,
-    created_at: new Date().toISOString(),
+    status,
+    claimed_by: ticketData.claimed_by || null,
+    claimed_at: ticketData.claimed_at || null,
+    closed_by: ticketData.closed_by || null,
+    closed_at: ticketData.closed_at || null,
+    close_reason: ticketData.close_reason || null,
+    close_request_from: ticketData.close_request_from || null,
+    close_request_at: ticketData.close_request_at || null,
+    created_at: ticketData.created_at || new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
 
   getMemTable('tickets').set(id, record);
+  if (channelId) {
+    getMemTable('tickets').set(channelId, record);
+  }
 
   const { data, error } = await db
     .from('tickets')
-    .insert(record)
+    .upsert(record)
     .select()
     .single();
 
   if (error) {
+    logger.debug({ err: error, id }, 'Supabase ticket upsert deferred to local cache');
     return record;
   }
   return data || record;
 }
 
-export async function getTicketById(ticketId) {
-  const { data, error } = await db
-    .from('tickets')
-    .select('*')
-    .eq('id', ticketId)
-    .maybeSingle();
-
-  if (error) {
-    return getMemTable('tickets').get(ticketId) || null;
+export async function getTicketById(ticketId, guildId = null, channelId = null) {
+  if (!ticketId) {
+    if (guildId && channelId) {
+      return getTicketByChannel(guildId, channelId);
+    }
+    return null;
   }
-  return data || getMemTable('tickets').get(ticketId) || null;
+
+  // 1. Check memoryDb by exact ID or channelId
+  const mem = getMemTable('tickets').get(ticketId);
+  if (mem) return mem;
+
+  // 2. Check Supabase by exact ID
+  try {
+    const { data, error } = await db
+      .from('tickets')
+      .select('*')
+      .eq('id', ticketId)
+      .maybeSingle();
+
+    if (!error && data) {
+      getMemTable('tickets').set(data.id, data);
+      if (data.channel_id) getMemTable('tickets').set(data.channel_id, data);
+      return data;
+    }
+  } catch (_) {}
+
+  // 3. Fallback: Search in-memory records
+  const allMem = Array.from(getMemTable('tickets').values());
+  const foundMem = allMem.find(t => t.id === ticketId || (channelId && t.channel_id === channelId));
+  if (foundMem) return foundMem;
+
+  // 4. Fallback: lookup by channel if guildId and channelId are available
+  if (guildId && channelId) {
+    return getTicketByChannel(guildId, channelId);
+  }
+
+  return null;
+}
+
+export async function recoverTicketFromChannel(channel) {
+  if (!channel || !channel.guild) return null;
+  const guild = channel.guild;
+
+  // Parse ticket number from channel name (e.g. ticket-0002 -> 2)
+  const numMatch = channel.name.match(/\d+/);
+  const ticketNumber = numMatch ? parseInt(numMatch[0], 10) : 1;
+
+  let ownerId = guild.ownerId;
+  let ownerUsername = 'user';
+  let categoryName = 'General Support';
+
+  if (channel.topic) {
+    const ownerMatch = channel.topic.match(/Owner:\s*([^\(]+)\s*\((\d+)\)/i);
+    if (ownerMatch) {
+      ownerUsername = ownerMatch[1].trim();
+      ownerId = ownerMatch[2].trim();
+    }
+    const catMatch = channel.topic.match(/Category:\s*(.*)$/i);
+    if (catMatch) {
+      categoryName = catMatch[1].trim();
+    }
+  }
+
+  if (ownerId === guild.ownerId) {
+    try {
+      const msgs = await channel.messages.fetch({ limit: 10 }).catch(() => []);
+      for (const m of msgs.values()) {
+        if (m.mentions?.users?.size > 0) {
+          const u = m.mentions.users.find(user => !user.bot);
+          if (u) {
+            ownerId = u.id;
+            ownerUsername = u.tag || u.username;
+            break;
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  const newTicket = await createTicket({
+    guildId: guild.id,
+    channelId: channel.id,
+    ticketNumber,
+    ownerId,
+    ownerUsername,
+    categoryName,
+    status: 'open',
+    priority: 'normal'
+  });
+
+  return newTicket;
 }
 
 export async function getTicketByChannel(guildId, channelId) {
@@ -942,6 +1028,7 @@ export const ticketDb = {
   saveCategoryQuestions,
 
   createTicket,
+  recoverTicketFromChannel,
   getTicket: getTicketById,
   getTicketById,
   getTicketByChannel,

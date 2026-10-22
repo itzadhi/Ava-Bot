@@ -11,11 +11,13 @@ import { container } from '../../utils/ui/components.js';
 import {
   getTicketById,
   getTicketByChannel,
+  recoverTicketFromChannel,
   updateTicket,
   getTicketSettings,
   getTicketCategory,
   addTicketNote
 } from '../../db/tickets.js';
+import { getGuildRoles } from '../../db/permify.js';
 import { refreshTicketControlCard } from './controls.js';
 import { sendTicketLog } from './logs.js';
 import { generateAndSaveTranscript } from './transcript.js';
@@ -28,8 +30,10 @@ import { logger } from '../../utils/logger.js';
 export async function isTicketStaff(member, ticket, settings = null) {
   if (!member) return false;
   if (
+    member.id === member.guild?.ownerId ||
     member.permissions?.has(PermissionFlagsBits.ManageGuild) ||
-    member.permissions?.has(PermissionFlagsBits.Administrator)
+    member.permissions?.has(PermissionFlagsBits.Administrator) ||
+    member.permissions?.has(PermissionFlagsBits.ManageChannels)
   ) {
     return true;
   }
@@ -47,33 +51,81 @@ export async function isTicketStaff(member, ticket, settings = null) {
     }
   }
 
+  const permifyRoles = await getGuildRoles(member.guild?.id).catch(() => null);
+  if (permifyRoles?.staff) {
+    for (const r of permifyRoles.staff) staffRoles.add(r);
+  }
+  if (permifyRoles?.owner) {
+    for (const r of permifyRoles.owner) staffRoles.add(r);
+  }
+
   return staffRoles.size > 0 && member.roles?.cache?.some(r => staffRoles.has(r.id));
+}
+
+/**
+ * Universal helper to resolve ticket context, member, and channel across interactions and command options
+ */
+async function resolveTicketAndChannel(target, ticketIdOrOptions) {
+  let member, user, guild, ticket, channel, isOptionsCall = false;
+
+  if (target && target.ticket) {
+    isOptionsCall = true;
+    ticket = target.ticket;
+    member = target.member;
+    user = member?.user || member;
+    guild = member?.guild;
+    channel = target.channel || guild?.channels?.cache?.get(ticket?.channel_id);
+  } else {
+    const interaction = target;
+    member = interaction.member;
+    user = interaction.user;
+    guild = interaction.guild;
+    const ticketId = ticketIdOrOptions;
+
+    // 1. Query by ticketId and channel context
+    ticket = await getTicketById(ticketId, guild?.id, interaction.channelId);
+
+    // 2. Query by channel if not found
+    if (!ticket && guild?.id && interaction.channelId) {
+      ticket = await getTicketByChannel(guild.id, interaction.channelId);
+    }
+
+    // 3. Rehydrate from Discord channel if still missing or if old temp ID
+    if ((!ticket || ticket.id?.startsWith('temp_')) && interaction.channel) {
+      const recovered = await recoverTicketFromChannel(interaction.channel);
+      if (recovered) ticket = recovered;
+    }
+
+    channel = interaction.channel || guild?.channels?.cache?.get(ticket?.channel_id);
+  }
+
+  return { member, user, guild, ticket, channel, isOptionsCall };
+}
+
+/**
+ * Safe interaction reply/followUp helper
+ */
+async function safeReply(target, payload) {
+  if (!target || typeof target.reply !== 'function') return;
+  try {
+    if (target.replied || target.deferred) {
+      return await target.followUp(payload);
+    }
+    return await target.reply(payload);
+  } catch (err) {
+    logger.debug({ err: err.message }, 'safeReply caught error on interaction response');
+  }
 }
 
 /**
  * 1. Claim or Unclaim a Ticket
  */
 export async function handleClaimToggle(target, ticketIdOrOptions) {
-  let member, guild, ticket, channel, isOptionsCall = false;
-
-  if (target && target.ticket) {
-    isOptionsCall = true;
-    ticket = target.ticket;
-    member = target.member;
-    guild = member?.guild;
-    channel = target.channel || guild?.channels.cache.get(ticket.channel_id);
-  } else {
-    const interaction = target;
-    member = interaction.member;
-    guild = interaction.guild;
-    const ticketId = ticketIdOrOptions;
-    ticket = await getTicketById(ticketId);
-    channel = guild?.channels.cache.get(ticket?.channel_id);
-  }
+  const { member, user, guild, ticket, channel, isOptionsCall } = await resolveTicketAndChannel(target, ticketIdOrOptions);
 
   if (!ticket || ticket.status === 'closed') {
     if (isOptionsCall) return { success: false, error: 'Ticket is closed or no longer active.' };
-    return target.reply(errorCard({
+    return safeReply(target, errorCard({
       title: 'Ticket Inactive',
       reason: 'This ticket is closed or no longer active.',
       ephemeral: true
@@ -83,7 +135,7 @@ export async function handleClaimToggle(target, ticketIdOrOptions) {
   const isStaff = await isTicketStaff(member, ticket);
   if (!isStaff) {
     if (isOptionsCall) return { success: false, error: 'Only designated support staff can claim tickets.' };
-    return target.reply(errorCard({
+    return safeReply(target, errorCard({
       title: 'Staff Only',
       reason: 'Only designated support staff can claim tickets.',
       ephemeral: true
@@ -102,7 +154,7 @@ export async function handleClaimToggle(target, ticketIdOrOptions) {
   });
 
   if (channel) {
-    await refreshTicketControlCard(channel, ticket.id);
+    await refreshTicketControlCard(channel, ticket.id).catch(() => {});
   }
 
   // Audit log
@@ -117,7 +169,7 @@ export async function handleClaimToggle(target, ticketIdOrOptions) {
     return { success: true, claimed: !isClaimedByMe };
   }
 
-  return target.reply(successCard({
+  return safeReply(target, successCard({
     title: isClaimedByMe ? 'Ticket Unclaimed' : 'Ticket Claimed',
     subtitle: isClaimedByMe
       ? `✋ <@${member.id}> has released the claim on **Ticket #${ticket.ticket_number}**.`
@@ -130,30 +182,12 @@ export async function handleClaimToggle(target, ticketIdOrOptions) {
  * 2. Close Ticket
  */
 export async function handleCloseTicket(target, ticketIdOrOptions, reason = null) {
-  let member, user, guild, ticket, channel, closeReason = reason, isOptionsCall = false;
-
-  if (target && target.ticket) {
-    isOptionsCall = true;
-    ticket = target.ticket;
-    member = target.member;
-    user = member?.user || member;
-    guild = member?.guild;
-    channel = target.channel || guild?.channels.cache.get(ticket.channel_id);
-    closeReason = target.reason || reason || 'Closed via command';
-  } else {
-    const interaction = target;
-    member = interaction.member;
-    user = interaction.user;
-    guild = interaction.guild;
-    const ticketId = ticketIdOrOptions;
-    ticket = await getTicketById(ticketId);
-    channel = guild?.channels.cache.get(ticket?.channel_id);
-    closeReason = reason || 'Closed via interaction';
-  }
+  const { member, user, guild, ticket, channel, isOptionsCall } = await resolveTicketAndChannel(target, ticketIdOrOptions);
+  const closeReason = (target && target.reason) || reason || (isOptionsCall ? 'Closed via command' : 'Closed via interaction');
 
   if (!ticket || ticket.status === 'closed') {
     if (isOptionsCall) return { success: false, error: 'Ticket is already closed.' };
-    return target.reply(errorCard({
+    return safeReply(target, errorCard({
       title: 'Already Closed',
       reason: 'This ticket is already closed.',
       ephemeral: true
@@ -165,7 +199,7 @@ export async function handleCloseTicket(target, ticketIdOrOptions, reason = null
 
   if (!isOwner && !isStaff) {
     if (isOptionsCall) return { success: false, error: 'Only the ticket owner or staff can close this ticket.' };
-    return target.reply(errorCard({
+    return safeReply(target, errorCard({
       title: 'Permission Denied',
       reason: 'Only the ticket owner or support staff can close this ticket.',
       ephemeral: true
@@ -176,10 +210,11 @@ export async function handleCloseTicket(target, ticketIdOrOptions, reason = null
     await updateTicket(ticket.id, {
       status: 'closed',
       closed_by: user.id,
-      closed_at: new Date().toISOString()
+      closed_at: new Date().toISOString(),
+      close_reason: closeReason
     });
     if (isOptionsCall) return { success: true };
-    return target.reply(errorCard({
+    return safeReply(target, errorCard({
       title: 'Channel Missing',
       reason: 'The ticket channel could not be found.',
       ephemeral: true
@@ -187,11 +222,11 @@ export async function handleCloseTicket(target, ticketIdOrOptions, reason = null
   }
 
   if (!isOptionsCall) {
-    await target.reply(container({
+    await safeReply(target, container({
       title: 'Closing Ticket',
       lines: [`🔒 Closing **Ticket #${ticket.ticket_number}**... Generating transcript and cleaning up.`],
       ephemeral: true
-    })).catch(() => {});
+    }));
   }
 
   // Mark closed in database
@@ -264,17 +299,15 @@ export async function handleCloseTicket(target, ticketIdOrOptions, reason = null
  * 3. Close Request (Staff asking Owner to confirm close)
  */
 export async function handleCloseRequest(interaction, ticketId) {
-  const member = interaction.member;
-  const guild = interaction.guild;
-  const ticket = await getTicketById(ticketId);
+  const { member, guild, ticket, channel } = await resolveTicketAndChannel(interaction, ticketId);
 
   if (!ticket || ticket.status === 'closed') {
-    return interaction.reply(errorCard({ title: 'Inactive Ticket', reason: 'This ticket is not active.', ephemeral: true }));
+    return safeReply(interaction, errorCard({ title: 'Inactive Ticket', reason: 'This ticket is not active.', ephemeral: true }));
   }
 
   const isStaff = await isTicketStaff(member, ticket);
   if (!isStaff) {
-    return interaction.reply(errorCard({ title: 'Staff Only', reason: 'Only staff can send a close request.', ephemeral: true }));
+    return safeReply(interaction, errorCard({ title: 'Staff Only', reason: 'Only staff can send a close request.', ephemeral: true }));
   }
 
   await updateTicket(ticket.id, {
@@ -282,7 +315,6 @@ export async function handleCloseRequest(interaction, ticketId) {
     close_request_at: new Date().toISOString()
   });
 
-  const channel = guild.channels.cache.get(ticket.channel_id);
   if (!channel) return;
 
   const row = new ActionRowBuilder().addComponents(
@@ -290,7 +322,7 @@ export async function handleCloseRequest(interaction, ticketId) {
       .setCustomId(`tkt:ctl:close_req_yes:${ticket.id}`)
       .setLabel('Confirm Close')
       .setEmoji('✅')
-      .setStyle(ButtonStyle.Success),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(`tkt:ctl:close_req_no:${ticket.id}`)
       .setLabel('Keep Open')
@@ -309,7 +341,7 @@ export async function handleCloseRequest(interaction, ticketId) {
 
   await channel.send(reqCard);
 
-  return interaction.reply(container({
+  return safeReply(interaction, container({
     title: 'Request Sent',
     lines: [`📩 Close request sent to <@${ticket.owner_id}>.`],
     ephemeral: true
@@ -320,34 +352,23 @@ export async function handleCloseRequest(interaction, ticketId) {
  * 4. Lock / Unlock Ticket
  */
 export async function handleLockToggle(target, ticketIdOrOptions) {
-  let member, guild, ticket, channel, isOptionsCall = false;
-
-  if (target && target.ticket) {
-    isOptionsCall = true;
-    ticket = target.ticket;
-    member = target.member;
-    guild = member?.guild;
-    channel = target.channel || guild?.channels.cache.get(ticket.channel_id);
-  } else {
-    const interaction = target;
-    member = interaction.member;
-    guild = interaction.guild;
-    ticket = await getTicketById(ticketIdOrOptions);
-    channel = guild?.channels.cache.get(ticket?.channel_id);
-  }
+  const { member, guild, ticket, channel, isOptionsCall } = await resolveTicketAndChannel(target, ticketIdOrOptions);
 
   if (!ticket || ticket.status === 'closed') {
     if (isOptionsCall) return { success: false, error: 'Ticket is closed.' };
-    return;
+    return safeReply(target, errorCard({ title: 'Ticket Inactive', reason: 'This ticket is closed or no longer active.', ephemeral: true }));
   }
 
   const isStaff = await isTicketStaff(member, ticket);
   if (!isStaff) {
     if (isOptionsCall) return { success: false, error: 'Only staff can lock/unlock tickets.' };
-    return target.reply(errorCard({ title: 'Staff Only', reason: 'Only staff can lock/unlock tickets.', ephemeral: true }));
+    return safeReply(target, errorCard({ title: 'Staff Only', reason: 'Only staff can lock/unlock tickets.', ephemeral: true }));
   }
 
-  if (!channel) return;
+  if (!channel) {
+    if (isOptionsCall) return { success: false, error: 'Channel missing.' };
+    return safeReply(target, errorCard({ title: 'Channel Missing', reason: 'Ticket channel could not be found.', ephemeral: true }));
+  }
 
   const isCurrentlyLocked = ticket.status === 'locked';
   const newStatus = isCurrentlyLocked ? (ticket.claimed_by ? 'claimed' : 'open') : 'locked';
@@ -371,7 +392,7 @@ export async function handleLockToggle(target, ticketIdOrOptions) {
     return { success: true, locked: !isCurrentlyLocked };
   }
 
-  return target.reply(container({
+  return safeReply(target, container({
     title: isCurrentlyLocked ? 'Ticket Unlocked' : 'Ticket Locked',
     lines: [
       isCurrentlyLocked
@@ -386,44 +407,30 @@ export async function handleLockToggle(target, ticketIdOrOptions) {
  * 5. Priority Change
  */
 export async function handleChangePriority(target, ticketIdOrOptions, newPriorityArg = null) {
-  let member, guild, ticket, channel, newPriority = newPriorityArg, isOptionsCall = false;
-
-  if (target && target.ticket) {
-    isOptionsCall = true;
-    ticket = target.ticket;
-    member = target.member;
-    guild = member?.guild;
-    channel = target.channel || guild?.channels.cache.get(ticket.channel_id);
-    newPriority = target.newPriority || newPriorityArg;
-  } else {
-    const interaction = target;
-    member = interaction.member;
-    guild = interaction.guild;
-    ticket = await getTicketById(ticketIdOrOptions);
-    channel = guild?.channels.cache.get(ticket?.channel_id);
-  }
+  const { member, guild, ticket, channel, isOptionsCall } = await resolveTicketAndChannel(target, ticketIdOrOptions);
+  const newPriority = (target && target.newPriority) || newPriorityArg;
 
   if (!ticket || ticket.status === 'closed') {
     if (isOptionsCall) return { success: false, error: 'Ticket is closed.' };
-    return;
+    return safeReply(target, errorCard({ title: 'Ticket Inactive', reason: 'This ticket is closed or no longer active.', ephemeral: true }));
   }
 
   const isStaff = await isTicketStaff(member, ticket);
   if (!isStaff) {
     if (isOptionsCall) return { success: false, error: 'Only staff can change ticket priority.' };
-    return target.reply(errorCard({ title: 'Staff Only', reason: 'Only staff can change ticket priority.', ephemeral: true }));
+    return safeReply(target, errorCard({ title: 'Staff Only', reason: 'Only staff can change ticket priority.', ephemeral: true }));
   }
 
   const valid = ['low', 'normal', 'high', 'urgent'];
   if (!valid.includes(newPriority)) {
     if (isOptionsCall) return { success: false, error: 'Invalid priority level.' };
-    return;
+    return safeReply(target, errorCard({ title: 'Invalid Priority', reason: 'Please select a valid priority level.', ephemeral: true }));
   }
 
   await updateTicket(ticket.id, { priority: newPriority });
 
   if (channel) {
-    await refreshTicketControlCard(channel, ticket.id);
+    await refreshTicketControlCard(channel, ticket.id).catch(() => {});
     await channel.setTopic(`🎫 Ticket #${ticket.ticket_number} • Owner: ${ticket.owner_username || ticket.owner_id} • Priority: ${newPriority.toUpperCase()}`).catch(() => {});
   }
 
@@ -437,7 +444,7 @@ export async function handleChangePriority(target, ticketIdOrOptions, newPriorit
 
   if (isOptionsCall) return { success: true };
 
-  return target.reply(container({
+  return safeReply(target, container({
     title: 'Priority Updated',
     lines: [`⚡ Priority for **Ticket #${ticket.ticket_number}** set to **${newPriority.toUpperCase()}**.`]
   }));
@@ -447,38 +454,24 @@ export async function handleChangePriority(target, ticketIdOrOptions, newPriorit
  * 6. Add / Remove User
  */
 export async function handleModifyUserAccess(target, ticketIdOrOptions, targetUserIdArg = null, isAddArg = true) {
-  let member, guild, ticket, channel, targetUserId = targetUserIdArg, isAdd = isAddArg, isOptionsCall = false;
-
-  if (target && target.ticket) {
-    isOptionsCall = true;
-    ticket = target.ticket;
-    member = target.member;
-    guild = member?.guild;
-    channel = target.channel || guild?.channels.cache.get(ticket.channel_id);
-    targetUserId = target.targetUserId;
-    isAdd = target.action === 'add' || target.isAdd;
-  } else {
-    const interaction = target;
-    member = interaction.member;
-    guild = interaction.guild;
-    ticket = await getTicketById(ticketIdOrOptions);
-    channel = guild?.channels.cache.get(ticket?.channel_id);
-  }
+  const { member, guild, ticket, channel, isOptionsCall } = await resolveTicketAndChannel(target, ticketIdOrOptions);
+  const targetUserId = (target && target.targetUserId) || targetUserIdArg;
+  const isAdd = target && target.action !== undefined ? target.action === 'add' : (target && target.isAdd !== undefined ? target.isAdd : isAddArg);
 
   if (!ticket || ticket.status === 'closed') {
     if (isOptionsCall) return { success: false, error: 'Ticket is closed.' };
-    return;
+    return safeReply(target, errorCard({ title: 'Ticket Inactive', reason: 'This ticket is closed or no longer active.', ephemeral: true }));
   }
 
   const isStaff = await isTicketStaff(member, ticket);
   if (!isStaff && ticket.owner_id !== member.id) {
     if (isOptionsCall) return { success: false, error: 'Only staff can manage ticket participants.' };
-    return target.reply(errorCard({ title: 'Staff Only', reason: 'Only staff can manage ticket participants.', ephemeral: true }));
+    return safeReply(target, errorCard({ title: 'Staff Only', reason: 'Only staff can manage ticket participants.', ephemeral: true }));
   }
 
   if (!channel) {
     if (isOptionsCall) return { success: false, error: 'Ticket channel missing.' };
-    return;
+    return safeReply(target, errorCard({ title: 'Channel Missing', reason: 'Ticket channel could not be found.', ephemeral: true }));
   }
 
   if (isAdd) {
@@ -489,14 +482,14 @@ export async function handleModifyUserAccess(target, ticketIdOrOptions, targetUs
       AttachFiles: true
     });
     if (isOptionsCall) return { success: true };
-    return target.reply(container({
+    return safeReply(target, container({
       title: 'Participant Added',
       lines: [`➕ Added <@${targetUserId}> to **Ticket #${ticket.ticket_number}**.`]
     }));
   } else {
     await channel.permissionOverwrites.delete(targetUserId).catch(() => {});
     if (isOptionsCall) return { success: true };
-    return target.reply(container({
+    return safeReply(target, container({
       title: 'Participant Removed',
       lines: [`➖ Removed <@${targetUserId}> from **Ticket #${ticket.ticket_number}**.`]
     }));
@@ -507,37 +500,25 @@ export async function handleModifyUserAccess(target, ticketIdOrOptions, targetUs
  * 7. Add Staff Note
  */
 export async function handleAddStaffNote(target, ticketIdOrOptions, contentArg = null) {
-  let member, guild, ticket, content = contentArg, isOptionsCall = false;
-
-  if (target && target.ticket) {
-    isOptionsCall = true;
-    ticket = target.ticket;
-    member = target.member;
-    guild = member?.guild;
-    content = target.noteContent || contentArg;
-  } else {
-    const interaction = target;
-    member = interaction.member;
-    guild = interaction.guild;
-    ticket = await getTicketById(ticketIdOrOptions);
-  }
+  const { member, guild, ticket, isOptionsCall } = await resolveTicketAndChannel(target, ticketIdOrOptions);
+  const content = (target && target.noteContent) || contentArg;
 
   if (!ticket) {
     if (isOptionsCall) return { success: false, error: 'Ticket not found.' };
-    return;
+    return safeReply(target, errorCard({ title: 'Ticket Not Found', reason: 'The ticket record could not be found.', ephemeral: true }));
   }
 
   const isStaff = await isTicketStaff(member, ticket);
   if (!isStaff) {
     if (isOptionsCall) return { success: false, error: 'Only staff can add internal notes.' };
-    return target.reply(errorCard({ title: 'Staff Only', reason: 'Only staff can add internal notes.', ephemeral: true }));
+    return safeReply(target, errorCard({ title: 'Staff Only', reason: 'Only staff can add internal notes.', ephemeral: true }));
   }
 
   await addTicketNote(ticket.id, guild.id, member.id, member.user?.tag || member.user?.username || member.id, content);
 
   if (isOptionsCall) return { success: true };
 
-  return target.reply(container({
+  return safeReply(target, container({
     title: 'Internal Staff Note Added',
     lines: [
       `📝 Saved to **Ticket #${ticket.ticket_number}**:`,

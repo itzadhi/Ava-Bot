@@ -27,12 +27,6 @@ export default {
       description: 'Your feedback or experience details',
       type: 'string',
       required: false
-    },
-    {
-      name: 'suggestion',
-      description: 'Optional suggestion or improvement idea',
-      type: 'string',
-      required: false
     }
   ],
   async execute(ctx) {
@@ -58,7 +52,6 @@ export default {
     // Direct submission if both rating and review are passed as command arguments
     const ratingStr = ctx.args.rating;
     const reviewText = (ctx.args.review || '').trim();
-    const suggestionText = (ctx.args.suggestion || '').trim() || null;
 
     if (ratingStr && reviewText) {
       const ratingNum = parseInt(ratingStr, 10);
@@ -84,7 +77,6 @@ export default {
         channel: targetChannel,
         author: ctx.user,
         message: reviewText,
-        suggestion: suggestionText,
         rating: ratingNum
       });
 
@@ -95,8 +87,7 @@ export default {
         subtitle: `Your review has been published in <#${targetChannel.id}>.`,
         details: [
           { label: 'Rating', value: `${stars} (${ratingNum}/5 · ${sentiment})` },
-          { label: 'Review', value: reviewText.length > 100 ? `${reviewText.slice(0, 97)}...` : reviewText },
-          ...(suggestionText ? [{ label: 'Suggestion', value: suggestionText.length > 100 ? `${suggestionText.slice(0, 97)}...` : suggestionText }] : [])
+          { label: 'Review', value: reviewText.length > 100 ? `${reviewText.slice(0, 97)}...` : reviewText }
         ],
         ephemeral: true
       }));

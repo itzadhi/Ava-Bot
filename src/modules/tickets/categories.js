@@ -88,6 +88,8 @@ export function checkCategoryAccess(member, category) {
   return { allowed: true };
 }
 
+import { getGuildRoles } from '../../db/permify.js';
+
 /**
  * Checks if a member has staff or admin access for tickets
  * @param {object} options
@@ -98,17 +100,29 @@ export function checkCategoryAccess(member, category) {
  */
 export async function checkStaffAccess({ member, category, guildId }) {
   if (!member) return false;
+  const gid = guildId || member.guild?.id;
   if (
+    member.id === member.guild?.ownerId ||
     member.permissions?.has(PermissionFlagsBits.ManageGuild) ||
-    member.permissions?.has(PermissionFlagsBits.Administrator)
+    member.permissions?.has(PermissionFlagsBits.Administrator) ||
+    member.permissions?.has(PermissionFlagsBits.ManageChannels)
   ) {
     return true;
   }
-  const settings = await getTicketSettings(guildId || member.guild?.id);
+  const settings = await getTicketSettings(gid);
   const staffRoles = new Set([
     ...(settings?.support_role_ids || []),
     ...(settings?.admin_role_ids || []),
     ...(category?.support_role_ids || [])
   ]);
+
+  const permifyRoles = await getGuildRoles(gid).catch(() => null);
+  if (permifyRoles?.staff) {
+    for (const r of permifyRoles.staff) staffRoles.add(r);
+  }
+  if (permifyRoles?.owner) {
+    for (const r of permifyRoles.owner) staffRoles.add(r);
+  }
+
   return staffRoles.size > 0 && member.roles?.cache?.some(r => staffRoles.has(r.id));
 }

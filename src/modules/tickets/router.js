@@ -15,6 +15,7 @@ import { container } from '../../utils/ui/components.js';
 import {
   getTicketById,
   getTicketByChannel,
+  recoverTicketFromChannel,
   updateTicket,
   getTicketSettings,
   updateTicketSettings,
@@ -26,7 +27,7 @@ import {
   saveTicketPanel,
   deleteTicketPanel
 } from '../../db/tickets.js';
-import { handleOpenTicketFlow } from './create.js';
+import { handleOpenTicketFlow, buildOpenTicketReasonModal } from './create.js';
 import {
   isTicketStaff,
   handleClaimToggle,
@@ -67,7 +68,8 @@ export async function handleTicketInteraction(interaction) {
       if (action === 'open') {
         const panelId = arg1;
         const categoryId = arg2;
-        await handleOpenTicketFlow({ interaction, categoryId, panelId });
+        const modal = await buildOpenTicketReasonModal(categoryId, panelId);
+        await interaction.showModal(modal);
         return true;
       }
 
@@ -91,31 +93,36 @@ export async function handleTicketInteraction(interaction) {
           });
         }
 
-        await handleOpenTicketFlow({ interaction, categoryId, panelId });
+        const modal = await buildOpenTicketReasonModal(categoryId, panelId);
+        await interaction.showModal(modal);
         return true;
       }
 
       if (action === 'single') {
         const panelId = arg1;
-        const panel = await getTicketPanel(panelId);
         const categories = await getTicketCategories(interaction.guildId);
         const targetCategory = categories.find(c => c.is_enabled !== false) || null;
-        await handleOpenTicketFlow({ interaction, categoryId: targetCategory?.id || 'default', panelId });
+        const modal = await buildOpenTicketReasonModal(targetCategory?.id || 'default', panelId);
+        await interaction.showModal(modal);
         return true;
       }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // 2. MODAL SUBMISSION FOR OPENING TICKET (Custom Questions)
+    // 2. MODAL SUBMISSION FOR OPENING TICKET (Reason & Custom Questions)
     // ─────────────────────────────────────────────────────────────────────────
     if (subsystem === 'modal_open') {
       const categoryId = action; // in tkt:modal_open:<categoryId>:<panelId>
       const panelId = arg1 || '0';
 
-      const category = await getTicketCategory(categoryId);
       const questionAnswers = {};
+      let reason = '';
 
       if (interaction.isModalSubmit()) {
+        try {
+          reason = interaction.fields.getTextInputValue('ticket_reason') || interaction.fields.getTextInputValue('reason') || '';
+        } catch (_) {}
+
         for (let i = 0; i < 5; i++) {
           try {
             const val = interaction.fields.getTextInputValue(`q_${i}`);
@@ -127,7 +134,11 @@ export async function handleTicketInteraction(interaction) {
         }
       }
 
-      await handleOpenTicketFlow({ interaction, categoryId, panelId, questionAnswers });
+      if (reason) {
+        questionAnswers['Reason'] = reason;
+      }
+
+      await handleOpenTicketFlow({ interaction, categoryId, panelId, questionAnswers, reason });
       return true;
     }
 
@@ -135,8 +146,17 @@ export async function handleTicketInteraction(interaction) {
     // 3. IN-TICKET CONTROLS (Buttons & Tools Dropdown)
     // ─────────────────────────────────────────────────────────────────────────
     if (subsystem === 'ctl') {
-      const ticketId = arg1;
-      const ticket = await getTicketById(ticketId);
+      let ticketId = arg1;
+      let ticket = await getTicketById(ticketId, interaction.guildId, interaction.channelId);
+      if (!ticket && interaction.guildId && interaction.channelId) {
+        ticket = await getTicketByChannel(interaction.guildId, interaction.channelId);
+      }
+      if ((!ticket || ticket.id?.startsWith('temp_')) && interaction.channel) {
+        ticket = await recoverTicketFromChannel(interaction.channel);
+      }
+      if (ticket) {
+        ticketId = ticket.id;
+      }
 
       // Claim / Unclaim
       if (action === 'claim') {
