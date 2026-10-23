@@ -1,6 +1,7 @@
 import { MessageFlags, ComponentType } from 'discord.js';
 import { loadingCard, errorCard, successCard, infoCard, listCard } from '../ui/cards.js';
 import { getBrandAttachment } from '../ui/theme.js';
+import { safeRespond } from '../core/interactions/safeRespond.js';
 
 export class CommandContext {
   /**
@@ -24,8 +25,8 @@ export class CommandContext {
     this.guild = interaction ? interaction.guild : message.guild;
     this.channel = interaction ? interaction.channel : message.channel;
 
-    this.deferred = false;
-    this.replied = false;
+    this.deferred = Boolean(interaction?.deferred);
+    this.replied = Boolean(interaction?.replied);
     this.replyMessage = null; // Store reference to bot's response message
   }
 
@@ -37,7 +38,9 @@ export class CommandContext {
     if (this.deferred || this.replied) return;
 
     if (this.isSlash) {
-      await this.interaction.deferReply(ephemeral ? { flags: MessageFlags.Ephemeral } : {});
+      if (!this.interaction.deferred && !this.interaction.replied) {
+        await this.interaction.deferReply(ephemeral ? { flags: MessageFlags.Ephemeral } : {}).catch(() => {});
+      }
       this.deferred = true;
     } else {
       if (this.channel?.sendTyping) {
@@ -50,7 +53,7 @@ export class CommandContext {
       this.replyMessage = await this.message.reply({
         ...payload,
         allowedMentions: { repliedUser: false }
-      });
+      }).catch(() => null);
       this.deferred = true;
       this.replied = true;
     }
@@ -63,20 +66,18 @@ export class CommandContext {
    */
   async reply(cardPayload) {
     if (this.isSlash) {
-      if (this.deferred) {
-        this.replied = true;
-        return this.interaction.editReply(cardPayload);
-      }
       this.replied = true;
-      return this.interaction.reply(cardPayload);
+      const res = await safeRespond(this.interaction, cardPayload);
+      if (res) this.replyMessage = res;
+      return res;
     } else {
       if (this.deferred && this.replyMessage) {
-        return this.replyMessage.edit(cardPayload);
+        return this.replyMessage.edit(cardPayload).catch(() => null);
       }
       this.replyMessage = await this.message.reply({
         ...cardPayload,
         allowedMentions: { repliedUser: false }
-      });
+      }).catch(() => null);
       this.replied = true;
       return this.replyMessage;
     }
@@ -102,10 +103,10 @@ export class CommandContext {
    */
   async edit(cardPayload) {
     if (this.isSlash) {
-      return this.interaction.editReply(cardPayload);
+      return safeRespond(this.interaction, cardPayload);
     } else {
       if (this.replyMessage) {
-        return this.replyMessage.edit(cardPayload);
+        return this.replyMessage.edit(cardPayload).catch(() => null);
       }
       return this.reply(cardPayload);
     }
