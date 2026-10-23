@@ -1,5 +1,5 @@
 -- ==============================================================================
--- ARGONI HIGH-PERFORMANCE DATABASE INDEXES MIGRATION
+-- ARGONI HIGH-PERFORMANCE DATABASE INDEXES MIGRATION (CORRECTED)
 -- Date: 2026-10-23
 -- Purpose: Accelerate hot-path queries, eliminate sequential scans, and protect
 --          interaction handlers from timeouts on high-volume tables.
@@ -32,9 +32,6 @@ CREATE INDEX IF NOT EXISTS idx_antinuke_exempt_lookup
 CREATE INDEX IF NOT EXISTS idx_channel_snapshots_lookup 
   ON public.channel_snapshots(guild_id, channel_id);
 
-CREATE INDEX IF NOT EXISTS idx_channel_snapshots_parent 
-  ON public.channel_snapshots(guild_id, parent_id);
-
 CREATE INDEX IF NOT EXISTS idx_antinuke_incidents_guild_time 
   ON public.antinuke_incidents(guild_id, created_at DESC);
 
@@ -57,28 +54,28 @@ CREATE INDEX IF NOT EXISTS idx_automod_exemptions_lookup
 CREATE INDEX IF NOT EXISTS idx_automod_strikes_lookup 
   ON public.automod_strikes(guild_id, user_id);
 
--- 4. PERMIFY ACCESS CONTROL SYSTEM
-CREATE INDEX IF NOT EXISTS idx_permify_role_groups_guild 
-  ON public.permify_role_groups(guild_id);
+-- 4. PERMIFY ACCESS CONTROL & ROLES
+CREATE INDEX IF NOT EXISTS idx_permify_snapshots_guild_time 
+  ON public.permify_snapshots(guild_id, created_at DESC);
 
-CREATE INDEX IF NOT EXISTS idx_permify_channel_overrides_lookup 
-  ON public.permify_channel_overrides(guild_id, channel_id);
+CREATE INDEX IF NOT EXISTS idx_guild_roles_guild_lookup 
+  ON public.guild_roles(guild_id);
 
--- 5. VOICE, SUGGESTIONS & FEEDBACK
-CREATE INDEX IF NOT EXISTS idx_voice_channels_guild_owner 
-  ON public.voice_channels(guild_id, owner_id);
-
-CREATE INDEX IF NOT EXISTS idx_voice_channels_guild_chan 
-  ON public.voice_channels(guild_id, channel_id);
+-- 5. VOICE, SUGGESTIONS, FEEDBACK & STICKY
+CREATE INDEX IF NOT EXISTS idx_temp_channels_guild_owner 
+  ON public.temp_channels(guild_id, owner_id);
 
 CREATE INDEX IF NOT EXISTS idx_suggestions_guild_status 
   ON public.suggestions(guild_id, status, created_at DESC);
 
-CREATE INDEX IF NOT EXISTS idx_feedback_reviews_guild_status 
-  ON public.feedback_reviews(guild_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_feedback_guild_status 
+  ON public.feedback(guild_id, status, created_at DESC);
 
-CREATE INDEX IF NOT EXISTS idx_sticky_messages_guild_chan 
-  ON public.sticky_messages(guild_id, channel_id);
+CREATE INDEX IF NOT EXISTS idx_sticky_notes_guild_chan 
+  ON public.sticky_notes(guild_id, channel_id);
+
+CREATE INDEX IF NOT EXISTS idx_sticky_roles_guild_user 
+  ON public.sticky_roles(guild_id, user_id);
 
 -- 6. SYSTEM LOGS & AUDIT TIMELINES
 CREATE INDEX IF NOT EXISTS idx_audit_logs_guild_created 
@@ -96,7 +93,10 @@ ANALYZE public.antinuke_trusted;
 ANALYZE public.channel_snapshots;
 ANALYZE public.automod_settings;
 ANALYZE public.automod_words;
-ANALYZE public.permify_role_groups;
-ANALYZE public.voice_channels;
+ANALYZE public.temp_channels;
 ANALYZE public.suggestions;
-ANALYZE public.feedback_reviews;
+ANALYZE public.feedback;
+ANALYZE public.sticky_notes;
+ANALYZE public.sticky_roles;
+ANALYZE public.permify_snapshots;
+ANALYZE public.guild_roles;
