@@ -121,22 +121,23 @@ export class ModuleRegistry {
    * @param {string} dir
    */
   async loadModulesFromDirectory(dir) {
-    if (!fs.existsSync(dir)) return 0;
-
     let loaded = 0;
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    try {
+      const entries = await fs.promises.readdir(dir, { withFileTypes: true });
 
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const indexPath = path.join(dir, entry.name, 'index.js');
-        const modulePath = path.join(dir, entry.name, `${entry.name}.js`);
-        let targetFile = null;
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          const indexPath = path.join(dir, entry.name, 'index.js');
+          const modulePath = path.join(dir, entry.name, `${entry.name}.js`);
+          let targetFile = null;
 
-        if (fs.existsSync(indexPath)) {
-          targetFile = indexPath;
-        } else if (fs.existsSync(modulePath)) {
-          targetFile = modulePath;
-        }
+          const hasIndex = await fs.promises.stat(indexPath).then(() => true).catch(() => false);
+          if (hasIndex) {
+            targetFile = indexPath;
+          } else {
+            const hasModule = await fs.promises.stat(modulePath).then(() => true).catch(() => false);
+            if (hasModule) targetFile = modulePath;
+          }
 
         if (targetFile) {
           try {
@@ -152,7 +153,7 @@ export class ModuleRegistry {
           }
         }
       }
-    }
+    } catch (_) {}
 
     return loaded;
   }

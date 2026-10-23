@@ -7,13 +7,14 @@ import { config } from '../config.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 export const LOGO_PATH = path.resolve(__dirname, '../../assets/logo.jpg');
+export const HAS_LOGO = fs.existsSync(LOGO_PATH);
 
 /**
  * Returns an AttachmentBuilder for the Argoni brand logo if present
  * @returns {AttachmentBuilder|null}
  */
 export function getBrandAttachment() {
-  if (fs.existsSync(LOGO_PATH)) {
+  if (HAS_LOGO) {
     return new AttachmentBuilder(LOGO_PATH, { name: 'logo.jpg' });
   }
   return null;
@@ -30,7 +31,7 @@ export function getBrandLogo(client = null) {
   if (client?.user?.avatar) {
     return client.user.displayAvatarURL({ extension: 'png', size: 256 });
   }
-  if (fs.existsSync(LOGO_PATH)) {
+  if (HAS_LOGO) {
     return 'attachment://logo.jpg';
   }
   return THEME.brand.fallbackLogoUrl;

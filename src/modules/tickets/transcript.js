@@ -189,11 +189,9 @@ export async function generateAndSaveTranscript(channel, ticket) {
 
   // 2. Fallback to local file in transcripts/ folder
   const localDir = path.resolve(process.cwd(), 'transcripts', guild.id);
-  if (!fs.existsSync(localDir)) {
-    fs.mkdirSync(localDir, { recursive: true });
-  }
+  await fs.promises.mkdir(localDir, { recursive: true }).catch(() => {});
   const localFilePath = path.join(localDir, `${ticket.id}.html`);
-  fs.writeFileSync(localFilePath, htmlContent, 'utf8');
+  await fs.promises.writeFile(localFilePath, htmlContent, 'utf8').catch(() => {});
 
   // 3. Persist record in database
   await saveTicketTranscript({

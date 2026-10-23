@@ -34,26 +34,42 @@ const wordlistsDir = path.resolve(__dirname, '../../../data/wordlists');
 let baselineSlurs = [];
 let baselineProfanity = [];
 
-function loadBaselineWordlists() {
+async function loadBaselineWordlists() {
   try {
     const slursPath = path.join(wordlistsDir, 'slurs.json');
-    if (fs.existsSync(slursPath)) {
-      baselineSlurs = JSON.parse(fs.readFileSync(slursPath, 'utf8'));
-    }
+    const slursRaw = await fs.promises.readFile(slursPath, 'utf8').catch(() => null);
+    if (slursRaw) baselineSlurs = JSON.parse(slursRaw);
+
     const profPath = path.join(wordlistsDir, 'profanity.json');
-    if (fs.existsSync(profPath)) {
-      baselineProfanity = JSON.parse(fs.readFileSync(profPath, 'utf8'));
-    }
+    const profRaw = await fs.promises.readFile(profPath, 'utf8').catch(() => null);
+    if (profRaw) baselineProfanity = JSON.parse(profRaw);
   } catch (err) {
     logger.warn({ err }, 'Could not load baseline wordlists from disk');
   }
 }
-loadBaselineWordlists();
+loadBaselineWordlists().catch(() => {});
 
 // Anti-Spam sliding window cache: `${guildId}:${userId}` -> Array<number timestamps>
 const spamWindowCache = new Map();
 // Duplicate spam cache: `${guildId}:${userId}` -> { content: string, count: number, lastTime: number }
 const duplicateCache = new Map();
+
+// Periodic TTL cleanup to prevent unbounded memory growth
+const automodSweepTimer = setInterval(() => {
+  const now = Date.now();
+  for (const [key, timestamps] of spamWindowCache.entries()) {
+    const recent = timestamps.filter(t => now - t < 10000);
+    if (recent.length === 0) spamWindowCache.delete(key);
+    else spamWindowCache.set(key, recent);
+  }
+  for (const [key, data] of duplicateCache.entries()) {
+    if (now - data.lastTime > 30000) duplicateCache.delete(key);
+  }
+}, 30000);
+
+if (automodSweepTimer.unref) {
+  automodSweepTimer.unref();
+}
 
 /**
  * Checks if a member has permission to bypass AutoMod

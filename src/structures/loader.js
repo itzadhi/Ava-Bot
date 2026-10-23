@@ -17,27 +17,27 @@ export async function loadCommands(dir = commandsDir) {
   let count = 0;
 
   async function scan(currentDir) {
-    const entries = fs.readdirSync(currentDir, { withFileTypes: true });
-    for (const entry of entries) {
-      const fullPath = path.join(currentDir, entry.name);
-      if (entry.isDirectory()) {
-        await scan(fullPath);
-      } else if (entry.isFile() && entry.name.endsWith('.js')) {
-        const fileUrl = pathToFileURL(fullPath).href;
-        const mod = await import(fileUrl);
-        const command = mod.default || mod;
+    try {
+      const entries = await fs.promises.readdir(currentDir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(currentDir, entry.name);
+        if (entry.isDirectory()) {
+          await scan(fullPath);
+        } else if (entry.isFile() && entry.name.endsWith('.js')) {
+          const fileUrl = pathToFileURL(fullPath).href;
+          const mod = await import(fileUrl);
+          const command = mod.default || mod;
 
-        if (command && command.name) {
-          registry.register(command);
-          count++;
+          if (command && command.name) {
+            registry.register(command);
+            count++;
+          }
         }
       }
-    }
+    } catch (_) {}
   }
 
-  if (fs.existsSync(dir)) {
-    await scan(dir);
-  }
+  await scan(dir);
 
   logger.info(`Loaded and validated ${count} command(s) across ${registry.categories.size} categories`);
   return count;

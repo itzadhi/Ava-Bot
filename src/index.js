@@ -3,7 +3,8 @@ import {
   GatewayIntentBits,
   ActivityType,
   Partials,
-  Events
+  Events,
+  Options
 } from 'discord.js';
 import { config, validateLiveCredentials } from './config.js';
 import { logger } from './utils/logger.js';
@@ -75,6 +76,35 @@ export class ArgoniClient extends Client {
     super({
       intents: options.intents || defaultIntents,
       partials: options.partials || [Partials.Channel, Partials.Message, Partials.GuildMember],
+      makeCache: Options.cacheWithLimits({
+        MessageManager: 50,
+        PresenceManager: 0,
+        ReactionManager: 0,
+        ReactionUserManager: 0,
+        StageInstanceManager: 0,
+        ThreadManager: 25,
+        ThreadMemberManager: 0,
+        GuildScheduledEventManager: 0,
+        GuildBanManager: 0,
+        GuildInviteManager: 0,
+        GuildMemberManager: 200,
+        UserManager: 200
+      }),
+      sweepers: {
+        ...Options.DefaultSweeperSettings,
+        messages: {
+          interval: 300,
+          lifetime: 1800
+        },
+        threads: {
+          interval: 3600,
+          lifetime: 14400
+        }
+      },
+      rest: {
+        timeout: 15000,
+        retries: 3
+      },
       ...options
     });
 
@@ -84,6 +114,14 @@ export class ArgoniClient extends Client {
     this.modules.setClient(this);
     this.db = db;
     this.ui = ui;
+
+    // Attach connection health & gateway diagnostic listeners
+    this.on('error', (err) => logger.error({ err: err.message }, 'Discord client error'));
+    this.on('shardError', (err, shardId) => logger.error({ err: err.message, shardId }, `Discord shard #${shardId} error`));
+    this.on('warn', (warning) => logger.warn({ warning }, 'Discord client warning'));
+    this.on('shardDisconnect', (event, shardId) => logger.warn({ event, shardId }, `Discord shard #${shardId} disconnected`));
+    this.on('shardReconnecting', (shardId) => logger.info({ shardId }, `Discord shard #${shardId} reconnecting`));
+    this.on('shardResume', (shardId, replayedEvents) => logger.info({ shardId, replayedEvents }, `Discord shard #${shardId} resumed`));
 
     // Attach default core event listeners
     this.on('interactionCreate', onInteractionCreate);
