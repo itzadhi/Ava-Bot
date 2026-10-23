@@ -175,16 +175,20 @@ class SessionStore {
    */
   parseCustomId(customId) {
     if (!customId || typeof customId !== 'string') {
-      return { module: '', action: '', guildId: '', userId: '', payload: '', raw: '' };
+      return { module: '', action: '', guildId: '', userId: '', ownerId: '', payload: '', key: '', raw: '' };
     }
 
     const parts = customId.split(':');
+    const owner = parts[3] || '';
+    const key = parts.slice(4).join(':') || '';
     return {
       module: parts[0] || '',
       action: parts[1] || '',
       guildId: parts[2] || '',
-      userId: parts[3] || '',
-      payload: parts.slice(4).join(':') || '',
+      userId: owner,
+      ownerId: owner,
+      payload: key,
+      key,
       raw: customId
     };
   }

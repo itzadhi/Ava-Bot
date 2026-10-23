@@ -7,7 +7,7 @@ import { logError } from '../../db/errors.js';
 import { errorCard } from '../../ui/cards.js';
 import { safeRespond, wrapInteraction } from './safeRespond.js';
 import { isAcknowledged, markAcknowledged } from './tracker.js';
-import { parseCustomId } from './session.js';
+import { checkPanelAccess, parseId } from './ownership.js';
 import { metrics } from '../metrics.js';
 
 /**
@@ -31,6 +31,7 @@ export function generateErrorId() {
  * @param {boolean} [meta.opensModal=false] True if handler responds with showModal()
  * @param {boolean} [meta.instant=false] True if response responds <500ms from cache without defer
  * @param {boolean} [meta.ephemeral=false] True if deferred reply should be ephemeral
+ * @param {string} [meta.access] 'owner' | 'staff' | 'public' | 'participant'
  * @param {boolean} [meta.authorOnly=false] True if only original author can interact
  * @param {string} [meta.name='interaction'] Handler identifier name
  * @param {object} [meta.parsed=null] Pre-parsed customId payload
@@ -44,28 +45,41 @@ export async function runHandler(interaction, handler, meta = {}) {
   const identifier = commandName ? `/${commandName}` : (customId || meta.name || 'interaction');
   let ackDurationMs = 0;
 
-  // Parse customId if available
-  const parsed = meta.parsed || (customId ? parseCustomId(customId) : {});
+  // Parse customId using standardized parseId
+  const parsed = meta.parsed || (customId ? parseId(customId) : {});
 
-  // 1. Ownership Verification (Memory check <0.01ms before deferring)
-  // Only enforce ownership if explicitly declared via meta.authorOnly
-  if (meta.authorOnly) {
-    const rawTarget = meta.userId || parsed.userId || interaction.message?.interaction?.user?.id;
-    const isValidUserId = rawTarget && typeof rawTarget === 'string' && (/^\d{17,20}$/.test(rawTarget) || rawTarget.startsWith('user_'));
-    const targetUserId = isValidUserId ? rawTarget : null;
+  // 1. Central Ownership & Access Verification (<0.01ms before deferring)
+  const isComponent = interaction.isButton?.() || interaction.isAnySelectMenu?.() || interaction.isModalSubmit?.();
+  if (isComponent && (meta.access || meta.authorOnly || parsed.ownerId)) {
+    const accessResult = await checkPanelAccess(interaction, {
+      ...meta,
+      parsed
+    });
 
-    if (targetUserId && targetUserId !== interaction.user.id) {
-      // Allow bot owners, guild owners, and server administrators to interact
-      const isOwner = (config.OWNER_IDS && config.OWNER_IDS.includes(interaction.user.id)) || interaction.guild?.ownerId === interaction.user.id;
-      const isAdmin = Boolean(interaction.memberPermissions?.has?.(PermissionFlagsBits.Administrator));
-
-      if (!isOwner && !isAdmin) {
-        logger.debug({ targetUserId, clicker: interaction.user.id }, 'Blocked unowned component click');
+    if (!accessResult.allowed) {
+      if (accessResult.reason === 'NOT_OWNER') {
+        const ownerMention = accessResult.ownerId ? `<@${accessResult.ownerId}>` : 'the original user';
         return await safeRespond(interaction, errorCard({
-          title: 'Action Restricted',
-          subtitle: 'This panel belongs to another user.',
-          reason: 'You cannot click controls on another user\'s interactive session.',
-          fix: 'Run the command yourself to open your own control panel.',
+          title: 'Not your panel',
+          reason: `Only ${ownerMention} can use this panel. Run the command yourself to open your own.`,
+          ephemeral: true
+        }), { ephemeral: true });
+      } else if (accessResult.reason === 'STAFF_ONLY') {
+        return await safeRespond(interaction, errorCard({
+          title: 'Staff only',
+          reason: 'This action is restricted to server staff.',
+          ephemeral: true
+        }), { ephemeral: true });
+      } else if (accessResult.reason === 'PARTICIPANT_ONLY') {
+        return await safeRespond(interaction, errorCard({
+          title: 'Access restricted',
+          reason: 'Only the customer or server staff can use these controls.',
+          ephemeral: true
+        }), { ephemeral: true });
+      } else {
+        return await safeRespond(interaction, errorCard({
+          title: 'Access restricted',
+          reason: 'You do not have permission to use this panel.',
           ephemeral: true
         }), { ephemeral: true });
       }
