@@ -17,6 +17,7 @@ import { getBrandLogo } from '../../ui/theme.js';
 import { errorCard } from '../../utils/ui/components.js';
 import { getGuildSettings } from '../../db/guilds.js';
 import { greyButton } from '../../utils/ui/greyButton.js';
+import { safeRespond } from '../../core/interactions/safeRespond.js';
 
 /**
  * Category definitions matching Argoni's modular architecture.
@@ -372,115 +373,22 @@ export async function startHelpSession(ctx) {
     prefix,
     sessionId
   });
-
-  const message = await ctx.reply(initialPayload);
-
-  // Collect interactions for 120 seconds
-  const collector = message?.createMessageComponentCollector
-    ? message.createMessageComponentCollector({
-        time: 120000,
-        filter: async (i) => {
-          if (i.user.id !== ctx.user.id) {
-            await i.reply(errorCard(
-              'Help Menu Restricted',
-              "Uh oh! That message doesn't belong to you.\nYou must run this command to interact with it.",
-              { ephemeral: true }
-            )).catch(() => {});
-            return false;
-          }
-          return i.customId.endsWith(sessionId);
-        }
-      })
-    : null;
-
-  if (!collector) return;
-
-  collector.on('collect', async (interaction) => {
-    try {
-      const customId = interaction.customId;
-
-      if (customId.startsWith('help:close:')) {
-        collector.stop('closed');
-        await interaction.update({ components: [] }).catch(() => {});
-        return;
-      }
-
-      if (customId.startsWith('help:back:')) {
-        const menuPayload = buildHelpMenuPayload({
-          user: ctx.user,
-          client: ctx.client,
-          prefix,
-          sessionId
-        });
-        await interaction.update(menuPayload).catch(() => {});
-        return;
-      }
-
-      if (customId.startsWith('help:sel_main:') || customId.startsWith('help:sel_extra:')) {
-        const categoryId = interaction.values?.[0];
-        if (!categoryId || categoryId === 'home') {
-          const menuPayload = buildHelpMenuPayload({
-            user: ctx.user,
-            client: ctx.client,
-            prefix,
-            sessionId
-          });
-          await interaction.update(menuPayload).catch(() => {});
-          return;
-        }
-
-        const categoryPayload = buildCategoryHelpPayload({
-          categoryId,
-          prefix,
-          sessionId,
-          page: 1
-        });
-        await interaction.update(categoryPayload).catch(() => {});
-        return;
-      }
-
-      if (customId.startsWith('help:page:')) {
-        const parts = customId.split(':');
-        const categoryId = parts[2];
-        const targetPage = parseInt(parts[3], 10) || 1;
-        const pagePayload = buildCategoryHelpPayload({
-          categoryId,
-          prefix,
-          sessionId,
-          page: targetPage
-        });
-        await interaction.update(pagePayload).catch(() => {});
-        return;
-      }
-    } catch (_) {
-      // Ignore update errors safely
-    }
-  });
-
-  collector.on('end', async (_, reason) => {
-    if (reason === 'closed') return;
-    try {
-      if (ctx.isSlash) {
-        await ctx.interaction?.editReply({ components: [] }).catch(() => {});
-      } else if (ctx.replyMessage) {
-        await ctx.replyMessage.edit({ components: [] }).catch(() => {});
-      }
-    } catch (_) {}
-  });
+  await ctx.reply(initialPayload);
 }
 
+
 /**
- * Global fallback handler for help:* interactions outside active collector
+ * Persistent handler for help:* interactions.
+ * Completely collector-free, works across bot restarts and after token expirations.
  * @param {import('discord.js').Interaction} interaction
  */
 export async function handleHelpInteraction(interaction) {
   const customId = interaction.customId;
   if (!customId?.startsWith('help:')) return false;
-  if (interaction.deferred || interaction.replied) return true;
 
   try {
     if (customId.startsWith('help:close:')) {
-      await interaction.update({ components: [] }).catch(() => {});
+      await safeRespond(interaction, { components: [] });
       return true;
     }
 
@@ -494,32 +402,31 @@ export async function handleHelpInteraction(interaction) {
         prefix,
         sessionId
       });
-      await interaction.update(menuPayload).catch(() => {});
+      await safeRespond(interaction, menuPayload);
       return true;
     }
 
     if (customId.startsWith('help:sel_main:') || customId.startsWith('help:sel_extra:')) {
       const categoryId = interaction.values?.[0];
-      if (categoryId === 'home') {
+      if (!categoryId || categoryId === 'home') {
         const menuPayload = buildHelpMenuPayload({
           user: interaction.user,
           client: interaction.client,
           prefix,
           sessionId
         });
-        await interaction.update(menuPayload).catch(() => {});
+        await safeRespond(interaction, menuPayload);
         return true;
       }
-      if (categoryId) {
-        const categoryPayload = buildCategoryHelpPayload({
-          categoryId,
-          prefix,
-          sessionId,
-          page: 1
-        });
-        await interaction.update(categoryPayload).catch(() => {});
-        return true;
-      }
+
+      const categoryPayload = buildCategoryHelpPayload({
+        categoryId,
+        prefix,
+        sessionId,
+        page: 1
+      });
+      await safeRespond(interaction, categoryPayload);
+      return true;
     }
 
     if (customId.startsWith('help:page:')) {
@@ -532,9 +439,11 @@ export async function handleHelpInteraction(interaction) {
         sessionId,
         page: targetPage
       });
-      await interaction.update(pagePayload).catch(() => {});
+      await safeRespond(interaction, pagePayload);
       return true;
     }
-  } catch (_) {}
+  } catch (err) {
+    // Handled safely by runHandler
+  }
   return true;
 }

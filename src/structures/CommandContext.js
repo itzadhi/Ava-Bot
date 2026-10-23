@@ -2,6 +2,7 @@ import { MessageFlags, ComponentType } from 'discord.js';
 import { loadingCard, errorCard, successCard, infoCard, listCard } from '../ui/cards.js';
 import { getBrandAttachment } from '../ui/theme.js';
 import { safeRespond } from '../core/interactions/safeRespond.js';
+import { sessionStore } from '../core/interactions/session.js';
 
 export class CommandContext {
   /**
@@ -167,96 +168,42 @@ export class CommandContext {
    */
   async paginate({ title, items, pageSize = 5, time = 120000 }) {
     const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
-    let currentPage = 1;
-    const customPrefix = `page_${Date.now()}`;
+    const currentPage = 1;
 
-    const render = (page) => {
-      const start = (page - 1) * pageSize;
-      const slice = items.slice(start, start + pageSize);
-      return listCard({
-        title,
-        items: slice,
-        page,
-        totalPages,
-        customIdPrefix: customPrefix
-      });
-    };
+    const session = sessionStore.createSession({
+      module: 'pager',
+      guildId: this.guild?.id || '0',
+      userId: this.user.id,
+      data: { title, items, pageSize, totalPages, currentPage },
+      ttlMs: time || 60 * 60 * 1000
+    });
 
-    await this.reply(render(currentPage));
+    const customPrefix = `pager:${session.id}:${this.guild?.id || '0'}:${this.user.id}`;
 
-    let active = true;
-    while (active) {
-      const interaction = await this.awaitComponent({
-        time,
-        filter: (i) => i.customId.startsWith(customPrefix)
-      });
+    const start = (currentPage - 1) * pageSize;
+    const slice = items.slice(start, start + pageSize);
+    const payload = listCard({
+      title,
+      items: slice,
+      page: currentPage,
+      totalPages,
+      customIdPrefix: customPrefix
+    });
 
-      if (!interaction) {
-        active = false;
-        await this.cleanupComponents(true);
-        break;
-      }
-
-      if (interaction.customId.includes(':next:')) {
-        currentPage = Math.min(currentPage + 1, totalPages);
-      } else if (interaction.customId.includes(':prev:')) {
-        currentPage = Math.max(currentPage - 1, 1);
-      }
-
-      await interaction.update(render(currentPage));
-    }
+    return await this.reply(payload);
   }
 
   /**
    * Waits for a component interaction (button or select menu)
    * Only the invoking user can interact; other users receive ephemeral "This isn't for you."
    * @param {object} options
-   * @param {number} [options.time=60000]
-   * @param {Function} [options.filter]
-   * @returns {Promise<import('discord.js').MessageComponentInteraction|null>}
+  /**
+   * @deprecated Collectors are eliminated in favor of persistent session handlers in /core/interactions/
+   * @param {object} options
+   * @returns {Promise<null>}
    */
   async awaitComponent({ time = 60000, filter = null } = {}) {
-    let targetMessage = null;
-
-    if (this.isSlash) {
-      targetMessage = await this.interaction.fetchReply().catch(() => null);
-    } else {
-      targetMessage = this.replyMessage;
-    }
-
-    if (!targetMessage) return null;
-
-    try {
-      const collector = targetMessage.createMessageComponentCollector({
-        time,
-        filter: async (i) => {
-          if (i.user.id !== this.user.id) {
-            await i.reply(errorCard({
-              title: 'Interaction Restricted',
-              reason: "This interactive session belongs to another user.",
-              fix: 'Run the command yourself to open your own session.',
-              ephemeral: true
-            })).catch(() => {});
-            return false;
-          }
-          return filter ? filter(i) : true;
-        },
-        max: 1
-      });
-
-      return new Promise((resolve) => {
-        collector.on('collect', (interaction) => {
-          resolve(interaction);
-        });
-        collector.on('end', (collected, reason) => {
-          if (collected.size === 0) {
-            resolve(null);
-          }
-        });
-      });
-    } catch (_) {
-      return null;
-    }
+    return null;
   }
 
   /**

@@ -1,11 +1,11 @@
 import { MessageFlags } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { logError } from '../../db/errors.js';
-import { errorCard } from '../../ui/cards.js';
+import { errorCard, listCard } from '../../ui/cards.js';
 import { safeRespond } from './safeRespond.js';
 import { runHandler } from './runHandler.js';
 import { interactionRegistry } from './registry.js';
-import { parseCustomId } from './session.js';
+import { parseCustomId, sessionStore } from './session.js';
 import { isAcknowledged, markAcknowledged } from './tracker.js';
 
 // Legacy router imports for seamless backwards-compatibility
@@ -225,7 +225,51 @@ async function handleComponentInteraction(interaction) {
   const opensModal = isModalOpener(customId);
 
   return runHandler(interaction, async (i) => {
-    // 0. AutoMod System Routing (automod:*)
+    // 0. Persistent Pagination Routing (pager:*)
+    if (customId.startsWith('pager:')) {
+      const parts = customId.split(':');
+      // customId format: pager:${sessionId}:${guildId}:${userId}:${direction}:${targetPage}
+      const sessionId = parts[1];
+      const direction = parts[4];
+      const targetPageArg = parseInt(parts[5], 10);
+
+      const session = sessionStore.getSession(sessionId);
+      if (!session) {
+        return await safeRespond(i, errorCard({
+          title: 'List Expired',
+          subtitle: 'This paginated list is no longer active.',
+          reason: 'The session expired due to inactivity or bot restart.',
+          fix: 'Please run the command again to generate a new list.',
+          ephemeral: true
+        }), { ephemeral: true });
+      }
+
+      const { title, items, pageSize, totalPages } = session.data;
+      let newPage = session.data.currentPage || 1;
+      if (direction === 'next') {
+        newPage = Math.min(newPage + 1, totalPages);
+      } else if (direction === 'prev') {
+        newPage = Math.max(newPage - 1, 1);
+      } else if (!isNaN(targetPageArg)) {
+        newPage = Math.max(1, Math.min(targetPageArg, totalPages));
+      }
+      session.data.currentPage = newPage;
+
+      const start = (newPage - 1) * pageSize;
+      const slice = items.slice(start, start + pageSize);
+      const prefix = `pager:${sessionId}:${parts[2]}:${parts[3]}`;
+      const payload = listCard({
+        title,
+        items: slice,
+        page: newPage,
+        totalPages,
+        customIdPrefix: prefix
+      });
+
+      return await safeRespond(i, payload);
+    }
+
+    // 0.1 AutoMod System Routing (automod:*)
     if (customId.startsWith('automod:')) {
       const handled = await handleAutoModInteraction(i);
       if (handled) return;

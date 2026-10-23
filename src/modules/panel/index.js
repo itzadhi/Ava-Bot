@@ -17,6 +17,7 @@ import * as format from '../../utils/ui/format.js';
 import { getGuildSettings } from '../../db/guilds.js';
 import { getBrandLogo } from '../../ui/theme.js';
 import { errorCard } from '../../utils/ui/builders.js';
+import { safeRespond } from '../../core/interactions/safeRespond.js';
 
 // Import module panels for direct rendering
 import { buildAutoModWizard } from '../automod/panel.js';
@@ -329,88 +330,21 @@ export async function startDashboardSession(ctx) {
     sessionId
   });
 
-  const message = await ctx.reply(initialPayload);
-
-  const collector = message?.createMessageComponentCollector
-    ? message.createMessageComponentCollector({
-        time: 120000,
-        filter: async (i) => {
-          if (i.user.id !== ctx.user.id) {
-            await i.reply(errorCard({
-              title: 'Dashboard Restricted',
-              reason: 'This dashboard session was opened by someone else.',
-              fix: 'Run /panel to open your own control session.',
-              ephemeral: true
-            })).catch(() => {});
-            return false;
-          }
-          return true;
-        }
-      })
-    : null;
-
-  if (!collector) return;
-
-  collector.on('collect', async (interaction) => {
-    try {
-      const customId = interaction.customId;
-
-      if (customId.startsWith('dash:close:') || customId === 'dash:close') {
-        collector.stop('closed');
-        return interaction.update({ components: [] }).catch(() => {});
-      }
-
-      if (customId === 'dash:return' || customId.startsWith('dash:return:')) {
-        const dash = await buildDashboardPayload({
-          guild: ctx.guild,
-          user: ctx.user,
-          client: ctx.client,
-          sessionId
-        });
-        return interaction.update(dash).catch(() => {});
-      }
-
-      let targetModule = null;
-      if (customId.startsWith('dash:sel:')) {
-        targetModule = interaction.values[0];
-      } else if (customId.startsWith('dash:open:')) {
-        const parts = customId.split(':');
-        targetModule = parts[2];
-      }
-
-      if (targetModule) {
-        const panelPayload = await renderModulePanelById(targetModule, ctx.guild);
-        return interaction.update(panelPayload).catch(() => {});
-      }
-    } catch (err) {
-      // Ignore update errors
-    }
-  });
-
-  collector.on('end', async (_, reason) => {
-    if (reason === 'closed') return;
-    try {
-      if (ctx.isSlash) {
-        await ctx.interaction?.editReply({ components: [] }).catch(() => {});
-      } else if (ctx.replyMessage) {
-        await ctx.replyMessage.edit({ components: [] }).catch(() => {});
-      }
-    } catch (_) {}
-  });
+  await ctx.reply(initialPayload);
 }
 
 /**
- * Global fallback handler for dash:* interactions outside active collector
+ * Persistent handler for dash:* interactions.
+ * Completely collector-free, works across bot restarts and after token expirations.
  * @param {import('discord.js').Interaction} interaction
  */
 export async function handleDashboardInteraction(interaction) {
   const customId = interaction.customId;
   if (!customId?.startsWith('dash:')) return false;
-  if (interaction.deferred || interaction.replied) return true;
 
   try {
     if (customId === 'dash:close' || customId.startsWith('dash:close:')) {
-      await interaction.update({ components: [] }).catch(() => {});
+      await safeRespond(interaction, { components: [] });
       return true;
     }
 
@@ -422,7 +356,7 @@ export async function handleDashboardInteraction(interaction) {
         client: interaction.client,
         sessionId
       });
-      await interaction.update(dash).catch(() => {});
+      await safeRespond(interaction, dash);
       return true;
     }
 
@@ -436,9 +370,11 @@ export async function handleDashboardInteraction(interaction) {
 
     if (targetModule && interaction.guild) {
       const panelPayload = await renderModulePanelById(targetModule, interaction.guild);
-      await interaction.update(panelPayload).catch(() => {});
+      await safeRespond(interaction, panelPayload);
       return true;
     }
-  } catch (_) {}
+  } catch (err) {
+    // Handled safely by runHandler
+  }
   return true;
 }
