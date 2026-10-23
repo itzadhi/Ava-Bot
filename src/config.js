@@ -15,6 +15,7 @@ const envSchema = z.object({
   SUPABASE_PUBLISHABLE_KEY: z.string().optional(),
   SUPABASE_JWKS_URL: z.string().optional(),
   DATA_ENCRYPTION_KEY: z.string().min(16, 'DATA_ENCRYPTION_KEY must be at least 16 chars').default('0123456789abcdef0123456789abcdef'),
+  SHOP_ENCRYPTION_KEY: z.string().min(16, 'SHOP_ENCRYPTION_KEY must be at least 16 chars').optional(),
   SUPPORT_SERVER_URL: z.string().url().default('https://discord.gg/argoni'),
   INVITE_URL: z.string().url().default('https://discord.com/oauth2/authorize?client_id=argoni'),
   PRIVACY_URL: z.string().url().default('https://argoni.app/privacy'),
