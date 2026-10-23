@@ -7,6 +7,7 @@ import { errorCard } from '../../ui/cards.js';
 import { safeRespond } from './safeRespond.js';
 import { isAcknowledged, markAcknowledged } from './tracker.js';
 import { parseCustomId } from './session.js';
+import { metrics } from '../metrics.js';
 
 /**
  * Generates an alphanumeric error correlation ID (e.g. ERR-K8F2-9X4A)
@@ -56,6 +57,7 @@ export async function runHandler(interaction, handler, meta = {}) {
           logger.debug({ err: err.message }, 'deferReply skipped or already acknowledged');
         });
         markAcknowledged(interaction, 'deferReply');
+        metrics.recordAck(performance.now() - startTime);
       }
     } else if (interaction.isButton?.() || interaction.isAnySelectMenu?.()) {
       if (!isAcknowledged(interaction)) {
@@ -63,6 +65,7 @@ export async function runHandler(interaction, handler, meta = {}) {
           logger.debug({ err: err.message }, 'deferUpdate skipped or already acknowledged');
         });
         markAcknowledged(interaction, 'deferUpdate');
+        metrics.recordAck(performance.now() - startTime);
       }
     } else if (interaction.isModalSubmit?.()) {
       if (!isAcknowledged(interaction)) {
@@ -73,6 +76,7 @@ export async function runHandler(interaction, handler, meta = {}) {
           await interaction.deferUpdate().catch(() => {});
           markAcknowledged(interaction, 'deferUpdate');
         }
+        metrics.recordAck(performance.now() - startTime);
       }
     }
   } catch (ackErr) {
@@ -106,6 +110,7 @@ export async function runHandler(interaction, handler, meta = {}) {
   try {
     const result = await Promise.race([handlerPromise, timeoutPromise]);
     const duration = performance.now() - startTime;
+    metrics.recordHandler(duration);
 
     if (duration > 1000) {
       logger.warn({ identifier, durationMs: Math.round(duration) }, `⚠️ Handler took longer than 1.0s to complete`);
@@ -114,6 +119,7 @@ export async function runHandler(interaction, handler, meta = {}) {
     return result;
   } catch (err) {
     const duration = performance.now() - startTime;
+    metrics.recordHandler(duration);
 
     if (err.message?.startsWith('HANDLER_TIMEOUT')) {
       logger.error({ identifier, errorId, durationMs: Math.round(duration) }, 'Handler execution timed out at 10s');

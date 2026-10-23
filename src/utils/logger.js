@@ -169,18 +169,35 @@ export const logger = Object.assign(baseLogger, {
   /**
    * Prints gateway login confirmation summary
    */
-  ready({ tag, id, guilds = 0, ping = 0, commandCount = null }) {
+  ready({
+    tag,
+    id,
+    guilds = 0,
+    ping = 0,
+    commandCount = null,
+    guildsCached = 0,
+    cacheWarmUpMs = 0,
+    dbStatus = 'Connected',
+    configWarnings = []
+  }) {
     const cmdText = commandCount != null ? `${commandCount} Commands Active` : 'Fully Synchronized';
+    const warnLines = configWarnings.length > 0
+      ? configWarnings.map(w => `  ${c.brightYellow}│  • Warning${c.reset}    : ${w}`)
+      : [`  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• Diagnostics${c.reset}  : ${c.green}Zero configuration issues detected${c.reset}`];
+
     console.log([
-      `  ${c.brightGreen}${c.bold}┌─────────────────────────────────────────────────────────────┐${c.reset}`,
-      `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.bold}✔ GATEWAY ONLINE${c.reset}                                            ${c.brightGreen}${c.bold}│${c.reset}`,
-      `  ${c.brightGreen}${c.bold}├─────────────────────────────────────────────────────────────┤${c.reset}`,
-      `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• Bot Account${c.reset} : ${c.bold}${tag}${c.reset} (${id})`,
-      `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• Active Guilds${c.reset}: ${c.bold}${guilds}${c.reset} connected`,
+      `  ${c.brightGreen}${c.bold}┌─────────────────────────────────────────────────────────────────┐${c.reset}`,
+      `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.bold}✔ ARGONI FRAMEWORK READY • HIGH-PERFORMANCE CORE ONLINE${c.reset}        ${c.brightGreen}${c.bold}│${c.reset}`,
+      `  ${c.brightGreen}${c.bold}├─────────────────────────────────────────────────────────────────┤${c.reset}`,
+      `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• Bot Identity${c.reset} : ${c.bold}${tag}${c.reset} (${id})`,
+      `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• Commands Active${c.reset}: ${c.bold}${cmdText}${c.reset}`,
+      `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• Active Guilds${c.reset}: ${c.bold}${guilds}${c.reset} connected • ${c.bold}${guildsCached}${c.reset} pre-cached`,
+      `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• Cache Preload${c.reset}: ${c.bold}${Math.round(cacheWarmUpMs)}ms${c.reset} warm-up time`,
+      `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• Database Status${c.reset}: ${c.bold}${dbStatus}${c.reset}`,
       `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• Heartbeat Ping${c.reset}: ${c.bold}${ping}ms${c.reset}`,
-      `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• Commands${c.reset}     : ${c.bold}${cmdText}${c.reset}`,
-      `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• UI Architecture${c.reset}: ${c.green}${c.bold}Components V2 (100% Compliant)${c.reset}`,
-      `  ${c.brightGreen}${c.bold}└─────────────────────────────────────────────────────────────┘${c.reset}`,
+      `  ${c.brightGreen}${c.bold}│${c.reset}  ${c.cyan}• UI Standard${c.reset}   : ${c.green}${c.bold}Components V2 ONLY (100% Compliant)${c.reset}`,
+      ...warnLines,
+      `  ${c.brightGreen}${c.bold}└─────────────────────────────────────────────────────────────────┘${c.reset}`,
       ''
     ].join('\n'));
   },

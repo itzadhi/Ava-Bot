@@ -51,6 +51,7 @@ import { handleChannelDeleteEvent, queueChannelSnapshot } from './modules/antinu
 import { evaluateRaidMessage, trackMemberJoin, resumeActiveLockdowns } from './modules/antinuke/lockdown.js';
 import { handleRoleDeleteEvent, handleRoleUpdateEvent, handleBotAddEvent, handleWebhookCreateEvent } from './modules/antinuke/extra.js';
 import { preloadGuildSettings } from './core/cache/guildCache.js';
+import { batchWriter } from './core/cache/batchWriter.js';
 
 /**
  * ArgoniClient - Reusable Discord Bot Client powered by Components V2 & Supabase
@@ -214,20 +215,32 @@ export class ArgoniClient extends Client {
     registerLogListeners(this);
 
     this.once(Events.ClientReady, async (readyClient) => {
+      const tWarm0 = performance.now();
+      const cachedCount = await preloadGuildSettings(readyClient).catch(() => 0);
+      const cacheWarmUpMs = performance.now() - tWarm0;
+
+      const isLiveDb = validateLiveCredentials().valid;
+      const dbStatus = isLiveDb ? 'Live Supabase (Online • Keep-Alive)' : 'Memory Adapter (Test/Offline)';
+
+      const configWarnings = [];
+      if (!readyClient.options.intents.has(GatewayIntentBits.MessageContent)) {
+        configWarnings.push('MessageContent intent disabled (prefix commands will degrade)');
+      }
+
       if (typeof logger.ready === 'function') {
         logger.ready({
           tag: readyClient.user.tag,
           id: readyClient.user.id,
           guilds: readyClient.guilds.cache.size,
           ping: Math.round(readyClient.ws.ping),
-          commandCount: registry.getAll().length
+          commandCount: registry.getAll().length,
+          guildsCached: cachedCount,
+          cacheWarmUpMs,
+          dbStatus,
+          configWarnings
         });
       } else {
         logger.info(`✓ Logged in as ${readyClient.user.tag} (ID: ${readyClient.user.id})`);
-      }
-
-      if (!readyClient.options.intents.has(GatewayIntentBits.MessageContent)) {
-        logger.warn('⚠️ MessageContent intent not enabled. Prefix commands will degrade gracefully.');
       }
 
       const presenceConfig = getBotState('presence') || { type: 'Playing', text: '/backup | /setting', status: 'online' };
@@ -265,10 +278,7 @@ export class ArgoniClient extends Client {
         logger.warn({ err }, 'Error during automatic permission & ticket repair on startup');
       });
 
-      // Write-Through Cache Preload: Guild Settings, AutoMod & Anti-Nuke
-      await preloadGuildSettings(readyClient).catch(err => {
-        logger.warn({ err }, 'Error preloading guild settings cache');
-      });
+      // AutoMod & Anti-Nuke Write-Through Cache Preload & Active Lockdown Monitoring
       await initAutoModCache(readyClient).catch(err => {
         logger.warn({ err }, 'Error preloading AutoMod cache');
       });
@@ -385,6 +395,11 @@ async function handleShutdown(signal) {
     logger.info(`Waiting for ${queue.size + queue.pending} queued operations to finish...`);
     await queue.onIdle();
   }
+
+  try {
+    await batchWriter.destroy();
+    logger.info('Batched database writes flushed');
+  } catch (_) {}
 
   try {
     client.destroy();

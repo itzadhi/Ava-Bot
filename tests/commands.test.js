@@ -130,4 +130,11 @@ test('loadCommands registers core panel commands and user-facing suggest/feedbac
   assert.ok(slashData.some(s => s.name === 'tts'));
   assert.ok(slashData.some(s => s.name === 'voicepanel'));
   assert.ok(slashData.some(s => s.name === 'ttspanel'));
+  assert.ok(slashData.some(s => s.name === 'perf'));
+
+  const perfCmd = registry.resolve('perf');
+  assert.ok(perfCmd, 'perf command should be registered');
+  assert.equal(perfCmd.category, 'owner');
+  assert.equal(perfCmd.instant, true);
+  assert.equal(perfCmd.ephemeral, true);
 });

@@ -153,10 +153,11 @@ export class ModuleRegistry {
           }
         }
       }
-    } catch (_) {}
+    }
+  } catch (_) {}
 
-    return loaded;
-  }
+  return loaded;
+}
 
   get(name) {
     return this.modules.get(name.toLowerCase()) || null;

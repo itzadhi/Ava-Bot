@@ -2,6 +2,7 @@ import { MessageFlags } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { errorCard } from '../../ui/cards.js';
 import { isAcknowledged, markAcknowledged } from './tracker.js';
+import { metrics } from '../metrics.js';
 
 /**
  * Normalizes and sanitizes a payload to conform strictly to Components V2 standards.
@@ -161,6 +162,7 @@ export async function safeRespond(interaction, payload, options = {}) {
  */
 async function handleDiscordError(err, interaction, payload) {
   const code = err.code || err.rawError?.code;
+  metrics.recordError(code || 'other');
 
   // 10062: Unknown interaction (expired or failed acknowledgement)
   // 40060: Interaction has already been acknowledged
