@@ -381,7 +381,7 @@ async function handleComponentInteraction(interaction) {
     }), { ephemeral: true });
   }, {
     opensModal,
-    authorOnly: Boolean(parsed.userId),
+    authorOnly: false,
     parsed
   });
 }

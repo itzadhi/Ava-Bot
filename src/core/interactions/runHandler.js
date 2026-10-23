@@ -1,6 +1,7 @@
-import { MessageFlags } from 'discord.js';
+import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 import crypto from 'node:crypto';
 import { performance } from 'node:perf_hooks';
+import { config } from '../../config.js';
 import { logger } from '../../utils/logger.js';
 import { logError } from '../../db/errors.js';
 import { errorCard } from '../../ui/cards.js';
@@ -47,17 +48,28 @@ export async function runHandler(interaction, handler, meta = {}) {
   const parsed = meta.parsed || (customId ? parseCustomId(customId) : {});
 
   // 1. Ownership Verification (Memory check <0.01ms before deferring)
-  // If authorOnly is declared, or if userId is encoded in customId (module:action:guildId:userId)
-  const targetUserId = parsed.userId || interaction.message?.interaction?.user?.id;
-  if ((meta.authorOnly || parsed.userId) && targetUserId && targetUserId !== interaction.user.id) {
-    logger.debug({ targetUserId, clicker: interaction.user.id }, 'Blocked unowned component click');
-    return await safeRespond(interaction, errorCard({
-      title: 'Action Restricted',
-      subtitle: 'This panel belongs to another user.',
-      reason: 'You cannot click controls on another user\'s interactive session.',
-      fix: 'Run the command yourself to open your own control panel.',
-      ephemeral: true
-    }), { ephemeral: true });
+  // Only enforce ownership if explicitly declared via meta.authorOnly
+  if (meta.authorOnly) {
+    const rawTarget = meta.userId || parsed.userId || interaction.message?.interaction?.user?.id;
+    const isValidUserId = rawTarget && typeof rawTarget === 'string' && (/^\d{17,20}$/.test(rawTarget) || rawTarget.startsWith('user_'));
+    const targetUserId = isValidUserId ? rawTarget : null;
+
+    if (targetUserId && targetUserId !== interaction.user.id) {
+      // Allow bot owners, guild owners, and server administrators to interact
+      const isOwner = (config.OWNER_IDS && config.OWNER_IDS.includes(interaction.user.id)) || interaction.guild?.ownerId === interaction.user.id;
+      const isAdmin = Boolean(interaction.memberPermissions?.has?.(PermissionFlagsBits.Administrator));
+
+      if (!isOwner && !isAdmin) {
+        logger.debug({ targetUserId, clicker: interaction.user.id }, 'Blocked unowned component click');
+        return await safeRespond(interaction, errorCard({
+          title: 'Action Restricted',
+          subtitle: 'This panel belongs to another user.',
+          reason: 'You cannot click controls on another user\'s interactive session.',
+          fix: 'Run the command yourself to open your own control panel.',
+          ephemeral: true
+        }), { ephemeral: true });
+      }
+    }
   }
 
   // 2. Immediate Acknowledgement (Sub-1s, BEFORE DB / Heavy Logic)

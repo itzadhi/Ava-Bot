@@ -123,7 +123,7 @@ export async function getShopCategories(guildId) {
       .eq('guild_id', guildId)
       .order('position', { ascending: true });
 
-    if (!error && Array.isArray(data)) {
+    if (!error && Array.isArray(data) && data.length > 0) {
       shopCache.setCachedCategories(guildId, data);
       return data;
     }
@@ -180,7 +180,7 @@ export async function getShopProducts(guildId, { status = null, categoryId = nul
     if (categoryId) query = query.eq('category_id', categoryId);
 
     const { data, error } = await query.order('created_at', { ascending: false });
-    if (!error && Array.isArray(data)) {
+    if (!error && Array.isArray(data) && data.length > 0) {
       shopCache.setCachedProducts(guildId, data);
       return data;
     }
@@ -592,7 +592,7 @@ export async function getShopOrders(guildId, { status = null, userId = null, lim
     if (userId) query = query.eq('user_id', userId);
 
     const { data, error } = await query.order('created_at', { ascending: false }).limit(limit);
-    if (!error && Array.isArray(data)) return data;
+    if (!error && Array.isArray(data) && data.length > 0) return data;
   } catch (_) { }
 
   let mem = Array.from(getMemTable('shop_orders').values()).filter(o => o.guild_id === guildId);
@@ -743,7 +743,7 @@ export async function getWaitlist(productId) {
       .select('user_id')
       .eq('product_id', productId);
 
-    if (!error && Array.isArray(data)) {
+    if (!error && Array.isArray(data) && data.length > 0) {
       return data.map(d => d.user_id);
     }
   } catch (_) { }
