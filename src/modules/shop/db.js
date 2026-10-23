@@ -42,7 +42,6 @@ export function getDefaultShopSettings(guildId) {
     restock_ping_role_id: null,
     banner_theme: 'dark',
     banner_font: 'Inter',
-    default_accent_color: '#6366F1',
     stock_display_mode: 'exact',
     low_stock_threshold: 3
   };
@@ -67,7 +66,7 @@ export async function getShopSettings(guildId) {
       shopCache.setCachedSettings(guildId, data);
       return data;
     }
-  } catch (_) {}
+  } catch (_) { }
 
   const mem = getMemTable('shop_settings').get(guildId);
   const result = mem || getDefaultShopSettings(guildId);
@@ -117,7 +116,7 @@ export async function getShopCategories(guildId) {
       shopCache.setCachedCategories(guildId, data);
       return data;
     }
-  } catch (_) {}
+  } catch (_) { }
 
   const mem = Array.from(getMemTable('shop_categories').values()).filter(c => c.guild_id === guildId);
   shopCache.setCachedCategories(guildId, mem);
@@ -141,7 +140,7 @@ export async function saveShopCategory(category) {
 
   try {
     await db.from('shop_categories').upsert(cat, { onConflict: 'id' });
-  } catch (_) {}
+  } catch (_) { }
 
   return cat;
 }
@@ -152,7 +151,7 @@ export async function deleteShopCategory(categoryId, guildId) {
 
   try {
     await db.from('shop_categories').delete().eq('id', categoryId);
-  } catch (_) {}
+  } catch (_) { }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -170,7 +169,7 @@ export async function getShopProducts(guildId, { status = null, categoryId = nul
       shopCache.setCachedProducts(guildId, data);
       return data;
     }
-  } catch (_) {}
+  } catch (_) { }
 
   let mem = Array.from(getMemTable('shop_products').values()).filter(p => p.guild_id === guildId);
   if (status) mem = mem.filter(p => p.status === status);
@@ -193,7 +192,7 @@ export async function getShopProductById(productId) {
       shopCache.setCachedProduct(data);
       return data;
     }
-  } catch (_) {}
+  } catch (_) { }
 
   return getMemTable('shop_products').get(productId) || null;
 }
@@ -213,7 +212,7 @@ export async function getShopProductByChannel(channelId) {
       shopCache.setCachedProduct(data);
       return data;
     }
-  } catch (_) {}
+  } catch (_) { }
 
   const mem = Array.from(getMemTable('shop_products').values()).find(p => p.channel_id === channelId);
   return mem || null;
@@ -258,7 +257,7 @@ export async function saveShopProduct(product) {
 
   try {
     await db.from('shop_products').upsert(prod, { onConflict: 'id' });
-  } catch (_) {}
+  } catch (_) { }
 
   return prod;
 }
@@ -298,7 +297,7 @@ export async function addEncryptedStockItems(productId, encryptedItems, guildId 
 
   try {
     await db.from('shop_stock_items').insert(records);
-  } catch (_) {}
+  } catch (_) { }
 
   // Update product stock count
   const product = await getShopProductById(productId);
@@ -320,7 +319,7 @@ export async function getReservedItemsForOrder(orderId) {
     if (!error && Array.isArray(data) && data.length > 0) {
       return data;
     }
-  } catch (_) {}
+  } catch (_) { }
 
   return Array.from(getMemTable('shop_stock_items').values())
     .filter(i => i.reserved_order_id === orderId);
@@ -342,7 +341,7 @@ export async function reserveStock(productId, orderId, quantity = 1, ttlMinutes 
     if (!error && data) {
       return data;
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // In-memory atomic fallback
   const product = await getShopProductById(productId);
@@ -396,7 +395,7 @@ export async function releaseExpiredOrders() {
     if (!error && data) {
       return data;
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // In-memory fallback
   const now = new Date();
@@ -434,7 +433,7 @@ export async function completeOrder(orderId) {
       p_order_id: orderId
     });
     if (!error && data) return data;
-  } catch (_) {}
+  } catch (_) { }
 
   // In-memory fallback
   const order = getMemTable('shop_orders').get(orderId);
@@ -467,7 +466,7 @@ export async function getNextOrderNumber(guildId) {
     if (!error && data) {
       return Number(data);
     }
-  } catch (_) {}
+  } catch (_) { }
 
   const current = localCounters.get(guildId) || 1000;
   const next = current + 1;
@@ -502,7 +501,7 @@ export async function createShopOrder(orderData) {
 
   try {
     await db.from('shop_orders').insert(order);
-  } catch (_) {}
+  } catch (_) { }
 
   return order;
 }
@@ -516,7 +515,7 @@ export async function getShopOrder(orderId) {
       .maybeSingle();
 
     if (!error && data) return data;
-  } catch (_) {}
+  } catch (_) { }
 
   return getMemTable('shop_orders').get(orderId) || null;
 }
@@ -530,7 +529,7 @@ export async function getShopOrderByTicket(ticketChannelId) {
       .maybeSingle();
 
     if (!error && data) return data;
-  } catch (_) {}
+  } catch (_) { }
 
   return Array.from(getMemTable('shop_orders').values())
     .find(o => o.ticket_channel_id === ticketChannelId) || null;
@@ -544,7 +543,7 @@ export async function getShopOrders(guildId, { status = null, userId = null, lim
 
     const { data, error } = await query.order('created_at', { ascending: false }).limit(limit);
     if (!error && Array.isArray(data)) return data;
-  } catch (_) {}
+  } catch (_) { }
 
   let mem = Array.from(getMemTable('shop_orders').values()).filter(o => o.guild_id === guildId);
   if (status) mem = mem.filter(o => o.status === status);
@@ -566,7 +565,7 @@ export async function updateShopOrder(orderId, updates) {
 
   try {
     await db.from('shop_orders').update(updated).eq('id', orderId);
-  } catch (_) {}
+  } catch (_) { }
 
   return updated;
 }
@@ -585,7 +584,7 @@ export async function addShopOrderEvent(orderId, eventType, actorId, data = {}) 
 
   try {
     await db.from('shop_order_events').insert(event);
-  } catch (_) {}
+  } catch (_) { }
 
   return event;
 }
@@ -608,7 +607,7 @@ export async function getShopCoupon(guildId, code) {
       .maybeSingle();
 
     if (!error && data) return data;
-  } catch (_) {}
+  } catch (_) { }
 
   return Array.from(getMemTable('shop_coupons').values())
     .find(c => c.guild_id === guildId && c.code.toUpperCase() === upperCode && c.is_active !== false) || null;
@@ -636,7 +635,7 @@ export async function saveShopCoupon(coupon) {
   getMemTable('shop_coupons').set(c.id, c);
   try {
     await db.from('shop_coupons').upsert(c, { onConflict: 'id' });
-  } catch (_) {}
+  } catch (_) { }
 
   return c;
 }
@@ -665,7 +664,7 @@ export async function recordCouponUse(couponId, guildId, userId, orderId) {
       uses_count: (coupon?.uses_count || 1),
       updated_at: new Date().toISOString()
     }).eq('id', couponId);
-  } catch (_) {}
+  } catch (_) { }
 
   return use;
 }
@@ -682,7 +681,7 @@ export async function addToWaitlist(guildId, productId, userId) {
   getMemTable('shop_waitlist').set(`${productId}:${userId}`, entry);
   try {
     await db.from('shop_waitlist').upsert(entry, { onConflict: 'product_id,user_id' });
-  } catch (_) {}
+  } catch (_) { }
 
   return entry;
 }
@@ -697,7 +696,7 @@ export async function getWaitlist(productId) {
     if (!error && Array.isArray(data)) {
       return data.map(d => d.user_id);
     }
-  } catch (_) {}
+  } catch (_) { }
 
   return Array.from(getMemTable('shop_waitlist').values())
     .filter(w => w.product_id === productId)
@@ -712,7 +711,7 @@ export async function clearWaitlist(productId) {
   }
   try {
     await db.from('shop_waitlist').delete().eq('product_id', productId);
-  } catch (_) {}
+  } catch (_) { }
 }
 
 export async function isUserBlacklisted(guildId, userId) {
@@ -732,7 +731,7 @@ export async function isUserBlacklisted(guildId, userId) {
       shopCache.setCachedBlacklist(guildId, userId, active);
       return active;
     }
-  } catch (_) {}
+  } catch (_) { }
 
   const mem = getMemTable('shop_blacklist').get(`${guildId}:${userId}`);
   const active = Boolean(mem && (!mem.expires_at || new Date(mem.expires_at) > new Date()));
@@ -756,7 +755,7 @@ export async function addBlacklist(guildId, userId, reason, expiresAt, createdBy
 
   try {
     await db.from('shop_blacklist').upsert(bl, { onConflict: 'guild_id,user_id' });
-  } catch (_) {}
+  } catch (_) { }
 
   return bl;
 }
@@ -767,7 +766,7 @@ export async function removeBlacklist(guildId, userId) {
 
   try {
     await db.from('shop_blacklist').delete().eq('guild_id', guildId).eq('user_id', userId);
-  } catch (_) {}
+  } catch (_) { }
 }
 
 export async function createShopReview(reviewData) {
@@ -787,7 +786,7 @@ export async function createShopReview(reviewData) {
 
   try {
     await db.from('shop_reviews').insert(review);
-  } catch (_) {}
+  } catch (_) { }
 
   return review;
 }
