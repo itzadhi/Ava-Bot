@@ -12,9 +12,23 @@ import { handleTicketInteraction } from '../modules/tickets/router.js';
 import { handleDashboardInteraction } from '../modules/panel/index.js';
 import { handleHelpInteraction } from '../modules/help/panel.js';
 import { handlePermifyInteraction } from '../modules/permify/router.js';
+import { handleAutoModInteraction } from '../modules/automod/router.js';
+import { handleAntiNukeInteraction } from '../modules/antinuke/router.js';
 
 export async function onInteractionCreate(interaction) {
   try {
+    // 0. AutoMod System Routing (automod:*)
+    if (interaction.customId?.startsWith('automod:') || (interaction.isModalSubmit() && interaction.customId?.startsWith('automod:'))) {
+      const handled = await handleAutoModInteraction(interaction);
+      if (handled) return;
+    }
+
+    // 0.01 Anti-Nuke System Routing (antinuke:*)
+    if (interaction.customId?.startsWith('antinuke:') || (interaction.isModalSubmit() && interaction.customId?.startsWith('antinuke:'))) {
+      const handled = await handleAntiNukeInteraction(interaction);
+      if (handled) return;
+    }
+
     // 0. Permify System Routing (permify:*)
     if (interaction.customId?.startsWith('permify:') || (interaction.isModalSubmit() && interaction.customId?.startsWith('permify:'))) {
       const handled = await handlePermifyInteraction(interaction);

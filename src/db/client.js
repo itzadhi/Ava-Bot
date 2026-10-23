@@ -21,12 +21,59 @@ class MemoryStorage {
       bot_state: new Map(),
       audit_logs: new Map(),
       error_logs: new Map(),
-      module_data: new Map()
+      module_data: new Map(),
+      antinuke_settings: new Map(),
+      antinuke_trusted: new Map(),
+      antinuke_exempt: new Map(),
+      channel_snapshots: new Map(),
+      antinuke_incidents: new Map(),
+      lockdown_state: new Map(),
+      automod_settings: new Map(),
+      automod_words: new Map(),
+      automod_allowlist: new Map(),
+      automod_regex: new Map(),
+      automod_exemptions: new Map(),
+      automod_strikes: new Map()
     };
     this.autoId = 1;
     this.buckets = {
       backups: new Map()
     };
+  }
+
+  _getKey(tableName, record) {
+    if (record.id) return String(record.id);
+    if (tableName === 'channel_snapshots' && record.guild_id && record.channel_id) {
+      return `${record.guild_id}:${record.channel_id}`;
+    }
+    if (tableName === 'antinuke_trusted' && record.guild_id && record.target_id && record.target_type) {
+      return `${record.guild_id}:${record.target_id}:${record.target_type}`;
+    }
+    if (tableName === 'antinuke_exempt' && record.guild_id && record.target_id && record.type) {
+      return `${record.guild_id}:${record.target_id}:${record.type}`;
+    }
+    if (tableName === 'automod_words' && record.guild_id && record.word) {
+      return `${record.guild_id}:${record.word.toLowerCase()}`;
+    }
+    if (tableName === 'automod_allowlist' && record.guild_id && record.word) {
+      return `${record.guild_id}:${record.word.toLowerCase()}`;
+    }
+    if (tableName === 'automod_exemptions' && record.guild_id && record.target_id && record.type) {
+      return `${record.guild_id}:${record.target_id}:${record.type}`;
+    }
+    if (tableName === 'automod_strikes' && record.guild_id && record.user_id) {
+      return `${record.guild_id}:${record.user_id}`;
+    }
+    if (tableName === 'lockdown_state' && record.guild_id) {
+      return String(record.guild_id);
+    }
+    if (tableName === 'antinuke_settings' && record.guild_id) {
+      return String(record.guild_id);
+    }
+    if (tableName === 'automod_settings' && record.guild_id) {
+      return String(record.guild_id);
+    }
+    return record.id || record.channel_id || (record.user_id && record.guild_id ? `${record.user_id}:${record.guild_id}` : null) || record.code || record.guild_id || record.key;
   }
 
   from(tableName) {
@@ -148,7 +195,7 @@ class MemoryStorage {
         const toInsert = Array.isArray(records) ? records : [records];
         const inserted = [];
         for (const item of toInsert) {
-          const compKey = item.id || item.channel_id || (item.user_id && item.guild_id ? `${item.user_id}:${item.guild_id}` : null) || item.code || item.guild_id || item.key;
+          const compKey = this._getKey(tableName, item);
           const id = item.id || (item.guild_id && !table.has(item.guild_id) ? item.guild_id : ++this.autoId);
           const record = { ...item, id: item.id || id, created_at: item.created_at || new Date().toISOString() };
           const key = compKey || id;
@@ -165,7 +212,7 @@ class MemoryStorage {
       },
 
       upsert: (record, options = {}) => {
-        const compKey = record.id || record.channel_id || (record.user_id && record.guild_id ? `${record.user_id}:${record.guild_id}` : null) || record.code || record.guild_id || record.key;
+        const compKey = this._getKey(tableName, record);
         const key = compKey || ++this.autoId;
         const existing = table.get(String(key)) || {};
         const updated = { ...existing, ...record, updated_at: new Date().toISOString() };

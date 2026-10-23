@@ -44,6 +44,11 @@ import { startTicketScheduler, stopTicketScheduler, handleMemberLeave, handleCha
 import { handleTicketImageDrop } from './modules/tickets/panel.js';
 import { getTicketByChannel, updateTicketLastMessage } from './db/tickets.js';
 import { autoRepairPermissionsAndTickets } from './modules/permify/repair.js';
+import { initAutoModCache } from './db/automod.js';
+import { initAntiNukeCache, saveAllChannelSnapshots } from './db/antinuke.js';
+import { handleChannelDeleteEvent, queueChannelSnapshot } from './modules/antinuke/restore.js';
+import { evaluateRaidMessage, trackMemberJoin, resumeActiveLockdowns } from './modules/antinuke/lockdown.js';
+import { handleRoleDeleteEvent, handleRoleUpdateEvent, handleBotAddEvent, handleWebhookCreateEvent } from './modules/antinuke/extra.js';
 
 /**
  * ArgoniClient - Reusable Discord Bot Client powered by Components V2 & Supabase
@@ -58,7 +63,8 @@ export class ArgoniClient extends Client {
       GatewayIntentBits.GuildMembers,
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.GuildModeration,
-      GatewayIntentBits.GuildVoiceStates
+      GatewayIntentBits.GuildVoiceStates,
+      GatewayIntentBits.GuildWebhooks
     ];
 
     try {
@@ -99,6 +105,10 @@ export class ArgoniClient extends Client {
         return;
       }
 
+      // Real-time Anti-Nuke raid & flood detection
+      const isRaid = await evaluateRaidMessage(message).catch(() => false);
+      if (isRaid) return;
+
       // Real-time AutoMod protection scanning
       const isAutoMod = await handleAutoModMessage(message).catch(() => false);
       if (isAutoMod) return;
@@ -132,6 +142,8 @@ export class ArgoniClient extends Client {
       await handleBoostMemberUpdate(oldMember, newMember).catch(() => {});
     });
     this.on('guildMemberAdd', async (member) => {
+      trackMemberJoin(member);
+      await handleBotAddEvent(member).catch(() => {});
       await handleAutoRoleMemberJoin(member).catch(() => {});
       await handleStickyRoleMemberRejoin(member).catch(() => {});
     });
@@ -141,6 +153,22 @@ export class ArgoniClient extends Client {
     });
     this.on('channelDelete', async (channel) => {
       await handleChannelDelete(channel).catch(() => {});
+      await handleChannelDeleteEvent(channel).catch(() => {});
+    });
+    this.on('channelCreate', async (channel) => {
+      queueChannelSnapshot(channel.guild?.id, channel);
+    });
+    this.on('channelUpdate', async (oldChannel, newChannel) => {
+      queueChannelSnapshot(newChannel.guild?.id, newChannel);
+    });
+    this.on('roleDelete', async (role) => {
+      await handleRoleDeleteEvent(role).catch(() => {});
+    });
+    this.on('roleUpdate', async (oldRole, newRole) => {
+      await handleRoleUpdateEvent(oldRole, newRole).catch(() => {});
+    });
+    this.on('webhookUpdate', async (channel) => {
+      await handleWebhookCreateEvent(channel).catch(() => {});
     });
 
     // Register comprehensive server audit logging listeners
@@ -197,6 +225,22 @@ export class ArgoniClient extends Client {
       await autoRepairPermissionsAndTickets(readyClient).catch(err => {
         logger.warn({ err }, 'Error during automatic permission & ticket repair on startup');
       });
+
+      // AutoMod & Anti-Nuke Write-Through Cache Preload & Active Lockdown Monitoring
+      await initAutoModCache(readyClient).catch(err => {
+        logger.warn({ err }, 'Error preloading AutoMod cache');
+      });
+      await initAntiNukeCache(readyClient).catch(err => {
+        logger.warn({ err }, 'Error preloading Anti-Nuke cache');
+      });
+      await resumeActiveLockdowns(readyClient).catch(err => {
+        logger.warn({ err }, 'Error resuming active lockdowns');
+      });
+
+      // Snapshot all channels on ready for active servers
+      for (const guild of readyClient.guilds.cache.values()) {
+        saveAllChannelSnapshots(guild).catch(() => {});
+      }
     });
   }
 

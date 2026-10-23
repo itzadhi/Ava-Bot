@@ -19,7 +19,12 @@ import { getBrandLogo } from '../../ui/theme.js';
 import { errorCard } from '../../utils/ui/builders.js';
 
 // Import module panels for direct rendering
-import { buildAutoModPanel } from '../automod/panel.js';
+import { buildAutoModWizard } from '../automod/panel.js';
+import { buildAntiNukeWizard } from '../antinuke/panel.js';
+import { getAutoModSettings, getAutoModWords, getAutoModAllowlist, getAutoModRegexRules, getAutoModExemptions } from '../../db/automod.js';
+import { getAntiNukeSettings, getAntiNukeTrusted, getAntiNukeExempt } from '../../db/antinuke.js';
+import { getTicketSettings } from '../../db/tickets.js';
+import { greyButton } from '../../utils/ui/greyButton.js';
 import { buildAutoRolePanel } from '../autorole/panel.js';
 import { buildBoostPanel } from '../boosts/panel.js';
 import { buildStickyPanel } from '../sticky/panel.js';
@@ -32,7 +37,8 @@ import { buildLogsPanel } from '../logs/engine.js';
 import { renderTicketSettingsDashboard } from '../tickets/settings.js';
 
 export const MODULE_ITEMS = [
-  { id: 'automod', name: 'AutoMod Protection', emoji: '🛡️', desc: 'Spam, invite, link & word filters' },
+  { id: 'antinuke', name: 'Anti-Nuke Defense', emoji: '🛡️', desc: 'Channel restore, raid locks & shields' },
+  { id: 'automod', name: 'AutoMod Protection', emoji: '⚔️', desc: 'Spam, invite, link, word & regex filters' },
   { id: 'autorole', name: 'Auto-Role', emoji: '👤', desc: 'Welcome roles for humans & bots' },
   { id: 'logs', name: 'Server Logs', emoji: '📢', desc: 'Components V2 audit trail & channels' },
   { id: 'boosts', name: 'Boost Tracker', emoji: '🚀', desc: 'Celebrations & booster auto-roles' },
@@ -121,11 +127,11 @@ export async function buildDashboardPayload({ guild, user, client, sessionId }) 
       .setLabel('Staff Hub')
       .setStyle(ButtonStyle.Secondary)
       .setEmoji('💡'),
-    new ButtonBuilder()
-      .setCustomId(`dash:close:${sessionId}`)
-      .setLabel('Close')
-      .setStyle(ButtonStyle.Danger)
-      .setEmoji('❌')
+    greyButton({
+      id: `dash:close:${sessionId}`,
+      label: 'Close',
+      emoji: '❌'
+    })
   );
 
   container.addActionRowComponents(quickRow);
@@ -145,8 +151,38 @@ export async function renderModulePanelById(moduleId, guild) {
   const settings = (await getGuildSettings(guild.id)) || {};
 
   switch (moduleId) {
-    case 'automod':
-      return buildAutoModPanel(settings, guild);
+    case 'antinuke': {
+      const anSettings = await getAntiNukeSettings(guild.id);
+      const anTrusted = await getAntiNukeTrusted(guild.id);
+      const anExempt = await getAntiNukeExempt(guild.id);
+      const tktSettings = await getTicketSettings(guild.id).catch(() => null);
+      return buildAntiNukeWizard({
+        guild,
+        userId: guild.ownerId,
+        page: 1,
+        settings: anSettings,
+        trusted: anTrusted,
+        exempt: anExempt,
+        ticketCategoryId: tktSettings?.channel_category_id || null
+      });
+    }
+    case 'automod': {
+      const amSettings = await getAutoModSettings(guild.id);
+      const words = await getAutoModWords(guild.id);
+      const allowlist = await getAutoModAllowlist(guild.id);
+      const regexRules = await getAutoModRegexRules(guild.id);
+      const exemptions = await getAutoModExemptions(guild.id);
+      return buildAutoModWizard({
+        guildId: guild.id,
+        userId: guild.ownerId,
+        page: 1,
+        settings: amSettings,
+        words,
+        allowlist,
+        regexRules,
+        exemptions
+      });
+    }
     case 'autorole':
       return buildAutoRolePanel(settings, guild);
     case 'boosts':
@@ -244,16 +280,16 @@ function renderLogsShortcutPanel(guildSettings, guild) {
   );
 
   const btnRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('fb:logs:test')
-      .setLabel('Send Test Log')
-      .setStyle(ButtonStyle.Primary)
-      .setEmoji('🔔'),
-    new ButtonBuilder()
-      .setCustomId('dash:return')
-      .setLabel('Dashboard')
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji('◀️')
+    greyButton({
+      id: 'fb:logs:test',
+      label: 'Send Test Log',
+      emoji: '🔔'
+    }),
+    greyButton({
+      id: 'dash:return',
+      label: 'Dashboard',
+      emoji: '◀️'
+    })
   );
 
   container.addActionRowComponents(chanRow, btnRow);

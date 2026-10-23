@@ -16,6 +16,7 @@ import { registry } from '../../structures/CommandRegistry.js';
 import { getBrandLogo } from '../../ui/theme.js';
 import { errorCard } from '../../utils/ui/components.js';
 import { getGuildSettings } from '../../db/guilds.js';
+import { greyButton } from '../../utils/ui/greyButton.js';
 
 /**
  * Category definitions matching Argoni's modular architecture.
@@ -24,9 +25,15 @@ import { getGuildSettings } from '../../db/guilds.js';
 export const CATEGORY_DEFINITIONS = {
   main: [
     {
+      id: 'security',
+      name: 'Security & Defense',
+      emoji: '🛡️',
+      description: 'Anti-nuke restoration, raid lockdown & AutoMod filters'
+    },
+    {
       id: 'automod',
       name: 'AutoMod Protection',
-      emoji: theme.emojis.categories.automod || '🛡️',
+      emoji: theme.emojis.categories.automod || '⚔️',
       description: 'Filters, anti-spam, invites, words & automated moderation'
     },
     {
@@ -255,6 +262,9 @@ export function buildCategoryHelpPayload({
   const matchedCommands = allCommands.filter(cmd => {
     const c = (cmd.category || '').toLowerCase();
     const n = (cmd.name || '').toLowerCase();
+    if (categoryId === 'security' || categoryId === 'automod') {
+      return c === 'security' || n === 'antinuke' || n === 'lockdown' || n === 'automod' || c === categoryId;
+    }
     return c === categoryId || c.includes(categoryId) || n.includes(categoryId);
   });
 
@@ -298,31 +308,31 @@ export function buildCategoryHelpPayload({
 
   // 4. Navigation Buttons: Home, Prev, Next, Close
   const navRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`help:back:${sessionId}`)
-      .setLabel('Home')
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji('🏠'),
-    new ButtonBuilder()
-      .setCustomId(`help:page:${categoryId}:${safePage - 1}:${sessionId}`)
-      .setLabel('‹ Prev')
-      .setStyle(ButtonStyle.Primary)
-      .setDisabled(safePage <= 1),
-    new ButtonBuilder()
-      .setCustomId(`help:page_info:${sessionId}`)
-      .setLabel(`${safePage} / ${totalPages}`)
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(true),
-    new ButtonBuilder()
-      .setCustomId(`help:page:${categoryId}:${safePage + 1}:${sessionId}`)
-      .setLabel('Next ›')
-      .setStyle(ButtonStyle.Primary)
-      .setDisabled(safePage >= totalPages),
-    new ButtonBuilder()
-      .setCustomId(`help:close:${sessionId}`)
-      .setLabel('Close')
-      .setStyle(ButtonStyle.Danger)
-      .setEmoji('❌')
+    greyButton({
+      id: `help:back:${sessionId}`,
+      label: 'Home',
+      emoji: '🏠'
+    }),
+    greyButton({
+      id: `help:page:${categoryId}:${safePage - 1}:${sessionId}`,
+      label: '‹ Prev',
+      disabled: safePage <= 1
+    }),
+    greyButton({
+      id: `help:page_info:${sessionId}`,
+      label: `${safePage} / ${totalPages}`,
+      disabled: true
+    }),
+    greyButton({
+      id: `help:page:${categoryId}:${safePage + 1}:${sessionId}`,
+      label: 'Next ›',
+      disabled: safePage >= totalPages
+    }),
+    greyButton({
+      id: `help:close:${sessionId}`,
+      label: 'Close',
+      emoji: '❌'
+    })
   );
 
   container.addActionRowComponents(navRow);

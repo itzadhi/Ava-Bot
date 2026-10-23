@@ -1,58 +1,128 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   PermissionFlagsBits,
   ContainerBuilder,
   SectionBuilder,
   TextDisplayBuilder,
+  SeparatorBuilder,
   MessageFlags
 } from 'discord.js';
-import { getGuildSettings } from '../../db/guilds.js';
+import {
+  getAutoModSettings,
+  getAutoModWords,
+  getAutoModAllowlist,
+  getAutoModRegexRules,
+  getAutoModExemptions,
+  addStrike,
+  getUserStrikes
+} from '../../db/automod.js';
+import { isTrusted } from '../../db/antinuke.js';
+import { getGuildRoles } from '../../db/permify.js';
+import { getTicketSettings, getTicketByChannel } from '../../db/tickets.js';
+import { normalizeText, maskSlur, testWordMatch, safeRegexExec, validateRegexPattern } from './normalizer.js';
+import { scanBuiltinPresets } from './presets.js';
 import { logger } from '../../utils/logger.js';
+import * as format from '../../utils/ui/format.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const wordlistsDir = path.resolve(__dirname, '../../../data/wordlists');
+
+// In-memory baseline datasets loaded once from /data/wordlists/*.json
+let baselineSlurs = [];
+let baselineProfanity = [];
+
+function loadBaselineWordlists() {
+  try {
+    const slursPath = path.join(wordlistsDir, 'slurs.json');
+    if (fs.existsSync(slursPath)) {
+      baselineSlurs = JSON.parse(fs.readFileSync(slursPath, 'utf8'));
+    }
+    const profPath = path.join(wordlistsDir, 'profanity.json');
+    if (fs.existsSync(profPath)) {
+      baselineProfanity = JSON.parse(fs.readFileSync(profPath, 'utf8'));
+    }
+  } catch (err) {
+    logger.warn({ err }, 'Could not load baseline wordlists from disk');
+  }
+}
+loadBaselineWordlists();
 
 // Anti-Spam sliding window cache: `${guildId}:${userId}` -> Array<number timestamps>
 const spamWindowCache = new Map();
 // Duplicate spam cache: `${guildId}:${userId}` -> { content: string, count: number, lastTime: number }
 const duplicateCache = new Map();
 
-// Regex cache for compiled prohibited word filters
-const wordRegexCache = new Map();
-
-function getCompiledWordRegex(words) {
-  const key = words.join('|');
-  if (wordRegexCache.has(key)) return wordRegexCache.get(key);
-  const escaped = words
-    .map(w => (w || '').trim().toLowerCase())
-    .filter(Boolean)
-    .map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  if (escaped.length === 0) return null;
-  const regex = new RegExp(`(?:\\b|_)(?:${escaped.join('|')})(?:\\b|_)`, 'i');
-  wordRegexCache.set(key, regex);
-  return regex;
-}
-
 /**
  * Checks if a member has permission to bypass AutoMod
+ * Real server owner, bot, native Admin/ManageGuild, staff role, and exception roles/channels are exempt.
+ *
  * @param {import('discord.js').GuildMember} member
- * @param {object} guildSettings
+ * @param {import('discord.js').Channel|object} [channelOrSettings]
+ * @param {object} [maybeSettings]
+ * @param {object} [maybeExemptions]
  * @returns {boolean}
  */
-export function isAutoModBypassed(member, guildSettings) {
-  if (!member) return false;
-  if (member.user?.bot) return true;
-  if (member.permissions?.has(PermissionFlagsBits.Administrator)) return true;
-  if (member.permissions?.has(PermissionFlagsBits.ManageGuild)) return true;
-  if (member.permissions?.has(PermissionFlagsBits.ManageMessages)) return true;
+export function isAutoModBypassed(member, channelOrSettings = null, maybeSettings = null, maybeExemptions = null) {
+  if (!member || !member.user) return false;
 
-  if (guildSettings?.staff_role_id && member.roles?.cache?.has(guildSettings.staff_role_id)) {
+  // 1. Bot itself or other bots
+  if (member.user.bot) return true;
+
+  // 2. Real server owner is ALWAYS immune
+  if (member.guild && member.guild.ownerId === member.id) return true;
+
+  // 3. Native Discord administrator or manage guild permissions
+  if (member.permissions?.has(PermissionFlagsBits.Administrator) ||
+      member.permissions?.has(PermissionFlagsBits.ManageGuild)) {
     return true;
   }
 
-  // AutoMod Exception Role(s) bypass
-  if (guildSettings?.automod_exception_role_id && member.roles?.cache?.has(guildSettings.automod_exception_role_id)) {
+  let channel = null;
+  let settings = null;
+  let exemptions = null;
+
+  if (channelOrSettings && !channelOrSettings.isTextBased && !channelOrSettings.type && (
+    channelOrSettings.automod_enabled !== undefined ||
+    channelOrSettings.staff_role_id !== undefined ||
+    channelOrSettings.automod_exception_role_id !== undefined ||
+    channelOrSettings.enabled !== undefined ||
+    channelOrSettings.anti_invites !== undefined
+  )) {
+    settings = channelOrSettings;
+    exemptions = maybeSettings;
+  } else {
+    channel = channelOrSettings;
+    settings = maybeSettings;
+    exemptions = maybeExemptions;
+  }
+
+  // 4. Staff role check from settings
+  if (settings?.staff_role_id && member.roles?.cache?.has(settings.staff_role_id)) {
     return true;
   }
 
-  if (Array.isArray(guildSettings?.automod_ignored_role_ids) && guildSettings.automod_ignored_role_ids.length > 0) {
-    if (guildSettings.automod_ignored_role_ids.some(roleId => member.roles?.cache?.has(roleId))) {
+  // 5. Exception role check from settings
+  if (settings?.automod_exception_role_id && member.roles?.cache?.has(settings.automod_exception_role_id)) {
+    return true;
+  }
+  if (Array.isArray(settings?.automod_ignored_role_ids) && settings.automod_ignored_role_ids.some(r => member.roles?.cache?.has(r))) {
+    return true;
+  }
+
+  // 6. Configured AutoMod Exemptions
+  if (exemptions) {
+    if (exemptions.users?.includes(member.id)) return true;
+    if (exemptions.roles?.some(roleId => member.roles?.cache?.has(roleId))) return true;
+    if (channel && exemptions.channels?.includes(channel.id)) return true;
+    if (channel?.parentId && exemptions.categories?.includes(channel.parentId)) return true;
+  }
+
+  // 7. Ticket Channel name check
+  if (channel) {
+    if (channel.name?.startsWith('ticket-') || channel.name?.startsWith('tkt-')) {
       return true;
     }
   }
@@ -61,99 +131,94 @@ export function isAutoModBypassed(member, guildSettings) {
 }
 
 /**
- * Evaluates a message against all configured AutoMod rules
+ * Scans an incoming message against all configured AutoMod rules
  * @param {import('discord.js').Message} message
- * @param {object} [customSettings]
- * @returns {Promise<{ violated: boolean, rule?: string, reason?: string }>}
+ * @param {object} [customSettings] Optional overriding/custom settings for testing or offline checks
+ * @returns {Promise<{ violated: boolean, rule?: string, reason?: string, matchedText?: string, severity?: string, action?: string }>}
  */
 export async function scanMessage(message, customSettings = null) {
-  if (!message.guild || !message.author || message.author.bot) {
+  if (!message?.guild || !message?.author || message.author.bot) {
     return { violated: false };
   }
 
-  const settings = customSettings || await getGuildSettings(message.guild.id);
-  if (!settings || settings.automod_enabled === false) {
+  const guildId = message.guild.id;
+  let settings;
+  let customWordsList = null;
+
+  if (customSettings) {
+    settings = {
+      enabled: customSettings.automod_enabled !== undefined ? customSettings.automod_enabled : (customSettings.enabled !== false),
+      anti_invites: customSettings.automod_anti_invites ?? customSettings.anti_invites ?? false,
+      anti_links: customSettings.automod_anti_links ?? customSettings.anti_links ?? false,
+      anti_spam: customSettings.automod_anti_spam ?? customSettings.anti_spam ?? false,
+      anti_mentions: customSettings.automod_anti_mentions ?? customSettings.anti_mentions ?? false,
+      anti_caps: customSettings.automod_anti_caps ?? customSettings.anti_caps ?? false,
+      word_filter: customSettings.automod_word_filter ?? customSettings.word_filter ?? false,
+      action: customSettings.automod_action ?? customSettings.action ?? 'delete',
+      staff_role_id: customSettings.staff_role_id,
+      automod_exception_role_id: customSettings.automod_exception_role_id,
+      automod_ignored_role_ids: customSettings.automod_ignored_role_ids || [],
+      ticket_category_exempt: customSettings.ticket_category_exempt,
+      ...customSettings
+    };
+    if (Array.isArray(customSettings.automod_banned_words)) {
+      customWordsList = customSettings.automod_banned_words;
+    }
+  } else {
+    settings = await getAutoModSettings(guildId);
+  }
+
+  if (!settings || settings.enabled === false) {
     return { violated: false };
   }
 
-  // Check staff bypass
-  if (isAutoModBypassed(message.member, settings)) {
+  const exemptions = customSettings ? null : await getAutoModExemptions(guildId);
+
+  // Fast synchronous bypass check
+  if (isAutoModBypassed(message.member, message.channel, settings, exemptions)) {
     return { violated: false };
+  }
+
+  // Comprehensive async bypass checks (Anti-Nuke trusted, Permify roles, dynamic Tickets)
+  if (message.guild && !customSettings) {
+    const trusted = await isTrusted(message.guild, message.author.id, message.member).catch(() => false);
+    if (trusted) return { violated: false };
+
+    const permifyRoles = await getGuildRoles(message.guild.id).catch(() => ({ staff: [], owner: [] }));
+    const staffRoleIds = new Set([...(permifyRoles.staff || []), ...(permifyRoles.owner || [])]);
+    if (message.member?.roles?.cache?.some(r => staffRoleIds.has(r.id))) {
+      return { violated: false };
+    }
+
+    if (settings.ticket_category_exempt !== false && message.channel) {
+      const ticketSettings = await getTicketSettings(message.guild.id).catch(() => null);
+      if (ticketSettings?.channel_category_id && (message.channel.id === ticketSettings.channel_category_id || message.channel.parentId === ticketSettings.channel_category_id)) {
+        return { violated: false };
+      }
+      const isTicketChannel = await getTicketByChannel(message.guild.id, message.channel.id).catch(() => null);
+      if (isTicketChannel) return { violated: false };
+    }
   }
 
   const content = message.content || '';
   const now = Date.now();
-  const userKey = `${message.guild.id}:${message.author.id}`;
+  const userKey = `${guildId}:${message.author.id}`;
 
-  // 1. Anti-Invites Filter
-  if (settings.automod_anti_invites) {
-    const inviteRegex = /(?:discord(?:app)?\.(?:com\/invite|gg)|discord\.me|discord\.io|invite\.gg)\/[a-zA-Z0-9]+/i;
-    if (inviteRegex.test(content)) {
-      return {
-        violated: true,
-        rule: 'anti_invites',
-        reason: 'Discord server invite links are prohibited.'
-      };
-    }
+  // 1. Built-in Presets (invites, links, scam nitro, excessive caps, mass mentions, zalgo, emoji spam, newline spam)
+  const presetResult = scanBuiltinPresets(message, settings);
+  if (presetResult.violated) {
+    return {
+      violated: true,
+      rule: presetResult.rule,
+      reason: presetResult.reason,
+      matchedText: presetResult.matchedText,
+      severity: 'medium',
+      action: settings.action || 'delete'
+    };
   }
 
-  // 2. Anti-Links / Phishing Filter
-  if (settings.automod_anti_links) {
-    const urlRegex = /https?:\/\/[^\s]+/i;
-    if (urlRegex.test(content)) {
-      return {
-        violated: true,
-        rule: 'anti_links',
-        reason: 'External web links are blocked in this server.'
-      };
-    }
-  }
-
-  // 3. Mass Mentions Filter (> 4 mentions)
-  if (settings.automod_anti_mentions) {
-    const userMentions = message.mentions.users?.size || 0;
-    const roleMentions = message.mentions.roles?.size || 0;
-    const totalMentions = userMentions + roleMentions;
-
-    if (totalMentions > 4) {
-      return {
-        violated: true,
-        rule: 'anti_mentions',
-        reason: `Excessive mentions detected (${totalMentions} mentions, limit is 4).`
-      };
-    }
-  }
-
-  // 4. Anti-Caps Filter (> 70% uppercase with length >= 10)
-  if (settings.automod_anti_caps && content.length >= 10) {
-    const letters = content.replace(/[^a-zA-Z]/g, '');
-    if (letters.length >= 8) {
-      const upperCount = (letters.match(/[A-Z]/g) || []).length;
-      const ratio = upperCount / letters.length;
-      if (ratio >= 0.70) {
-        return {
-          violated: true,
-          rule: 'anti_caps',
-          reason: `Excessive capital letters detected (${Math.round(ratio * 100)}% uppercase).`
-        };
-      }
-    }
-  }
-
-  // 5. Word Blacklist / Profanity Filter
-  if (settings.automod_word_filter && Array.isArray(settings.automod_banned_words) && settings.automod_banned_words.length > 0) {
-    const compiled = getCompiledWordRegex(settings.automod_banned_words);
-    if (compiled && compiled.test(content)) {
-      return {
-        violated: true,
-        rule: 'word_filter',
-        reason: 'Blacklisted phrase detected.'
-      };
-    }
-  }
-
-  // 6. Anti-Spam Rate Limit & Duplicate Flood
-  if (settings.automod_anti_spam) {
+  // 2. Anti-Spam Rate Limit & Duplicate Flood
+  if (settings.anti_spam) {
     // Sliding window: > 5 messages in 4 seconds
     const timestamps = (spamWindowCache.get(userKey) || []).filter(t => now - t < 4000);
     timestamps.push(now);
@@ -163,7 +228,10 @@ export async function scanMessage(message, customSettings = null) {
       return {
         violated: true,
         rule: 'anti_spam',
-        reason: 'Rapid message flooding (sent more than 5 messages in 4 seconds).'
+        reason: 'Rapid message flooding (sent more than 5 messages in 4 seconds).',
+        matchedText: `${timestamps.length} msgs / 4s`,
+        severity: 'medium',
+        action: settings.action || 'delete'
       };
     }
 
@@ -175,8 +243,11 @@ export async function scanMessage(message, customSettings = null) {
       if (newCount >= 3) {
         return {
           violated: true,
-          rule: 'anti_spam',
-          reason: 'Repeated identical messages detected.'
+          rule: 'anti_duplicate_spam',
+          reason: 'Repeated identical messages detected.',
+          matchedText: content.slice(0, 50),
+          severity: 'medium',
+          action: settings.action || 'delete'
         };
       }
     } else {
@@ -184,99 +255,257 @@ export async function scanMessage(message, customSettings = null) {
     }
   }
 
-  return { violated: false };
-}
+  // 3. Word Filter (Slurs, Profanity, Custom Terms, Allowlist)
+  if (settings.word_filter || settings.slurs_category_enabled || settings.profanity_category_enabled) {
+    const allowlist = customSettings ? [] : await getAutoModAllowlist(guildId);
+    const customWords = customSettings ? [] : await getAutoModWords(guildId);
 
-/**
- * Enforces an AutoMod violation by deleting the message, punishing the user, and logging the event
- * @param {import('discord.js').Message} message
- * @param {string} rule
- * @param {string} reason
- * @param {object} [customSettings]
- */
-export async function enforceViolation(message, rule, reason, customSettings = null) {
-  const settings = customSettings || await getGuildSettings(message.guild.id);
-  const action = settings?.automod_action || 'delete';
-
-  // 1. Delete offending message (if not already deleted)
-  await message.delete().catch(() => {});
-
-  // 2. Execute configured punishment
-  let punishmentApplied = 'Message Deleted';
-
-  if (action === 'warn') {
-    punishmentApplied = 'Message Deleted & Member Warned';
-    const warning = await message.channel.send({
-      content: `⚠️ <@${message.author.id}>, your message was removed by **AutoMod**.\n> **Reason:** ${reason}`
-    }).catch(() => null);
-
-    if (warning) {
-      setTimeout(() => warning.delete().catch(() => {}), 6000);
-    }
-  } else if (action === 'timeout') {
-    punishmentApplied = 'Message Deleted & 5-Minute Timeout';
-    if (message.member?.moderatable) {
-      await message.member.timeout(5 * 60 * 1000, `AutoMod Violation: ${reason}`).catch(err => {
-        logger.warn({ err }, 'Could not timeout member for AutoMod violation');
-      });
+    // 3a. Custom words list from customSettings (e.g. automod_banned_words)
+    if (customWordsList && customWordsList.length > 0) {
+      for (const word of customWordsList) {
+        const test = testWordMatch(content, word, 'word', allowlist);
+        if (test.matched) {
+          return {
+            violated: true,
+            rule: 'word_filter',
+            reason: `Prohibited blacklisted phrase detected (\`${word}\`).`,
+            matchedText: word,
+            severity: 'medium',
+            action: settings.action || 'delete'
+          };
+        }
+      }
     }
 
-    const warning = await message.channel.send({
-      content: `⛔ <@${message.author.id}> has been timed out for **5 minutes** by **AutoMod**.\n> **Reason:** ${reason}`
-    }).catch(() => null);
-
-    if (warning) {
-      setTimeout(() => warning.delete().catch(() => {}), 8000);
+    // 3b. Slurs (Severe tier)
+    if (settings.slurs_category_enabled !== false) {
+      for (const slur of baselineSlurs) {
+        const test = testWordMatch(content, slur, 'word', allowlist);
+        if (test.matched) {
+          return {
+            violated: true,
+            rule: 'slur_filter',
+            reason: 'Prohibited hate speech or slur detected.',
+            matchedText: slur,
+            severity: settings.slurs_severity || 'severe',
+            action: settings.slurs_severity === 'severe' ? 'timeout' : (settings.action || 'delete')
+          };
+        }
+      }
     }
-  }
 
-  // 3. Send incident log to configured AutoMod log channel
-  const logChannelId = settings?.automod_log_channel_id || settings?.log_channel_id;
-  if (logChannelId) {
-    const logChannel = message.guild.channels.cache.get(logChannelId);
-    if (logChannel && logChannel.isTextBased?.()) {
-      try {
-        const logContainer = new ContainerBuilder();
-        const cleanSnippet = (message.content || '[No text content]').slice(0, 500);
-        const logContent =
-          `# 🛡️ AutoMod Incident Log\n` +
-          `### Violation: ${rule.toUpperCase().replace(/_/g, ' ')}\n` +
-          `- **User:** <@${message.author.id}> (\`${message.author.tag || message.author.id}\`)\n` +
-          `- **Channel:** <#${message.channel.id}>\n` +
-          `- **Action Taken:** **${punishmentApplied}**\n` +
-          `- **Reason:** ${reason}\n\n` +
-          `**Deleted Content:**\n` +
-          `> ${cleanSnippet.split('\n').join('\n> ')}`;
+    // 3c. Profanity (Mild tier)
+    if (settings.profanity_category_enabled !== false) {
+      for (const prof of baselineProfanity) {
+        const test = testWordMatch(content, prof, 'word', allowlist);
+        if (test.matched) {
+          return {
+            violated: true,
+            rule: 'profanity_filter',
+            reason: 'Prohibited vulgar language detected.',
+            matchedText: prof,
+            severity: settings.profanity_severity || 'mild',
+            action: settings.action || 'delete'
+          };
+        }
+      }
+    }
 
-        logContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(logContent));
-
-        await logChannel.send({
-          components: [logContainer],
-          flags: MessageFlags.IsComponentsV2
-        }).catch(() => {});
-      } catch (err) {
-        logger.warn({ err }, 'Could not send AutoMod incident log');
+    // 3d. Custom Server Words
+    if (settings.custom_category_enabled !== false && customWords.length > 0) {
+      for (const item of customWords) {
+        const test = testWordMatch(content, item.word, item.match_type || 'word', allowlist);
+        if (test.matched) {
+          return {
+            violated: true,
+            rule: `custom_word:${item.category}`,
+            reason: `Blacklisted server phrase detected (\`${item.word}\`).`,
+            matchedText: item.word,
+            severity: item.severity || 'medium',
+            action: settings.action || 'delete'
+          };
+        }
       }
     }
   }
 
-  return { rule, action, punishmentApplied };
+  // 4. Custom Regex Rules (Max 50 rules, ReDoS safe)
+  const regexRules = customSettings ? (customSettings.regexRules || []) : await getAutoModRegexRules(guildId);
+  if (regexRules && regexRules.length > 0) {
+    for (const rule of regexRules) {
+      if (rule.enabled === false) continue;
+      const valid = validateRegexPattern(rule.pattern, rule.flags || 'i');
+      if (!valid.valid || !valid.regex) continue;
+
+      const exec = safeRegexExec(valid.regex, content);
+      if (exec.matched) {
+        return {
+          violated: true,
+          rule: `regex:${rule.name}`,
+          reason: `Violated custom pattern rule: "${rule.name}"`,
+          matchedText: exec.matchText || rule.pattern,
+          severity: rule.severity || 'medium',
+          action: rule.action || settings.action || 'delete'
+        };
+      }
+    }
+  }
+
+  return { violated: false };
 }
 
 /**
- * Direct entry point for handling incoming messages in messageCreate event
+ * Enforces an AutoMod violation:
+ * 1. Instantly deletes the message
+ * 2. Adds strike and checks threshold escalation
+ * 3. Applies punishment (delete, warn, timeout, kick, ban)
+ * 4. DMs the user a short Components V2 notice (if enabled)
+ * 5. Logs to log channel with masked slurs and unix timestamp
+ *
  * @param {import('discord.js').Message} message
- * @returns {Promise<boolean>} True if message was intercepted and handled by AutoMod
+ * @param {object} violation
+ */
+export async function enforceViolation(message, violation) {
+  const guild = message.guild;
+  const author = message.author;
+  const settings = await getAutoModSettings(guild.id);
+
+  // 1. Instant deletion
+  await message.delete().catch(() => {});
+
+  // 2. Add strike & track escalation
+  const strikeCount = await addStrike(guild.id, author.id, violation.rule, settings.strike_expiry_hours || 24);
+
+  // Determine punishment with strike escalation
+  let appliedAction = violation.action || settings.action || 'delete';
+
+  const timeoutThreshold = settings.strike_threshold_timeout || 3;
+  const kickThreshold = settings.strike_threshold_kick || 5;
+  const banThreshold = settings.strike_threshold_ban || 7;
+
+  if (strikeCount >= banThreshold) {
+    appliedAction = 'ban';
+  } else if (strikeCount >= kickThreshold) {
+    appliedAction = 'kick';
+  } else if (strikeCount >= timeoutThreshold && appliedAction === 'delete') {
+    appliedAction = 'timeout';
+  }
+
+  let punishmentText = 'Message Removed';
+
+  // 3. Execute Punishment
+  try {
+    if (appliedAction === 'timeout') {
+      if (message.member?.moderatable) {
+        const durationMs = 10 * 60 * 1000; // 10 minutes
+        await message.member.timeout(durationMs, `AutoMod Violation: ${violation.reason} (Strike #${strikeCount})`);
+        punishmentText = `Message Removed & 10m Timeout (Strike #${strikeCount})`;
+      }
+    } else if (appliedAction === 'kick') {
+      if (message.member?.kickable) {
+        await message.member.kick(`AutoMod Escalation: ${violation.reason} (Strike #${strikeCount})`);
+        punishmentText = `Message Removed & Member Kicked (Strike #${strikeCount})`;
+      }
+    } else if (appliedAction === 'ban') {
+      if (message.member?.bannable) {
+        await guild.bans.create(author.id, {
+          reason: `AutoMod Escalation: ${violation.reason} (Strike #${strikeCount})`,
+          deleteMessageSeconds: 3600
+        });
+        punishmentText = `Message Removed & Member Banned (Strike #${strikeCount})`;
+      }
+    } else if (appliedAction === 'warn') {
+      punishmentText = `Message Removed & Warning Issued (Strike #${strikeCount})`;
+    }
+  } catch (err) {
+    logger.warn({ err, guildId: guild.id, userId: author.id }, 'Could not execute AutoMod punishment');
+  }
+
+  // 4. DM User Notice
+  if (settings.dm_user_on_action !== false) {
+    try {
+      const dmContainer = new ContainerBuilder();
+      const dmContent =
+        `## 🛡️ AutoMod Notice from ${format.escapeMarkdown(guild.name)}\n` +
+        `Your message was removed by the server's automated safety filter.\n\n` +
+        `- **Reason:** ${violation.reason}\n` +
+        `- **Action Taken:** **${punishmentText}**\n` +
+        `- **Current Strikes:** \`${strikeCount}\`\n\n` +
+        `-# Please review the server rules to avoid further moderation actions.`;
+
+      dmContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(dmContent));
+      await author.send({
+        components: [dmContainer],
+        flags: MessageFlags.IsComponentsV2
+      }).catch(() => {});
+    } catch (_) {}
+  }
+
+  // 5. Send Incident Log
+  const logChanId = settings.log_channel_id;
+  if (logChanId) {
+    const logChan = guild.channels.cache.get(logChanId);
+    if (logChan && logChan.isTextBased?.()) {
+      try {
+        const maskedSnippet = maskSlur(violation.matchedText || 'Blocked Content');
+        const cleanContent = format.escapeMarkdown((message.content || '').slice(0, 300));
+        const unixTimestamp = Math.floor(Date.now() / 1000);
+
+        const logContainer = new ContainerBuilder();
+        const headerText =
+          `## 🛡️ AutoMod Enforcement Incident\n` +
+          `Automated moderation triggered in <#${message.channel.id}> <t:${unixTimestamp}:R>.\n\n` +
+          `- **Offender:** <@${author.id}> (\`${author.tag || author.id}\`)\n` +
+          `- **Channel:** <#${message.channel.id}>\n` +
+          `- **Rule Triggered:** \`${violation.rule}\`\n` +
+          `- **Matched Content:** \`${maskedSnippet}\`\n` +
+          `- **Action Taken:** **${punishmentText}**\n` +
+          `- **Strike Count:** \`${strikeCount}\`\n` +
+          `- **Reason:** ${violation.reason}\n\n` +
+          `**Original Message Snippet:**\n` +
+          `> ${cleanContent.split('\n').join('\n> ')}`;
+
+        logContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(headerText));
+
+        await logChan.send({
+          components: [logContainer],
+          flags: MessageFlags.IsComponentsV2,
+          allowedMentions: { parse: [] }
+        }).catch(() => {});
+      } catch (err) {
+        logger.warn({ err }, 'Error sending AutoMod incident log');
+      }
+    }
+  }
+
+  return { rule: violation.rule, appliedAction, strikeCount };
+}
+
+/**
+ * Direct entry point for incoming messages in messageCreate event
+ * @param {import('discord.js').Message} message
+ * @returns {Promise<boolean>} True if handled
  */
 export async function handleAutoModMessage(message) {
-  const result = await scanMessage(message);
-  if (result.violated) {
-    // Instant microsecond deletion: fire message.delete immediately without blocking
-    message.delete().catch(() => {});
-    enforceViolation(message, result.rule, result.reason).catch(err => {
-      logger.error({ err }, 'Error enforcing AutoMod violation');
-    });
-    return true;
+  try {
+    const violation = await scanMessage(message);
+    if (violation.violated) {
+      // Immediate deletion without waiting
+      message.delete().catch(() => {});
+      enforceViolation(message, violation).catch(err => {
+        logger.error({ err }, 'Error enforcing AutoMod violation');
+      });
+      return true;
+    }
+  } catch (err) {
+    logger.error({ err }, 'Error in handleAutoModMessage pipeline');
   }
   return false;
 }
+
+export default {
+  scanMessage,
+  enforceViolation,
+  handleAutoModMessage,
+  isAutoModBypassed
+};

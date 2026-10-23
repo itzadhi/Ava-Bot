@@ -18,6 +18,8 @@ import * as panels from './panels.js';
 import * as tickets from './tickets.js';
 import * as permify from './permify.js';
 import { getGuildRoles } from './permify.js';
+import * as automod from './automod.js';
+import * as antinuke from './antinuke.js';
 
 export const db = {
   client: getSupabase,
@@ -38,7 +40,9 @@ export const db = {
   voice,
   panels,
   tickets,
-  permify
+  permify,
+  automod,
+  antinuke
 };
 
 export {
@@ -61,7 +65,9 @@ export {
   panels,
   tickets,
   permify,
-  getGuildRoles
+  getGuildRoles,
+  automod,
+  antinuke
 };
 
 export default db;

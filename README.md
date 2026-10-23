@@ -292,3 +292,110 @@ supabase/migrations/20261021_permify.sql
 - **Pre-Execution Snapshot**: Prior to changing any overwrite, a full JSON snapshot of all channels, categories, and previous settings is saved into `permify_snapshots` (retaining the last 3 per guild).
 - **Rate-Limited Rebuild**: Sequential processing with rate-limit pacing and a live V2 progress card updated every ~5 channels.
 - **1-Click Undo**: If needed, click `Undo Last Run` on the final report card (or when reopening `/permify`) and type `UNDO` to restore the exact previous channel overwrites and settings.
+
+---
+
+## 🛡️ Anti-Nuke Server Protection System
+
+Argoni includes an enterprise-grade Anti-Nuke defence mechanism accessible via `/antinuke` (or prefix `&antinuke` and `a!antinuke`). Built strictly with **Components V2**, pure grey buttons, and zero embed sidebars, it provides autonomous real-time protection against rogue staff, compromised bots, and coordinated server raids.
+
+### 🚀 Key Capabilities
+1. **Mass Channel Deletion Guard & Auto-Restore**:
+   - Detects channel deletions using per-executor sliding windows.
+   - Non-trusted users exceeding the threshold are immediately punished (banned, kicked, or stripped of roles).
+   - Sequentially restores channels from snapshot data preserving category parents, order, permission overwrites, topic, nsfw, bitrate, and user limits.
+   - **Database ID Remapping**: Automatically updates remapped channel IDs across `guild_settings`, `ticket_settings`, `automod_settings`, `antinuke_settings`, and `module_data`.
+   - **Ticket Exemption**: Ticket channels (`ticket-*`, `tkt-*`) and configured ticket categories are strictly excluded from snapshot, restoration, and lockdown overwrites.
+2. **Server Raid Detection & Emergency Lockdown**:
+   - Analyzes rapid message flooding from multiple users, repeated identical content waves, and burst account joins.
+   - Automatically executes server lockdown: denies `@everyone` `SendMessages`, `SendMessagesInThreads`, `CreatePublicThreads`, `AddReactions`, and `Connect`.
+   - Backs up existing overwrites to `lockdown_state` in Supabase for exact restoration upon unlock.
+   - Automatically purges recent raid messages and bans raid spammers.
+   - **Auto-Unlock**: Monitors a calm timer (e.g. 60s without raid spam) and maximum safety duration (e.g. 15m), restoring all channels cleanly.
+   - **Restart Recovery**: Active lockdowns and monitor timers seamlessly resume after bot restarts.
+3. **Extra Protections**:
+   - **Mass Role Deletion**: Prevents and restores bulk role deletions.
+   - **Unauthorized Bot Add**: Immediately kicks unauthorized bots added by non-trusted users and punishes the adder.
+   - **Dangerous Permissions**: Detects unauthorized grants of `Administrator`, `ManageGuild`, `ManageRoles`, `ManageChannels`, `BanMembers`, or `MentionEveryone` and reverts permissions.
+   - **Webhook Spam**: Mitigates and deletes spam webhooks.
+4. **Dry-Run Simulation**:
+   - Run `/antinuke test` to simulate mass channel deletions, verify restoration logic, and inspect audit logs without deleting real server channels.
+
+### 📋 Anti-Nuke 7-Page Wizard Overview
+
+| Page | Title | Description | Controls |
+| :---: | :--- | :--- | :--- |
+| **1** | **Status & Health** | System state, permission pre-checks, role hierarchy check | Toggle Enable/Disable, Dry-Run Mode, Run Test Simulation |
+| **2** | **Trusted Roles & Owners** | Manage extra owners and immune roles that bypass Anti-Nuke | Multi-select role menu, Add Extra Owner modal |
+| **3** | **Channel Restoration** | Sliding window limits and punishment action (ban, kick, strip) | Threshold modal (limit, window), Single deletion toggle |
+| **4** | **Protected Exceptions** | Exempt specific channels or categories from Anti-Nuke | Category select, Channel select, Ticket status |
+| **5** | **Auto Lockdown** | Raid spam criteria, calm timer, and max safety duration | Raid thresholds modal, Punishment dropdown |
+| **6** | **Extra Protections** | Toggle bot protection, role guards, dangerous perm reverts | Grey toggle buttons per protection vector |
+| **7** | **Logs & Summary** | Incident log channel and complete protection overview | Channel select menu, Refresh diagnostics |
+
+### 🛠️ Lockdown Command Reference
+
+| Command | Usage | Description | Permission |
+| :--- | :--- | :--- | :--- |
+| `/antinuke` | `&antinuke` | Open the 7-page interactive Anti-Nuke control panel | Server Owner Only |
+| `/antinuke test`| `&antinuke test` | Run dry-run simulation of channel delete and recovery | Server Owner Only |
+| `/lockdown on` | `&lockdown on [reason]` | Manually trigger emergency server lockdown | Server Owner / Admin |
+| `/lockdown off`| `&lockdown off [reason]`| Lift server lockdown and restore original overwrites | Server Owner / Admin |
+| `/lockdown status`| `&lockdown status` | Check current server lockdown status and calm timer | Server Owner / Admin |
+
+---
+
+## 🛡️ AutoMod V2 Protection Engine
+
+Argoni features a complete rewrite of the AutoMod engine, fixing previous persistence bugs by storing all configurations directly in Supabase (`automod_settings`, `automod_words`, `automod_allowlist`, `automod_regex`, `automod_exemptions`, `automod_strikes`) with full write-through caching.
+
+### 🚀 Key Features
+1. **Slur & Profanity Filtering with Advanced Normalization**:
+   - High-performance Unicode NFKC normalization.
+   - Homoglyph normalization (Cyrillic, Greek homoglyphs mapped to Latin).
+   - Leetspeak substitution mapping (`b!tch` -> `bitch`, `1337` -> `leet`, `@ss` -> `ass`).
+   - Invisible and zero-width character stripping (`\u200B`, `\u200C`, `\uFEFF`, `\u200E`, `\u200F`).
+   - Collapsing repeated characters (`fuuuck` -> `fuck`) and spaced letters (`f u c k`, `f.u.c.k` -> `fuck`).
+   - Slur masking in logs (`s******d`).
+2. **ReDoS-Protected Custom Regex Rules**:
+   - Supports up to 50 custom server regex rules.
+   - Evaluated via `safe-regex2` with execution timeout guards to prevent Catastrophic Backtracking and bot freezes.
+3. **Domain Allowlist & Phishing Shield**:
+   - Discord server invite blocker (`discord.gg/*`).
+   - External web link filter with domain allowlist and denylist.
+   - Fake Nitro, Steam, and phishing scam detection.
+4. **Strike Escalation & Punishments**:
+   - Configurable strike thresholds for automated 5-minute timeout, kick, and ban escalations.
+   - Rolling strike expiration (default 24h).
+5. **Real-Time Interactive Tester**:
+   - Run `/automod test <text>` to inspect how text is normalized, test rules, and preview matches without punishing members.
+
+### 📋 AutoMod 8-Page Wizard Overview
+
+| Page | Title | Description |
+| :---: | :--- | :--- |
+| **1** | **Status Overview** | Master toggle, default enforcement action (delete, warn, timeout), filter toggles |
+| **2** | **Word Filter** | Slurs (severe tier), Profanity (mild tier), Custom server terms, Whitelisted false-positives |
+| **3** | **Regex Rules** | Add, remove, and toggle custom regular expressions (max 50, ReDoS verified) |
+| **4** | **Link & Invite Rules**| Block invite links, external links, allowed domains, scam nitro protection |
+| **5** | **Spam Rules** | Rapid flood sliding window, duplicate flood, excessive caps (>70%), mass mentions (>4), zalgo |
+| **6** | **Exemptions** | Bypass roles, channels, categories, users, and ticket category exemption |
+| **7** | **Punishments & Strikes**| Configure timeout, kick, and ban thresholds, strike expiry duration |
+| **8** | **Logging & Auditing** | Set incident log channel, DM notification toggles, log formatting |
+
+---
+
+## 🔑 Required Discord Gateway Intents
+
+To enable complete protection and event monitoring, enable the following Privileged Gateway Intents in the [Discord Developer Portal](https://discord.com/developers/applications):
+- **Server Members Intent** (`GuildMembers`): Required for role tracking, sticky roles, autoroles, and bot addition monitoring.
+- **Message Content Intent** (`MessageContent`): Required for AutoMod message scanning, spam detection, and raid monitoring.
+
+The bot automatically registers:
+- `GatewayIntentBits.Guilds`
+- `GatewayIntentBits.GuildMembers`
+- `GatewayIntentBits.GuildMessages`
+- `GatewayIntentBits.MessageContent`
+- `GatewayIntentBits.GuildWebhooks` (for webhook spam mitigation)
+- `GatewayIntentBits.GuildVoiceStates` (for voice and TTS)
+
