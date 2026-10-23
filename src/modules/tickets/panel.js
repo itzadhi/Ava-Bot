@@ -107,7 +107,7 @@ export async function buildPublishedPanelCard({ panel, categories = [] }) {
           .setCustomId(`tkt:panel:open:${panel.id}:default`)
           .setLabel(panel.button_label || 'Open Ticket')
           .setEmoji(panel.button_emoji || '🎫')
-          .setStyle(ButtonStyle.Primary)
+          .setStyle(ButtonStyle.Secondary)
       ));
     }
 
@@ -122,7 +122,7 @@ export async function buildPublishedPanelCard({ panel, categories = [] }) {
         .setCustomId(`tkt:panel:single:${panel.id}`)
         .setLabel(panel.button_label || 'Open Ticket')
         .setEmoji(panel.button_emoji || '🎫')
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Secondary)
     );
     container.addActionRowComponents(singleRow);
 
@@ -293,18 +293,18 @@ export async function renderPanelManagerDashboard(guildOrOpts, selectedPanelId =
         .setCustomId('tkt:mgr:create_btn')
         .setLabel('New Panel')
         .setEmoji('➕')
-        .setStyle(ButtonStyle.Primary),
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(`tkt:mgr:del_btn:${activePanel.id}`)
         .setLabel('Delete')
         .setEmoji('🗑️')
-        .setStyle(ButtonStyle.Danger)
+        .setStyle(ButtonStyle.Secondary)
     ] : [
       new ButtonBuilder()
         .setCustomId('tkt:mgr:create_btn')
         .setLabel('Create Panel')
         .setEmoji('➕')
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Secondary)
     ])
   );
 
@@ -380,12 +380,12 @@ export async function renderPanelImageConfigCard(guildOrOpts, panelId) {
       .setCustomId(`tkt:mgr:arm_drop:${panel.id}:banner`)
       .setLabel('Upload Banner (Drag & Drop)')
       .setEmoji('📤')
-      .setStyle(ButtonStyle.Primary),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(`tkt:mgr:arm_drop:${panel.id}:thumbnail`)
       .setLabel('Upload Thumbnail (Drag & Drop)')
       .setEmoji('📤')
-      .setStyle(ButtonStyle.Primary),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(`tkt:mgr:img_modal_open:${panel.id}`)
       .setLabel('Enter URLs')
@@ -399,7 +399,7 @@ export async function renderPanelImageConfigCard(guildOrOpts, panelId) {
       .setCustomId(`tkt:mgr:clear_images:${panel.id}`)
       .setLabel('Clear Images')
       .setEmoji('🗑️')
-      .setStyle(ButtonStyle.Danger),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(`tkt:mgr:back_dash:${panel.id}`)
       .setLabel('Back to Dashboard')

@@ -25,7 +25,7 @@ export const presenceTab = {
       new ButtonBuilder()
         .setCustomId(`owner:presence:status_modal:${state.sessionId}`)
         .setLabel('Set Activity')
-        .setStyle(ButtonStyle.Primary),
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(`owner:presence:state_modal:${state.sessionId}`)
         .setLabel('Set State')
@@ -33,7 +33,7 @@ export const presenceTab = {
       new ButtonBuilder()
         .setCustomId(`owner:presence:reset:${state.sessionId}`)
         .setLabel('Reset Default')
-        .setStyle(ButtonStyle.Danger)
+        .setStyle(ButtonStyle.Secondary)
     ];
   },
 

@@ -74,11 +74,11 @@ export function buildBoostPanel(guildSettings, guild = null) {
     new ButtonBuilder()
       .setCustomId('fb:bst:toggle_track:0')
       .setLabel(isTracking ? 'Disable Tracking' : 'Enable Tracking')
-      .setStyle(isTracking ? ButtonStyle.Danger : ButtonStyle.Success),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId('fb:bst:toggle_role:0')
       .setLabel(isAutoRole ? 'Auto-Role: ON' : 'Auto-Role: OFF')
-      .setStyle(isAutoRole ? ButtonStyle.Primary : ButtonStyle.Secondary),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId('fb:bst:edit_msg:0')
       .setLabel('Edit Message')
@@ -90,7 +90,7 @@ export function buildBoostPanel(guildSettings, guild = null) {
     new ButtonBuilder()
       .setCustomId('fb:bst:test:0')
       .setLabel('Test Celebration Card')
-      .setStyle(ButtonStyle.Primary),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId('fb:bst:clear_role:0')
       .setLabel('Clear Booster Role')

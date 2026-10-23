@@ -76,7 +76,7 @@ export class GoogleTTSProvider extends TTSProvider {
 
       const response = await fetch(audioUrl);
       if (!response.ok) {
-        throw new Error(`Google TTS request failed with HTTP ${response.status}`);
+        throw new Error(`Google TTS request failed with HTTP ${response.status}`, { cause: err });
       }
       const arrayBuffer = await response.arrayBuffer();
       initialBuffer = Buffer.from(arrayBuffer);

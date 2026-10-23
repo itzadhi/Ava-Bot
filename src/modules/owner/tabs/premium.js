@@ -29,11 +29,11 @@ export const premiumTab = {
       new ButtonBuilder()
         .setCustomId(`owner:premium:grant_modal:${state.sessionId}`)
         .setLabel('Grant Tier')
-        .setStyle(ButtonStyle.Primary),
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(`owner:premium:revoke_modal:${state.sessionId}`)
         .setLabel('Revoke Tier')
-        .setStyle(ButtonStyle.Danger),
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(`owner:premium:check_modal:${state.sessionId}`)
         .setLabel('Check Guild')
@@ -41,7 +41,7 @@ export const premiumTab = {
       new ButtonBuilder()
         .setCustomId(`owner:premium:code_modal:${state.sessionId}`)
         .setLabel('Generate Code')
-        .setStyle(ButtonStyle.Success)
+        .setStyle(ButtonStyle.Secondary)
     ];
   },
 

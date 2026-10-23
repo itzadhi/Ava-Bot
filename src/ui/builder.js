@@ -78,8 +78,10 @@ export class ComponentBuilder {
    */
   addText(content) {
     if (!content) return this;
+    const str = String(content);
+    const safeContent = str.length > 4000 ? str.slice(0, 3997) + '...' : str;
     this.container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(String(content))
+      new TextDisplayBuilder().setContent(safeContent)
     );
     return this;
   }
@@ -239,7 +241,7 @@ export class ComponentBuilder {
       .setDisabled(Boolean(options.disabled));
 
     if (Array.isArray(options.options)) {
-      select.addOptions(options.options);
+      select.addOptions(options.options.slice(0, 25));
     }
 
     const row = new ActionRowBuilder().addComponents(select);
@@ -356,7 +358,8 @@ export class ComponentBuilder {
     if (opts.url) {
       btn.setURL(opts.url).setStyle(ButtonStyle.Link);
     } else {
-      btn.setCustomId(opts.id || opts.customId || `btn_${Date.now()}`);
+      const rawId = String(opts.id || opts.customId || `btn_${Date.now()}`);
+      btn.setCustomId(rawId.slice(0, 100));
       btn.setStyle(this._resolveButtonStyle(opts.style));
     }
 
@@ -372,12 +375,9 @@ export class ComponentBuilder {
    * @private
    */
   _resolveButtonStyle(style) {
-    if (typeof style === 'number') return style;
-    const lower = String(style || '').toLowerCase();
-    if (lower === 'primary' || lower === 'blurple') return ButtonStyle.Primary;
-    if (lower === 'success' || lower === 'green') return ButtonStyle.Success;
-    if (lower === 'danger' || lower === 'red') return ButtonStyle.Danger;
-    if (lower === 'link') return ButtonStyle.Link;
+    if (style === ButtonStyle.Link || String(style || '').toLowerCase() === 'link') {
+      return ButtonStyle.Link;
+    }
     return ButtonStyle.Secondary;
   }
 

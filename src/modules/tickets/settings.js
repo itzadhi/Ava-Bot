@@ -106,7 +106,7 @@ export async function renderTicketSettingsDashboard({
         .setCustomId('tkt:cfg:toggle_enabled')
         .setLabel(isEnabled ? 'Disable System' : 'Enable System')
         .setEmoji(isEnabled ? '🔴' : '🟢')
-        .setStyle(isEnabled ? ButtonStyle.Danger : ButtonStyle.Success),
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId('tkt:cfg:edit_limits')
         .setLabel('Edit Limits & Cooldown')
@@ -189,7 +189,7 @@ export async function renderTicketSettingsDashboard({
         .setCustomId('tkt:cfg:add_cat_btn')
         .setLabel('Add Category')
         .setEmoji('➕')
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Secondary)
     );
     container.addActionRowComponents(row);
 
@@ -212,7 +212,7 @@ export async function renderTicketSettingsDashboard({
         .setCustomId('tkt:cfg:toggle_autoclose')
         .setLabel(autoHours > 0 ? `Timer: ${autoHours}h` : 'Enable (24h)')
         .setEmoji('⏱️')
-        .setStyle(autoHours > 0 ? ButtonStyle.Success : ButtonStyle.Secondary),
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId('tkt:cfg:edit_del_delay')
         .setLabel(`Delete Delay: ${delSec}s`)
@@ -237,7 +237,7 @@ export async function renderTicketSettingsDashboard({
         .setCustomId('tkt:cfg:toggle_ratings')
         .setLabel(isRating ? 'Disable Ratings' : 'Enable Ratings')
         .setEmoji('⭐')
-        .setStyle(isRating ? ButtonStyle.Danger : ButtonStyle.Success)
+        .setStyle(ButtonStyle.Secondary)
     );
     container.addActionRowComponents(row);
 
@@ -287,7 +287,7 @@ export async function renderTicketSettingsDashboard({
         .setCustomId('tkt:cfg:add_bl_btn')
         .setLabel('Add to Blacklist')
         .setEmoji('➕')
-        .setStyle(ButtonStyle.Danger)
+        .setStyle(ButtonStyle.Secondary)
     );
     container.addActionRowComponents(row);
   }

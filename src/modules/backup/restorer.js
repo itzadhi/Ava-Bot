@@ -4,6 +4,7 @@ import {
 } from 'discord.js';
 import { logAudit } from '../../db/audit.js';
 import { logger } from '../../utils/logger.js';
+import { sanitizeEmbeds, componentsToEmbed, sanitizeEmbedForSend } from '../../utils/embed.js';
 
 /**
  * Validates bot permissions before attempting a restore
@@ -415,7 +416,7 @@ export async function restoreServerBackup({
                 }
 
                 let content = typeof msg.content === 'string' ? msg.content : '';
-                if (!content.replace(/[\s\u200b\u200c\u200d\ufeff]/g, '')) {
+                if (!content.replace(/[\s\u200b\u200c\u200d\ufeff]/gu, '')) {
                   content = '';
                 } else {
                   content = content.trim();

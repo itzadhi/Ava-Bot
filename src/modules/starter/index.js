@@ -39,7 +39,7 @@ export const starterModule = defineModule({
           new ButtonBuilder()
             .setCustomId(`starter:click:${targetGuild}`)
             .setLabel(`Increment Counter (${currentCount})`)
-            .setStyle(ButtonStyle.Primary)
+            .setStyle(ButtonStyle.Secondary)
             .setEmoji('⚡'),
           new ButtonBuilder()
             .setCustomId(`starter:modal:${targetGuild}`)

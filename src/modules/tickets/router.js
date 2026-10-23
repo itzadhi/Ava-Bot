@@ -39,6 +39,7 @@ import {
   handleAddStaffNote
 } from './actions.js';
 import { generateAndSaveTranscript } from './transcript.js';
+import { refreshTicketControlCard } from './controls.js';
 import { buildRatingFeedbackModal, handleRatingSubmission } from './ratings.js';
 import { renderTicketSettingsDashboard } from './settings.js';
 import {

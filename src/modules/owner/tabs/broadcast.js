@@ -43,7 +43,7 @@ export const broadcastTab = {
         new ButtonBuilder()
           .setCustomId(`owner:broadcast:confirm_dispatch:${state.sessionId}`)
           .setLabel('Confirm & Dispatch')
-          .setStyle(ButtonStyle.Success),
+          .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
           .setCustomId(`owner:broadcast:cancel_draft:${state.sessionId}`)
           .setLabel('Cancel Draft')
@@ -55,7 +55,7 @@ export const broadcastTab = {
       new ButtonBuilder()
         .setCustomId(`owner:broadcast:compose_modal:${state.sessionId}`)
         .setLabel('Compose')
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Secondary)
     ];
   },
 

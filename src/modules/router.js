@@ -7,6 +7,8 @@ import {
   ButtonBuilder,
   ButtonStyle,
   UserSelectMenuBuilder,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
   ChannelSelectMenuBuilder,
   ChannelType,
   PermissionFlagsBits,
@@ -1254,19 +1256,19 @@ async function routePanelInteraction(interaction, action, id) {
         .setCustomId(`fb:sug:approve:${suggestionId}`)
         .setLabel('Approve')
         .setEmoji('✅')
-        .setStyle(ButtonStyle.Success)
+        .setStyle(ButtonStyle.Secondary)
         .setDisabled(suggestion.status === 'approved'),
       new ButtonBuilder()
         .setCustomId(`fb:sug:deny:${suggestionId}`)
         .setLabel('Deny')
         .setEmoji('❌')
-        .setStyle(ButtonStyle.Danger)
+        .setStyle(ButtonStyle.Secondary)
         .setDisabled(suggestion.status === 'denied'),
       new ButtonBuilder()
         .setCustomId(`fb:sug:implement:${suggestionId}`)
         .setLabel('Implemented')
         .setEmoji('🚀')
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Secondary)
         .setDisabled(suggestion.status === 'implemented'),
       new ButtonBuilder()
         .setCustomId(`fb:sug:del:${suggestionId}`)

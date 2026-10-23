@@ -59,7 +59,7 @@ export function buildStickyPanel(guild, activeNotes = [], selectedChannelId = nu
     new ButtonBuilder()
       .setCustomId(`fb:stk:edit_modal:${selectedChannelId || 'none'}`)
       .setLabel('Edit Note')
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Secondary)
       .setDisabled(!selectedChannelId),
     new ButtonBuilder()
       .setCustomId(`fb:stk:toggle:${selectedChannelId || 'none'}`)
@@ -69,7 +69,7 @@ export function buildStickyPanel(guild, activeNotes = [], selectedChannelId = nu
     new ButtonBuilder()
       .setCustomId(`fb:stk:delete:${selectedChannelId || 'none'}`)
       .setLabel('Remove Note')
-      .setStyle(ButtonStyle.Danger)
+      .setStyle(ButtonStyle.Secondary)
       .setDisabled(!selectedChannelId),
     new ButtonBuilder()
       .setCustomId('fb:stk:refresh:0')

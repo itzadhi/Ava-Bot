@@ -7,7 +7,7 @@ export const PRESET_PATTERNS = {
   scam_nitro: /(?:discorcl|dlscord|disord|discord-app|discord-nitro|nitro-discord|discordgift|discord-free|steamnitro|free-nitro|nitro-gift|discord-airdrop|gift-discord)\.[a-z]{2,}/i,
   fake_everyone: /(?:@everyone|@here)[\s\S]*?(?:https?:\/\/|[a-z0-9]+\.(?:com|org|net|ru|xyz|gift|click))/i,
   repeated_chars: /(.)\1{9,}/,
-  zalgo: /[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]{5,}/,
+  zalgo: /[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]{5,}/u,
   emoji: /<a?:[a-zA-Z0-9_]+:[0-9]+>|[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu
 };
 

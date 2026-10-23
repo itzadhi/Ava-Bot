@@ -41,11 +41,11 @@ export const backupsTab = {
       new ButtonBuilder()
         .setCustomId(`owner:backups:lookup_modal:${state.sessionId}`)
         .setLabel('Lookup ID')
-        .setStyle(ButtonStyle.Primary),
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(`owner:backups:delete_modal:${state.sessionId}`)
         .setLabel('Force Delete')
-        .setStyle(ButtonStyle.Danger),
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(`owner:backups:refresh:${state.sessionId}`)
         .setLabel('Refresh Stats')

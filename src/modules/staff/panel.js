@@ -50,24 +50,24 @@ export async function renderStaffPanel({
   const tabRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId('fb:panel:tab:sug')
-      .setLabel('Suggestions')
+      .setLabel(activeTab === 'sug' ? '• Suggestions •' : 'Suggestions')
       .setEmoji('💡')
-      .setStyle(activeTab === 'sug' ? ButtonStyle.Primary : ButtonStyle.Secondary),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId('fb:panel:tab:fbk')
-      .setLabel('Feedback')
+      .setLabel(activeTab === 'fbk' ? '• Feedback •' : 'Feedback')
       .setEmoji('💬')
-      .setStyle(activeTab === 'fbk' ? ButtonStyle.Primary : ButtonStyle.Secondary),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId('fb:panel:tab:voice')
-      .setLabel('Voice & TTS')
+      .setLabel(activeTab === 'voice' ? '• Voice & TTS •' : 'Voice & TTS')
       .setEmoji('🎙️')
-      .setStyle(activeTab === 'voice' ? ButtonStyle.Primary : ButtonStyle.Secondary),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId('fb:panel:tab:settings')
-      .setLabel('Settings')
+      .setLabel(activeTab === 'settings' ? '• Settings •' : 'Settings')
       .setEmoji('⚙️')
-      .setStyle(activeTab === 'settings' ? ButtonStyle.Primary : ButtonStyle.Secondary)
+      .setStyle(ButtonStyle.Secondary)
   );
   container.addActionRowComponents(tabRow);
 
@@ -364,12 +364,12 @@ async function renderVoiceTab(container, guild, guildSettings) {
       .setCustomId('fb:panel:jtc_send_panel:0')
       .setLabel('Deploy Panel')
       .setEmoji('🎛️')
-      .setStyle(ButtonStyle.Primary),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId('fb:panel:tts_ann_toggle:0')
       .setLabel(guildSettings?.tts_announce ? 'Turn Off TTS' : 'Turn On TTS')
       .setEmoji('📢')
-      .setStyle(guildSettings?.tts_announce ? ButtonStyle.Danger : ButtonStyle.Success),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId('fb:panel:jtc_tmpl_btn:0')
       .setLabel('Name Template')
@@ -453,7 +453,7 @@ async function renderSettingsTab(container, guild, guildSettings) {
       .setCustomId('fb:panel:toggle_thread:0')
       .setLabel(guildSettings?.suggestion_thread_enabled !== false ? 'Threads: On' : 'Threads: Off')
       .setEmoji('🧵')
-      .setStyle(guildSettings?.suggestion_thread_enabled !== false ? ButtonStyle.Success : ButtonStyle.Secondary),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId('fb:panel:cd_btn:0')
       .setLabel('Cooldown')
@@ -467,11 +467,11 @@ async function renderSettingsTab(container, guild, guildSettings) {
     new ButtonBuilder()
       .setCustomId('fb:panel:toggle_sug:0')
       .setLabel(guildSettings?.suggestions_enabled !== false ? '/suggest: ON' : '/suggest: OFF')
-      .setStyle(guildSettings?.suggestions_enabled !== false ? ButtonStyle.Success : ButtonStyle.Danger),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId('fb:panel:toggle_fbk:0')
       .setLabel(guildSettings?.feedback_enabled !== false ? '/feedback: ON' : '/feedback: OFF')
-      .setStyle(guildSettings?.feedback_enabled !== false ? ButtonStyle.Success : ButtonStyle.Danger)
+      .setStyle(ButtonStyle.Secondary)
   );
 
   container.addActionRowComponents(toggleRow);

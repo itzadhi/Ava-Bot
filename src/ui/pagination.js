@@ -105,7 +105,7 @@ export function createPaginationRow({
     new ButtonBuilder()
       .setCustomId(`${customIdPrefix}:indicator:${safePage}`)
       .setLabel(`‹ ${safePage} / ${totalPages} ›`)
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Secondary)
       .setDisabled(true)
   );
 

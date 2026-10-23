@@ -36,7 +36,7 @@ export const blacklistTab = {
       new ButtonBuilder()
         .setCustomId(`owner:blacklist:add_modal:${state.sessionId}`)
         .setLabel('Add Entry')
-        .setStyle(ButtonStyle.Danger),
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(`owner:blacklist:remove_modal:${state.sessionId}`)
         .setLabel('Remove Entry')

@@ -19,7 +19,7 @@ export function greyButton({ id, label, emoji, disabled = false, url = null } = 
     btn.setStyle(ButtonStyle.Link).setURL(url);
   } else {
     btn.setStyle(ButtonStyle.Secondary);
-    if (id) btn.setCustomId(String(id));
+    if (id) btn.setCustomId(String(id).slice(0, 100));
   }
 
   if (label !== undefined && label !== null && String(label).trim().length > 0) {

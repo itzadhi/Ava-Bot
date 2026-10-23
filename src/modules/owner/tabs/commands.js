@@ -33,15 +33,15 @@ export const commandsTab = {
       new ButtonBuilder()
         .setCustomId(`owner:commands:reload_all:${state.sessionId}`)
         .setLabel('Reload All')
-        .setStyle(ButtonStyle.Primary),
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(`owner:commands:disable_modal:${state.sessionId}`)
         .setLabel('Disable Command')
-        .setStyle(ButtonStyle.Danger),
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(`owner:commands:enable_modal:${state.sessionId}`)
         .setLabel('Enable Command')
-        .setStyle(ButtonStyle.Success)
+        .setStyle(ButtonStyle.Secondary)
     ];
   },
 

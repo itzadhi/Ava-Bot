@@ -412,7 +412,7 @@ export async function recoverTicketFromChannel(channel) {
   let categoryName = 'General Support';
 
   if (channel.topic) {
-    const ownerMatch = channel.topic.match(/Owner:\s*([^\(]+)\s*\((\d+)\)/i);
+    const ownerMatch = channel.topic.match(/Owner:\s*([^(]+)\s*\((\d+)\)/i);
     if (ownerMatch) {
       ownerUsername = ownerMatch[1].trim();
       ownerId = ownerMatch[2].trim();

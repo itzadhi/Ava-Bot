@@ -420,7 +420,7 @@ export function confirmCard(arg1, arg2, opts = {}) {
     new ButtonBuilder()
       .setCustomId(confirmId)
       .setLabel(confirmLabel)
-      .setStyle(ButtonStyle.Danger),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(cancelId)
       .setLabel(cancelLabel)
@@ -477,7 +477,7 @@ export function paginatedCard({
     new ButtonBuilder()
       .setCustomId(`${customIdPrefix}:prev:${safePage - 1}`)
       .setLabel('‹ Prev')
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Secondary)
       .setDisabled(safePage <= 1),
     new ButtonBuilder()
       .setCustomId(`${customIdPrefix}:page`)
@@ -487,12 +487,12 @@ export function paginatedCard({
     new ButtonBuilder()
       .setCustomId(`${customIdPrefix}:next:${safePage + 1}`)
       .setLabel('Next ›')
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Secondary)
       .setDisabled(safePage >= calcTotalPages),
     new ButtonBuilder()
       .setCustomId(`${customIdPrefix}:close`)
       .setLabel('✕ Close')
-      .setStyle(ButtonStyle.Danger)
+      .setStyle(ButtonStyle.Secondary)
   );
 
   const blocks = [
@@ -738,15 +738,10 @@ export const buildContainer = container;
 
 /** Helper to resolve ButtonStyle strings or integers */
 function resolveButtonStyle(style) {
-  if (typeof style === 'number') return style;
-  switch (String(style).toLowerCase()) {
-    case 'primary': return ButtonStyle.Primary;
-    case 'secondary': return ButtonStyle.Secondary;
-    case 'success': return ButtonStyle.Success;
-    case 'danger': return ButtonStyle.Danger;
-    case 'link': return ButtonStyle.Link;
-    default: return ButtonStyle.Secondary;
+  if (style === ButtonStyle.Link || String(style || '').toLowerCase() === 'link') {
+    return ButtonStyle.Link;
   }
+  return ButtonStyle.Secondary;
 }
 
 /**

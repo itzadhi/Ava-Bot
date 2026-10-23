@@ -69,8 +69,8 @@ export function buildBotProfilePanel({ guild, client, currentSettings = null, no
   builder.addButton({ id: 'fb:bp:banner:0', label: 'Edit Banner', style: ButtonStyle.Secondary });
 
   // Row 2: Comprehensive edit, reset to defaults, and refresh
-  builder.addButton({ id: 'fb:bp:edit_all:0', label: 'Edit All', style: ButtonStyle.Primary });
-  builder.addButton({ id: 'fb:bp:reset:0', label: 'Reset Defaults', style: ButtonStyle.Danger });
+  builder.addButton({ id: 'fb:bp:edit_all:0', label: 'Edit All', style: ButtonStyle.Secondary });
+  builder.addButton({ id: 'fb:bp:reset:0', label: 'Reset Defaults', style: ButtonStyle.Secondary });
   builder.addButton({ id: 'fb:bp:refresh:0', label: 'Refresh', style: ButtonStyle.Secondary });
 
   return builder.build();

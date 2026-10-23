@@ -80,12 +80,12 @@ export async function renderChatlogPanel({ guild, channel = null }) {
     new ButtonBuilder()
       .setCustomId(`chatlog_auto_restore_current:${guild.id}`)
       .setLabel('Restore This Channel')
-      .setStyle(ButtonStyle.Success)
+      .setStyle(ButtonStyle.Secondary)
       .setEmoji('⚡'),
     new ButtonBuilder()
       .setCustomId(`chatlog_auto_restore_all:${guild.id}`)
       .setLabel('Restore All Channels')
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Secondary)
       .setEmoji('🔄'),
     new ButtonBuilder()
       .setCustomId(`chatlog_btn_refresh:${guild.id}`)
@@ -119,7 +119,7 @@ export function renderChannelRestorePrompt({ guild, channel, messageCount }) {
     new ButtonBuilder()
       .setCustomId(`chatlog_confirm_restore:${channel.id}`)
       .setLabel(`Confirm Restore (${messageCount} msgs)`)
-      .setStyle(ButtonStyle.Success)
+      .setStyle(ButtonStyle.Secondary)
       .setEmoji('⚡'),
     new ButtonBuilder()
       .setCustomId(`chatlog_btn_refresh:${guild.id}`)

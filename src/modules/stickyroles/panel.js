@@ -54,11 +54,11 @@ export function buildStickyRolesPanel(guildSettings, guild = null) {
     new ButtonBuilder()
       .setCustomId('fb:sr:toggle:0')
       .setLabel(isEnabled ? 'Disable Sticky Roles' : 'Enable Sticky Roles')
-      .setStyle(isEnabled ? ButtonStyle.Danger : ButtonStyle.Success),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId('fb:sr:mode:0')
       .setLabel(allRolesMode ? 'Mode: All Roles' : 'Mode: Whitelist Only')
-      .setStyle(ButtonStyle.Primary),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId('fb:sr:clear:0')
       .setLabel('Clear Whitelist')

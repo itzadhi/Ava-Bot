@@ -42,11 +42,11 @@ export const guildsTab = {
       new ButtonBuilder()
         .setCustomId(`owner:guilds:inspect_modal:${state.sessionId}`)
         .setLabel('Inspect')
-        .setStyle(ButtonStyle.Primary),
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(`owner:guilds:leave_modal:${state.sessionId}`)
         .setLabel('Leave Guild')
-        .setStyle(ButtonStyle.Danger)
+        .setStyle(ButtonStyle.Secondary)
     ];
   },
 

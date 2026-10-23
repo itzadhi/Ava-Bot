@@ -55,7 +55,7 @@ export const overviewTab = {
       new ButtonBuilder()
         .setCustomId(`owner:overview:toggle_maint:${state.sessionId}`)
         .setLabel(maintenance ? 'Disable Maintenance' : 'Enable Maintenance')
-        .setStyle(maintenance ? ButtonStyle.Success : ButtonStyle.Danger)
+        .setStyle(ButtonStyle.Secondary)
     ];
   },
 

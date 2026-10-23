@@ -130,4 +130,6 @@ async function runPreview() {
   }
 }
 
-runPreview().catch(console.error);
+if (process.argv[1]?.endsWith('preview.js')) {
+  runPreview().catch(console.error);
+}

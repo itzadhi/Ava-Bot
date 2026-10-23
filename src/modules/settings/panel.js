@@ -35,27 +35,27 @@ export async function renderSettingsPanel({ guild }) {
     new ButtonBuilder()
       .setCustomId(`set_toggle_chatlog:${guild.id}`)
       .setLabel(settings.chatlog_enabled ? 'Chatlog: ON' : 'Chatlog: OFF')
-      .setStyle(settings.chatlog_enabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setStyle(ButtonStyle.Secondary)
       .setEmoji('💬'),
     new ButtonBuilder()
       .setCustomId(`set_toggle_sync:${guild.id}`)
       .setLabel(settings.message_sync_enabled ? 'Sync: ON' : 'Sync: OFF')
-      .setStyle(settings.message_sync_enabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setStyle(ButtonStyle.Secondary)
       .setEmoji('🔄'),
     new ButtonBuilder()
       .setCustomId(`set_toggle_prefix:${guild.id}`)
       .setLabel(settings.prefix_commands_enabled ? 'Prefix: ON' : 'Prefix: OFF')
-      .setStyle(settings.prefix_commands_enabled ? ButtonStyle.Primary : ButtonStyle.Secondary)
+      .setStyle(ButtonStyle.Secondary)
       .setEmoji('⌨️'),
     new ButtonBuilder()
       .setCustomId(`set_btn_reset:${guild.id}`)
       .setLabel('Reset')
-      .setStyle(ButtonStyle.Danger)
+      .setStyle(ButtonStyle.Secondary)
       .setEmoji('🔄'),
     new ButtonBuilder()
       .setCustomId('fb:panel:tab:sug')
       .setLabel('Staff Ops Panel')
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Secondary)
       .setEmoji('🛡️')
   );
 

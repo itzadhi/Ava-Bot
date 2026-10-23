@@ -37,7 +37,7 @@ export const auditTab = {
       new ButtonBuilder()
         .setCustomId(`owner:audit:refresh:${state.sessionId}`)
         .setLabel('Refresh')
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Secondary)
     ];
   },
 

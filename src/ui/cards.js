@@ -252,7 +252,7 @@ export function confirmCard({
     new ButtonBuilder()
       .setCustomId(confirmCustomId)
       .setLabel(confirmLabel)
-      .setStyle(danger ? ButtonStyle.Danger : ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Secondary)
       .setEmoji(danger ? '⚠️' : '✅'),
     new ButtonBuilder()
       .setCustomId(cancelCustomId)
@@ -537,7 +537,7 @@ export function formCard({
     new ButtonBuilder()
       .setCustomId(buttonCustomId)
       .setLabel(buttonLabel)
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Secondary)
   );
 
   return card({
@@ -776,7 +776,7 @@ export function restoreConsoleCard({
       new ButtonBuilder()
         .setCustomId(confirmCustomId)
         .setLabel('Deploy')
-        .setStyle(ButtonStyle.Danger)
+        .setStyle(ButtonStyle.Secondary)
         .setEmoji('🚀'),
       new ButtonBuilder()
         .setCustomId(cancelCustomId)

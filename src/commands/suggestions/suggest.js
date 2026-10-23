@@ -1,8 +1,9 @@
 import { MessageFlags } from 'discord.js';
-import { getGuildSettings } from '../../db/guilds.js';
+import { getGuildSettings, updateGuildSettings } from '../../db/guilds.js';
 import {
   postSuggestionMessage,
-  checkSuggestionCooldown
+  checkSuggestionCooldown,
+  checkStaffPermission
 } from '../../modules/suggestions/index.js';
 import { errorCard, successCard } from '../../ui/cards.js';
 

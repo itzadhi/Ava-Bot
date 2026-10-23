@@ -273,7 +273,7 @@ export async function renderBackupStructure({ backupId, guild, user }) {
     new ButtonBuilder()
       .setCustomId(`bk_quick_deploy:${record.id}`)
       .setLabel('Restore')
-      .setStyle(activeConfig.has('clean') ? ButtonStyle.Danger : ButtonStyle.Success)
+      .setStyle(ButtonStyle.Secondary)
       .setEmoji('🚀'),
     new ButtonBuilder()
       .setCustomId(`bk_toggle_lock:${record.id}`)
@@ -283,7 +283,7 @@ export async function renderBackupStructure({ backupId, guild, user }) {
     new ButtonBuilder()
       .setCustomId(`bk_delete_snapshot:${record.id}`)
       .setLabel('Delete')
-      .setStyle(ButtonStyle.Danger)
+      .setStyle(ButtonStyle.Secondary)
       .setEmoji('🗑️'),
     new ButtonBuilder()
       .setCustomId(`bk_return_to_list:${guild.id}`)
@@ -356,13 +356,13 @@ export async function renderBackupList({ guild, user, page = 1 }) {
   const createButton = new ButtonBuilder()
     .setCustomId(`bk_quick_create:${guild.id}`)
     .setLabel('New Snapshot')
-    .setStyle(ButtonStyle.Success)
+    .setStyle(ButtonStyle.Secondary)
     .setEmoji('📸');
 
   const deleteButton = new ButtonBuilder()
     .setCustomId(`bk_front_delete:${guild.id}`)
     .setLabel('Delete')
-    .setStyle(ButtonStyle.Danger)
+    .setStyle(ButtonStyle.Secondary)
     .setEmoji('🗑️')
     .setDisabled(allBackups.length === 0);
 

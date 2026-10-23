@@ -53,7 +53,7 @@ export function buildRatingPromptPayload(guild, ticket, transcriptResult = null)
         .setCustomId(`tkt:rate:${guild?.id || '0'}:${ticket?.id || '0'}:${num}`)
         .setLabel(`${num} Star${num > 1 ? 's' : ''}`)
         .setEmoji('⭐')
-        .setStyle(num >= 4 ? ButtonStyle.Success : num === 3 ? ButtonStyle.Primary : ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Secondary)
     )
   );
 

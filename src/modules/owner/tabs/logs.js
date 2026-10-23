@@ -37,11 +37,11 @@ export const logsTab = {
       new ButtonBuilder()
         .setCustomId(`owner:logs:view_stack_modal:${state.sessionId}`)
         .setLabel('View Stack')
-        .setStyle(ButtonStyle.Primary),
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(`owner:logs:clear_old:${state.sessionId}`)
         .setLabel('Clear >7d')
-        .setStyle(ButtonStyle.Danger)
+        .setStyle(ButtonStyle.Secondary)
     ];
   },
 

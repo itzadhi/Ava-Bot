@@ -99,20 +99,20 @@ export async function buildTTSPanel({ guild, client, user = null, session = null
   builder.addButton({
     id: 'fb:tts:join:0',
     label: 'Join & Bind',
-    style: ButtonStyle.Success
+    style: ButtonStyle.Secondary
   });
 
   builder.addButton({
     id: 'fb:tts:leave:0',
     label: 'Disconnect',
-    style: ButtonStyle.Danger,
+    style: ButtonStyle.Secondary,
     disabled: !currentSession
   });
 
   builder.addButton({
     id: 'fb:tts:test_btn:0',
     label: 'Speak Test',
-    style: ButtonStyle.Primary,
+    style: ButtonStyle.Secondary,
     disabled: !currentSession
   });
 
