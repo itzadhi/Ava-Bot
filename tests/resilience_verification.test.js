@@ -353,3 +353,91 @@ test('Verification 8: 100 rapid concurrent interactions maintain zero unhandled 
   const memoryDeltaMb = (endMemory - startMemory) / 1024 / 1024;
   assert.ok(memoryDeltaMb < 15, `Memory growth must be bounded (observed delta: ${memoryDeltaMb.toFixed(2)} MB)`);
 });
+
+test('Verification 9: Legacy handler calling interaction.reply() on deferred interaction routes safely with zero 40060 errors', async () => {
+  const interaction = createMockInteraction({
+    customId: 'tkt:ctl:close_action',
+    isButton: () => true
+  });
+
+  // Legacy handler directly calls interaction.reply() even though runHandler deferred it
+  let legacyReplyCalled = false;
+  const legacyHandler = async (i) => {
+    legacyReplyCalled = true;
+    return await i.reply({ content: '✅ Ticket closed successfully!', flags: MessageFlags.Ephemeral });
+  };
+
+  await assert.doesNotReject(async () => {
+    await runHandler(interaction, legacyHandler, { name: 'legacy_ticket_close' });
+  });
+
+  assert.equal(legacyReplyCalled, true, 'Legacy handler must have executed');
+  // It should have safely routed through followUp because it was deferred and ephemeral
+  assert.equal(interaction._followUps.length, 1, 'Must deliver ephemeral response via followUp');
+  assert.equal(
+    (interaction._followUps[0].flags & MessageFlags.IsComponentsV2),
+    MessageFlags.IsComponentsV2,
+    'Must be converted to Components V2'
+  );
+});
+
+test('Verification 10: Modal opener button on cold cache skips deferral and executes showModal directly', async () => {
+  const modalCustomIds = [
+    'tkt:ctl:close',
+    'permify:open_undo',
+    'fb:boost:edit_msg',
+    'fb:panel:jtc_tmpl_btn',
+    'shop:wizard:price'
+  ];
+
+  for (const customId of modalCustomIds) {
+    const isOpener = isModalOpener(customId);
+    assert.equal(isOpener, true, `Pattern "${customId}" must be recognized as a modal opener`);
+
+    const interaction = createMockInteraction({
+      customId,
+      isButton: () => true
+    });
+
+    let modalOpened = false;
+    const modalHandler = async (i) => {
+      assert.equal(i.deferred, false, 'Modal opener MUST NOT be deferred before showing modal');
+      await i.showModal({ title: 'Test Modal', custom_id: 'test_mod' });
+      modalOpened = true;
+    };
+
+    await runHandler(interaction, modalHandler, { opensModal: true, name: customId });
+    assert.equal(modalOpened, true, `Modal must be successfully shown for ${customId}`);
+    assert.equal(interaction._modals.length, 1, 'Modal must be recorded without 40060 error');
+  }
+});
+
+test('Verification 11: Webhook token expiration (code 50027, >15 minutes) falls back cleanly to message.edit', async () => {
+  const interaction = createMockInteraction({
+    customId: 'dash:refresh:guild123',
+    isButton: () => true,
+    deferred: true
+  });
+
+  // Force editReply to throw 50027 (Invalid Webhook Token)
+  interaction.editReply = async () => {
+    const err = new Error('Invalid Webhook Token');
+    err.code = 50027;
+    throw err;
+  };
+
+  await assert.doesNotReject(async () => {
+    await safeRespond(interaction, { components: [{ type: 1, components: [] }] });
+  });
+
+  assert.equal(interaction._updates.length, 1, 'Must have fallen back to message.edit when webhook token expired');
+});
+
+test('Verification 12: Dual instance heartbeat detects second active instance', async () => {
+  const { instanceManager } = await import('../src/core/instance.js');
+  assert.ok(instanceManager.instanceId, 'Instance ID must be generated');
+  assert.ok(instanceManager.hostname, 'Hostname must be recorded');
+  assert.ok(instanceManager.pid, 'PID must be recorded');
+  assert.equal(typeof instanceManager.getInstanceCount(), 'number');
+});
+

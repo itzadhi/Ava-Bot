@@ -4,7 +4,7 @@ import { performance } from 'node:perf_hooks';
 import { logger } from '../../utils/logger.js';
 import { logError } from '../../db/errors.js';
 import { errorCard } from '../../ui/cards.js';
-import { safeRespond } from './safeRespond.js';
+import { safeRespond, wrapInteraction } from './safeRespond.js';
 import { isAcknowledged, markAcknowledged } from './tracker.js';
 import { parseCustomId } from './session.js';
 import { metrics } from '../metrics.js';
@@ -41,6 +41,7 @@ export async function runHandler(interaction, handler, meta = {}) {
   const customId = interaction.customId || null;
   const commandName = interaction.commandName || null;
   const identifier = commandName ? `/${commandName}` : (customId || meta.name || 'interaction');
+  let ackDurationMs = 0;
 
   // Parse customId if available
   const parsed = meta.parsed || (customId ? parseCustomId(customId) : {});
@@ -71,7 +72,8 @@ export async function runHandler(interaction, handler, meta = {}) {
           logger.debug({ err: err.message }, 'deferReply skipped or already acknowledged');
         });
         markAcknowledged(interaction, 'deferReply');
-        metrics.recordAck(performance.now() - startTime);
+        ackDurationMs = performance.now() - startTime;
+        metrics.recordAck(ackDurationMs);
       }
     } else if (interaction.isButton?.() || interaction.isAnySelectMenu?.()) {
       if (!isAcknowledged(interaction)) {
@@ -79,7 +81,8 @@ export async function runHandler(interaction, handler, meta = {}) {
           logger.debug({ err: err.message }, 'deferUpdate skipped or already acknowledged');
         });
         markAcknowledged(interaction, 'deferUpdate');
-        metrics.recordAck(performance.now() - startTime);
+        ackDurationMs = performance.now() - startTime;
+        metrics.recordAck(ackDurationMs);
       }
     } else if (interaction.isModalSubmit?.()) {
       if (!isAcknowledged(interaction)) {
@@ -90,15 +93,19 @@ export async function runHandler(interaction, handler, meta = {}) {
           await interaction.deferUpdate().catch(() => {});
           markAcknowledged(interaction, 'deferUpdate');
         }
-        metrics.recordAck(performance.now() - startTime);
+        ackDurationMs = performance.now() - startTime;
+        metrics.recordAck(ackDurationMs);
       }
     }
   } catch (ackErr) {
     logger.debug({ ackErr: ackErr.message, identifier }, 'Non-fatal acknowledgement error');
   }
 
-  // 3. Safe Execution with 10s Timeout Guard
-  const handlerPromise = Promise.resolve().then(() => handler(interaction, parsed));
+  // 3. Wrap interaction in protective proxy for legacy and modern handlers
+  const safeInteraction = wrapInteraction(interaction);
+
+  // 4. Safe Execution with 10s Timeout Guard
+  const handlerPromise = Promise.resolve().then(() => handler(safeInteraction, parsed));
 
   const timeoutPromise = new Promise((_, reject) => {
     const timer = setTimeout(() => {
@@ -112,6 +119,21 @@ export async function runHandler(interaction, handler, meta = {}) {
     const duration = performance.now() - startTime;
     metrics.recordHandler(duration);
 
+    // Structured diagnostic log for every successful interaction
+    logger.info({
+      interactionId: interaction.id,
+      type: interaction.type,
+      customId,
+      commandName,
+      ageAtReceiptMs: Math.max(0, Date.now() - (interaction.createdTimestamp || Date.now())),
+      timeToFirstAckMs: Math.round(ackDurationMs),
+      whichHandler: meta.name || identifier,
+      handlersTouched: 1,
+      outcome: 'success',
+      errorCode: null,
+      durationMs: Math.round(duration)
+    }, `[INTERACTION] Processed ${identifier}`);
+
     if (duration > 1000) {
       logger.warn({ identifier, durationMs: Math.round(duration) }, `⚠️ Handler took longer than 1.0s to complete`);
     }
@@ -120,10 +142,29 @@ export async function runHandler(interaction, handler, meta = {}) {
   } catch (err) {
     const duration = performance.now() - startTime;
     metrics.recordHandler(duration);
+    const code = err.code || err.rawError?.code || null;
+    if (code) metrics.recordError(code);
+
+    // Structured diagnostic log for every failed interaction
+    logger.error({
+      interactionId: interaction.id,
+      type: interaction.type,
+      customId,
+      commandName,
+      ageAtReceiptMs: Math.max(0, Date.now() - (interaction.createdTimestamp || Date.now())),
+      timeToFirstAckMs: Math.round(ackDurationMs),
+      whichHandler: meta.name || identifier,
+      handlersTouched: 1,
+      outcome: err.message?.startsWith('HANDLER_TIMEOUT') ? 'timeout' : 'failed',
+      errorCode: code,
+      errorId,
+      err: err.message,
+      durationMs: Math.round(duration)
+    }, `[INTERACTION] Failed ${identifier}: ${err.message}`);
 
     if (err.message?.startsWith('HANDLER_TIMEOUT')) {
       logger.error({ identifier, errorId, durationMs: Math.round(duration) }, 'Handler execution timed out at 10s');
-      return await safeRespond(interaction, errorCard({
+      return await safeRespond(safeInteraction, errorCard({
         title: 'Operation Timed Out',
         subtitle: `Reference: \`${errorId}\``,
         reason: 'The action took longer than 10 seconds to execute.',
@@ -131,17 +172,6 @@ export async function runHandler(interaction, handler, meta = {}) {
         ephemeral: true
       }), { ephemeral: true });
     }
-
-    // Log structured error
-    logger.error({
-      err: err.message,
-      stack: err.stack,
-      errorId,
-      identifier,
-      guildId: interaction.guildId,
-      userId: interaction.user?.id,
-      durationMs: Math.round(duration)
-    }, `Handler failure in ${identifier}`);
 
     // Persist to error log database in background
     logError({
@@ -151,7 +181,7 @@ export async function runHandler(interaction, handler, meta = {}) {
     }).catch(() => {});
 
     // Always provide safe user feedback with the quoteable error ID
-    return await safeRespond(interaction, errorCard({
+    return await safeRespond(safeInteraction, errorCard({
       title: 'Execution Error',
       subtitle: `Error Reference: \`${errorId}\``,
       reason: 'An unexpected internal error occurred while processing this action.',

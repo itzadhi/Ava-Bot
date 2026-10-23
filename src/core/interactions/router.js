@@ -27,28 +27,69 @@ import { runMiddlewareChain } from '../../middleware/index.js';
  */
 const MODAL_OPENER_PATTERNS = [
   ':modal',
+  '_modal',
+  ':mod:',
   'tkt:open:',
+  'tkt:panel:open',
+  'tkt:panel:sel',
+  'tkt:panel:single',
+  'tkt:modal_open:',
+  'tkt:ctl:close',
+  'tkt:ctl:rename',
+  'tkt:ctl:note',
+  'tkt:ctl:adv_sel',
+  'tkt:rate:',
   'tkt:rename',
   'tkt:topic',
   'tkt:add',
   'tkt:remove',
   'tkt:question',
+  'tkt:mgr:create_btn',
+  'tkt:mgr:edit_btn',
+  'tkt:mgr:img_btn',
+  'open_feedback_modal',
   'fb:feedback:open',
+  'fb:fb:open',
   'fb:suggest:open',
+  'fb:sug:open',
+  'fb:sug:open_modal',
   'fb:jtc:rename',
   'fb:jtc:limit',
+  'fb:jtc:act_sel',
+  'fb:jtc:sug',
+  'fb:jtc:fbk',
   'fb:tts:custom',
+  'fb:tts:speak_mod_btn',
   'fb:profile:',
   'fb:sticky:add',
   'fb:sticky:edit',
   'fb:autorole:rule',
+  'fb:panel:jtc_tmpl_btn',
+  'fb:panel:jtc_limit_btn',
+  'fb:panel:cd_btn',
+  'fb:panel:bot_profile_btn',
+  'fb:boost:edit_msg',
   'owner:modal',
   'permify:name',
+  'permify:open_undo',
+  'permify:open_confirm',
   'automod:word:add',
   'automod:regex:add',
   'automod:allow:add',
   'antinuke:trusted:add',
-  'antinuke:exempt:add'
+  'antinuke:exempt:add',
+  'starter:modal',
+  // Shop module patterns
+  'shop:modal:',
+  'shop:wizard:name',
+  'shop:wizard:price',
+  'shop:wizard:content',
+  'shop:wizard:category_create',
+  'shop:wizard:items',
+  'shop:restock:items',
+  'shop:coupon:code',
+  'shop:order:reason',
+  'shop:review:comment'
 ];
 
 /**
@@ -60,6 +101,7 @@ const MODAL_OPENER_PATTERNS = [
 export function isModalOpener(customId, meta = null) {
   if (meta?.opensModal) return true;
   if (!customId || typeof customId !== 'string') return false;
+  if (/(?:^|:|_)(modal|mod)(?:$|:|_)/i.test(customId)) return true;
   return MODAL_OPENER_PATTERNS.some(pat => customId.includes(pat));
 }
 

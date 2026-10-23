@@ -1,4 +1,4 @@
-import { MessageFlags } from 'discord.js';
+import { MessageFlags, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { errorCard } from '../../ui/cards.js';
 import { isAcknowledged, markAcknowledged } from './tracker.js';
@@ -6,8 +6,8 @@ import { metrics } from '../metrics.js';
 
 /**
  * Normalizes and sanitizes a payload to conform strictly to Components V2 standards.
- * Ensures flags include MessageFlags.IsComponentsV2, removes conflicting `content`,
- * and validates that embeds are not present.
+ * Ensures flags include MessageFlags.IsComponentsV2, converts content to V2 text cards,
+ * removes conflicting `content` and `embeds`, and validates component limits.
  * @param {object|string} rawPayload
  * @param {boolean} [ephemeral=false]
  * @returns {object}
@@ -33,6 +33,26 @@ export function sanitizePayload(rawPayload, ephemeral = false) {
 
   // Calculate flags
   let currentFlags = clean.flags || 0;
+
+  // If plain content was supplied without components, convert it to a V2 container
+  if (clean.content && (!Array.isArray(clean.components) || clean.components.length === 0)) {
+    const text = String(clean.content);
+    let title = '## 💬 Notice';
+    if (text.startsWith('❌') || text.startsWith('⛔') || text.startsWith('🛑')) {
+      title = '## 🛑 Action Failed';
+    } else if (text.startsWith('⚠️')) {
+      title = '## ⚠️ Notice';
+    } else if (text.startsWith('✅') || text.startsWith('🟢') || text.startsWith('👑') || text.startsWith('👍') || text.startsWith('🔔')) {
+      title = '## ✅ Success';
+    }
+
+    const c = new ContainerBuilder();
+    c.addTextDisplayComponents(new TextDisplayBuilder().setContent(title));
+    c.addSeparatorComponents(new SeparatorBuilder());
+    c.addTextDisplayComponents(new TextDisplayBuilder().setContent(text));
+    clean.components = [c];
+    delete clean.content;
+  }
 
   // Add Components V2 flag if components are present
   if (Array.isArray(clean.components) && clean.components.length > 0) {
@@ -249,7 +269,105 @@ async function fallbackDirectSend(interaction, payload, { skipMessageEdit = fals
   return null;
 }
 
+/**
+ * Wraps a Discord interaction object with a protective Proxy that intercepts
+ * reply(), update(), editReply(), followUp(), deferReply(), deferUpdate(), and showModal().
+ * Guarantees that handlers calling reply() after deferral will NOT throw InteractionAlreadyReplied,
+ * but will seamlessly editReply or followUp as appropriate.
+ *
+ * @param {import('discord.js').Interaction} interaction
+ * @returns {import('discord.js').Interaction}
+ */
+export function wrapInteraction(interaction) {
+  if (!interaction || typeof interaction !== 'object' || interaction._isSafeWrapped) {
+    return interaction;
+  }
+
+  const proxy = new Proxy(interaction, {
+    get(target, prop, receiver) {
+      if (prop === '_isSafeWrapped') return true;
+      if (prop === 'rawInteraction') return target;
+
+      if (prop === 'reply') {
+        return async (payload) => {
+          const isEphem = Boolean(payload?.flags & MessageFlags.Ephemeral || payload?.ephemeral);
+          return safeRespond(target, payload, { ephemeral: isEphem });
+        };
+      }
+
+      if (prop === 'update') {
+        return async (payload) => {
+          return safeRespond(target, payload, { ephemeral: false });
+        };
+      }
+
+      if (prop === 'editReply') {
+        return async (payload) => {
+          const isEphem = Boolean(payload?.flags & MessageFlags.Ephemeral || payload?.ephemeral);
+          return safeRespond(target, payload, { ephemeral: isEphem });
+        };
+      }
+
+      if (prop === 'followUp') {
+        return async (payload) => {
+          const isEphem = Boolean(payload?.flags & MessageFlags.Ephemeral || payload?.ephemeral);
+          return safeRespond(target, payload, { followUp: true, ephemeral: isEphem });
+        };
+      }
+
+      if (prop === 'deferReply') {
+        return async (options = {}) => {
+          if (target.deferred || target.replied || isAcknowledged(target)) {
+            return Promise.resolve();
+          }
+          markAcknowledged(target, 'deferReply');
+          return target.deferReply(options).catch((err) => {
+            logger.debug({ err: err.message }, 'deferReply trapped');
+          });
+        };
+      }
+
+      if (prop === 'deferUpdate') {
+        return async (options = {}) => {
+          if (target.deferred || target.replied || isAcknowledged(target)) {
+            return Promise.resolve();
+          }
+          markAcknowledged(target, 'deferUpdate');
+          return target.deferUpdate(options).catch((err) => {
+            logger.debug({ err: err.message }, 'deferUpdate trapped');
+          });
+        };
+      }
+
+      if (prop === 'showModal') {
+        return async (modal) => {
+          if (target.deferred || target.replied || isAcknowledged(target)) {
+            logger.warn({ customId: target.customId }, 'showModal called on deferred interaction! Check isModalOpener');
+            return safeRespond(target, errorCard({
+              title: 'Action Notice',
+              reason: 'Unable to open form due to gateway timing.',
+              fix: 'Please try clicking the button again.',
+              ephemeral: true
+            }), { ephemeral: true });
+          }
+          markAcknowledged(target, 'showModal');
+          return target.showModal(modal);
+        };
+      }
+
+      const value = Reflect.get(target, prop, receiver);
+      if (typeof value === 'function') {
+        return value.bind(target);
+      }
+      return value;
+    }
+  });
+
+  return proxy;
+}
+
 export default {
   safeRespond,
-  sanitizePayload
+  sanitizePayload,
+  wrapInteraction
 };

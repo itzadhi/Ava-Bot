@@ -43,6 +43,7 @@ import { handleAutoRoleMemberJoin } from './modules/autorole/engine.js';
 import { registerLogListeners } from './modules/logs/listeners.js';
 import { startTicketScheduler, stopTicketScheduler, handleMemberLeave, handleChannelDelete } from './modules/tickets/autoclose.js';
 import { handleTicketImageDrop } from './modules/tickets/panel.js';
+import { instanceManager } from './core/instance.js';
 import { getTicketByChannel, updateTicketLastMessage } from './db/tickets.js';
 import { autoRepairPermissionsAndTickets } from './modules/permify/repair.js';
 import { initAutoModCache } from './db/automod.js';
@@ -249,22 +250,35 @@ export class ArgoniClient extends Client {
         status: presenceConfig.status || 'online'
       });
 
-      // Synchronize application commands with Discord
-      try {
-        const slashCommands = registry.toSlashData();
-        await readyClient.application.commands.set(slashCommands);
-        logger.info(`✓ Synced ${slashCommands.length} application (/) commands globally with Discord Gateway.`);
+      // 1. Audit and print event listener counts to verify zero duplicate registrations
+      const monitoredEvents = ['interactionCreate', 'messageCreate', 'ready', 'guildCreate', 'guildDelete', 'error', 'shardError'];
+      for (const evt of monitoredEvents) {
+        logger.info(`[LISTENERS] Event "${evt}" has ${readyClient.listenerCount(evt)} listener(s) registered`);
+      }
 
-        // Clear any stale guild-level command overrides from all guilds
-        for (const guild of readyClient.guilds.cache.values()) {
-          const guildCmds = await guild.commands.fetch().catch(() => new Map());
-          if (guildCmds.size > 0) {
-            await guild.commands.set([]);
-            logger.info(`✓ Wiped ${guildCmds.size} stale guild-level commands from ${guild.name}`);
+      // 2. Start dual-instance heartbeat detector
+      instanceManager.startHeartbeat();
+
+      // 3. Synchronize application commands with Discord (fast-boot guarded)
+      if (process.env.DEPLOY_COMMANDS === 'true' || process.argv.includes('--deploy')) {
+        try {
+          const slashCommands = registry.toSlashData();
+          await readyClient.application.commands.set(slashCommands);
+          logger.info(`✓ Synced ${slashCommands.length} application (/) commands globally with Discord Gateway.`);
+
+          // Clear any stale guild-level command overrides from all guilds
+          for (const guild of readyClient.guilds.cache.values()) {
+            const guildCmds = await guild.commands.fetch().catch(() => new Map());
+            if (guildCmds.size > 0) {
+              await guild.commands.set([]);
+              logger.info(`✓ Wiped ${guildCmds.size} stale guild-level commands from ${guild.name}`);
+            }
           }
+        } catch (err) {
+          logger.warn(`Could not sync slash commands on login: ${err.message}`);
         }
-      } catch (err) {
-        logger.warn(`Could not sync slash commands on login: ${err.message}`);
+      } else {
+        logger.info(`⚡ Fast boot: Gateway slash command sync skipped (run with DEPLOY_COMMANDS=true or --deploy to update commands)`);
       }
 
       // Reconcile active temporary voice channels

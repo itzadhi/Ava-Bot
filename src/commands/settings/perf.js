@@ -28,6 +28,7 @@ export function buildPerfCard(client, ephemeral = true) {
     `- **Active Memory Sessions**: \`${snap.cacheSizes.activeSessions}\` panels/wizards`,
     '',
     `### 🖥️ System Footprint & Throughput`,
+    `- **Running Bot Instances**: \`${snap.runningInstances}\` ${snap.runningInstances > 1 ? '⚠️ **(DUPLICATE INSTANCE DETECTED!)**' : 'instance (healthy)'}`,
     `- **RSS Memory**: \`${snap.memory.rss}\` (Heap: \`${snap.memory.heapUsed}\` / \`${snap.memory.heapTotal}\`)`,
     `- **Guild Count**: \`${snap.guilds}\` servers`,
     `- **Uptime**: \`${snap.uptime}\``,

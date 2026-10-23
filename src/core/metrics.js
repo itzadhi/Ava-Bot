@@ -2,6 +2,7 @@ import { monitorEventLoopDelay, performance } from 'node:perf_hooks';
 import { logger } from '../utils/logger.js';
 import { guildSettingsCache } from './cache/guildCache.js';
 import { sessionStore } from './interactions/session.js';
+import { instanceManager } from './instance.js';
 
 class MetricsCollector {
   constructor() {
@@ -114,6 +115,7 @@ class MetricsCollector {
       wsPing: wsPing >= 0 ? `${wsPing} ms` : 'N/A',
       uptime: `${Math.floor(uptimeSec / 3600)}h ${Math.floor((uptimeSec % 3600) / 60)}m ${uptimeSec % 60}s`,
       guilds: guildCount,
+      runningInstances: instanceManager.getInstanceCount(),
       interactionsPerMin: this.recentInteractions.length,
       ackTime: {
         avg: `${this.getAverage(this.ackLatencies).toFixed(1)} ms`,

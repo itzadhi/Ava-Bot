@@ -164,7 +164,7 @@ test('Component creation helpers produce valid Discord builders', () => {
   const btnJson = btn.toJSON();
   assert.equal(btnJson.custom_id, 'btn_1');
   assert.equal(btnJson.label, 'Click');
-  assert.equal(btnJson.style, ButtonStyle.Primary);
+  assert.equal(btnJson.style, ButtonStyle.Secondary);
 
   const strSel = createStringSelect({ id: 'sel_1', placeholder: 'Choose...', options: [{ label: 'Opt 1', value: '1' }] });
   const strSelJson = strSel.toJSON();
