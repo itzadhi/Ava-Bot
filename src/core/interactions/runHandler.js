@@ -45,7 +45,21 @@ export async function runHandler(interaction, handler, meta = {}) {
   // Parse customId if available
   const parsed = meta.parsed || (customId ? parseCustomId(customId) : {});
 
-  // 1. Immediate Acknowledgement (Sub-1s, BEFORE DB / Heavy Logic)
+  // 1. Ownership Verification (Memory check <0.01ms before deferring)
+  // If authorOnly is declared, or if userId is encoded in customId (module:action:guildId:userId)
+  const targetUserId = parsed.userId || interaction.message?.interaction?.user?.id;
+  if ((meta.authorOnly || parsed.userId) && targetUserId && targetUserId !== interaction.user.id) {
+    logger.debug({ targetUserId, clicker: interaction.user.id }, 'Blocked unowned component click');
+    return await safeRespond(interaction, errorCard({
+      title: 'Action Restricted',
+      subtitle: 'This panel belongs to another user.',
+      reason: 'You cannot click controls on another user\'s interactive session.',
+      fix: 'Run the command yourself to open your own control panel.',
+      ephemeral: true
+    }), { ephemeral: true });
+  }
+
+  // 2. Immediate Acknowledgement (Sub-1s, BEFORE DB / Heavy Logic)
   try {
     if (meta.opensModal) {
       // Modals CANNOT be shown after deferring: do not defer, handler must showModal immediately
@@ -81,20 +95,6 @@ export async function runHandler(interaction, handler, meta = {}) {
     }
   } catch (ackErr) {
     logger.debug({ ackErr: ackErr.message, identifier }, 'Non-fatal acknowledgement error');
-  }
-
-  // 2. Ownership Verification
-  // If authorOnly is declared, or if userId is encoded in customId (module:action:guildId:userId)
-  const targetUserId = parsed.userId || interaction.message?.interaction?.user?.id;
-  if ((meta.authorOnly || parsed.userId) && targetUserId && targetUserId !== interaction.user.id) {
-    logger.debug({ targetUserId, clicker: interaction.user.id }, 'Blocked unowned component click');
-    return await safeRespond(interaction, errorCard({
-      title: 'Action Restricted',
-      subtitle: 'This panel belongs to another user.',
-      reason: 'You cannot click controls on another user\'s interactive session.',
-      fix: 'Run the command yourself to open your own control panel.',
-      ephemeral: true
-    }), { ephemeral: true });
   }
 
   // 3. Safe Execution with 10s Timeout Guard

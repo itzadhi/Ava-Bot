@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { setBackupInterval, getBackupInterval, createBackupRecord, getOldestUnlockedAutoBackups } from '../src/db/backups.js';
+import { updateGuildSettings } from '../src/db/guilds.js';
 import { runIntervalCheck } from '../src/services/scheduler.js';
 
 test('Backup interval setting and rotation query', async () => {
   const guildId = `sched_${Date.now()}`;
+  await updateGuildSettings(guildId, { prefix: '!' }); // Ensure parent guild_settings row exists in DB
 
   await setBackupInterval(guildId, {
     interval_hours: 24,

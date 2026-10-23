@@ -202,4 +202,14 @@ class SessionStore {
 }
 
 export const sessionStore = new SessionStore();
+
+export function parseCustomId(customId) {
+  return sessionStore.parseCustomId(customId);
+}
+
+export function buildCustomId(params) {
+  return sessionStore.buildCustomId(params);
+}
+
 export default sessionStore;
+

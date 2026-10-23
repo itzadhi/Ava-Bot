@@ -110,7 +110,8 @@ export async function safeRespond(interaction, payload, options = {}) {
         }
       } else {
         // Already acknowledged (deferred or replied)
-        if (followUp && typeof interaction.followUp === 'function') {
+        const needsFollowUpForEphemeral = ephemeral && interaction.deferred && !interaction.ephemeral;
+        if ((followUp || needsFollowUpForEphemeral) && typeof interaction.followUp === 'function') {
           return await interaction.followUp(cleanPayload);
         }
 

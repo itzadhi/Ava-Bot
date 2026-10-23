@@ -160,12 +160,28 @@ export async function updateGuildSettings(guildId, updates) {
 
   guildSettingsCache.set(guildId, updated);
 
-  // Background database persistence with retry
-  queryWithRetry(async () => {
-    return await db.from('guild_settings').upsert(updated);
-  }, 5000).catch((err) => {
-    logger.debug({ err: err.message, guildId }, 'Background guild settings upsert deferred');
-  });
+  const BASE_KEYS = [
+    'guild_id', 'locale', 'prefix', 'prefix_commands_enabled', 'chatlog_enabled',
+    'message_sync_enabled', 'premium_tier', 'premium_until', 'backup_role_id',
+    'log_channel_id', 'left_at', 'updated_at'
+  ];
+  const basePayload = {};
+  for (const k of BASE_KEYS) {
+    if (k in updated) basePayload[k] = updated[k];
+  }
+
+  // Write-through database persistence with retry
+  try {
+    await queryWithRetry(async () => {
+      const { error } = await db.from('guild_settings').upsert(updated);
+      if (error) {
+        // Fallback to base columns if extended columns are not in remote DB schema
+        return await db.from('guild_settings').upsert(basePayload);
+      }
+    }, 5000);
+  } catch (err) {
+    logger.debug({ err: err.message, guildId }, 'Guild settings upsert deferred or fallback');
+  }
 
   return updated;
 }

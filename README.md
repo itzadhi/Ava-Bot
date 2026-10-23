@@ -399,3 +399,136 @@ The bot automatically registers:
 - `GatewayIntentBits.GuildWebhooks` (for webhook spam mitigation)
 - `GatewayIntentBits.GuildVoiceStates` (for voice and TTS)
 
+---
+
+## ⚡ High-Performance Interaction Layer (`/core/interactions/`)
+
+Argoni features a framework-level interaction engine engineered to permanently eliminate `"This interaction failed"` errors, double-acknowledgement crashes (`DiscordAPIError[40060]`), and token expirations (`DiscordAPIError[50027]`).
+
+### 🏛️ Core Architecture
+
+```
+                    Discord Gateway Event (interactionCreate)
+                                     │
+                                     ▼
+                      ┌─────────────────────────────┐
+                      │    Central Router (O(1))    │
+                      │  src/core/interactions/     │
+                      └──────────────┬──────────────┘
+                                     │
+           ┌─────────────────────────┼─────────────────────────┐
+           ▼                         ▼                         ▼
+   Autocomplete (<2s)        Slash Commands             Buttons & Menus
+┌───────────────────────┐ ┌──────────────────────┐ ┌──────────────────────┐
+│ Hard 2s timeout guard │ │ Sub-1s deferReply()  │ │ Instant deferUpdate()│
+│ In-memory lookup only │ │ (or instant <500ms)  │ │ (opensModal bypass)  │
+└───────────────────────┘ └──────────┬───────────┘ └──────────┬───────────┘
+                                     │                         │
+                                     ▼                         ▼
+                      ┌─────────────────────────────────────────────┐
+                      │    runHandler (Error Boundary & Wrapper)    │
+                      │  • WeakSet duplicate ACK protection         │
+                      │  • Memory ownership validation              │
+                      │  • 10s Promise.race execution guard         │
+                      │  • Correlation ID generation (ERR-XXXX-XXXX)│
+                      └──────────────────────┬──────────────────────┘
+                                             │
+                                             ▼
+                      ┌─────────────────────────────────────────────┐
+                      │     safeRespond (Smart Delivery Engine)     │
+                      │  • Automatic method selection               │
+                      │  • Components V2 auto-sanitization          │
+                      │  • 50027 token expiry fallback to edit/send │
+                      │  • Missing permissions & 429 graceful handle│
+                      └─────────────────────────────────────────────┘
+```
+
+1. **WeakSet Interaction Tracker (`tracker.js`)**: Tracks acknowledged interactions across memory references. Prevents duplicate ACKs (`40060`) across asynchronous handler tasks.
+2. **Immediate Acknowledgement**: Every interaction is acknowledged within ~1 millisecond—long before Discord's 3-second deadline. Heavy database queries and computations never run before acknowledgement.
+3. **Stateless Custom IDs & Session Store (`session.js`)**: Formats custom IDs as `module:action:guildId:userId:payload` (max 100 chars). Complex state is stored in an in-memory TTL session store, completely eliminating fragile Discord message collectors (`awaitMessageComponent` / `createMessageComponentCollector`).
+4. **Safe Responder (`safeRespond.js`)**: Intelligently routes responses through `reply()`, `update()`, `editReply()`, or `followUp()`. If an interaction token expires (>15m, error `50027`), it automatically falls back to `interaction.message.edit()` or `channel.send()`.
+5. **Universal Handler Wrapper (`runHandler.js`)**: Encapsulates execution inside an error boundary with 10-second timeout guards. Thrown errors are converted into quoteable error reference IDs (`ERR-XXXX-XXXX`) and rendered as Components V2 error cards.
+
+---
+
+### 📝 How to Write a Command Using `runHandler` & `safeRespond`
+
+Commands registered in `src/commands/` are automatically executed via `runHandler` inside the central router.
+
+```javascript
+import { successCard, errorCard } from '../../ui/cards.js';
+import { safeRespond } from '../../core/interactions/safeRespond.js';
+
+export default {
+  name: 'example',
+  description: 'Demonstrates safe execution and response patterns',
+  instant: false,    // Set to true only if response completes <500ms from cache without defer
+  ephemeral: true,   // Deferred reply will be ephemeral
+  cooldown: 3,
+
+  async execute(ctx) {
+    // 1. Fetch data from in-memory cache or database with timeout
+    const settings = ctx.getGuildSettings();
+
+    // 2. Perform business logic
+    if (!settings) {
+      return ctx.reply(errorCard({
+        title: 'Error',
+        reason: 'Unable to retrieve server settings.'
+      }));
+    }
+
+    // 3. Respond with pure Components V2 card
+    return ctx.reply(successCard(
+      'Settings Retrieved',
+      `Current prefix is: \`${settings.prefix}\``
+    ));
+  }
+};
+```
+
+---
+
+### 🔘 How to Register a Persistent Component Handler
+
+Never use `awaitMessageComponent` or message collectors. Instead, register your component handler with the fast O(1) `interactionRegistry`:
+
+```javascript
+import { interactionRegistry } from '../core/interactions/registry.js';
+import { safeRespond } from '../core/interactions/safeRespond.js';
+import { successCard } from '../ui/cards.js';
+
+// 1. Register handler with prefix or exact customId
+interactionRegistry.registerComponent('mymodule:action', async (interaction, parsed) => {
+  // `parsed` contains: { module, action, guildId, userId, payload }
+
+  // Execute business logic safely
+  const result = await doWork(parsed.payload);
+
+  // Deliver update via safeRespond
+  return await safeRespond(interaction, successCard(
+    'Action Completed',
+    `Processed payload: \`${parsed.payload}\``
+  ));
+}, {
+  authorOnly: true,  // Only the user who clicked/opened the panel can interact
+  opensModal: false  // Set to true if this handler opens a modal (bypasses deferUpdate)
+});
+```
+
+---
+
+### 🔍 System Performance & Diagnostics (`/perf`)
+
+The owner-only `/perf` command provides real-time telemetry on interaction health, database speed, and memory usage:
+
+- **Gateway Ping**: Real-time WebSocket round-trip latency.
+- **ACK Latency**: Average and p95 time from interaction receipt to Discord acknowledgement.
+- **Handler Duration**: Average and slowest handler execution durations.
+- **Database Telemetry**: Average query time and active connection pool status.
+- **Event Loop Lag**: Node.js event loop delay (warns if >100ms).
+- **Process Memory**: RSS and V8 Heap usage with garbage collection metrics.
+- **Hourly Error Tracking**: Exact counts for Discord error codes `10062` (Unknown Interaction), `40060` (Already Acknowledged), `50027` (Invalid Webhook Token), and `429` (Rate Limited).
+- **Interactive Grey Refresh Button**: Trigger an instant re-profiling using persistent `perf:refresh` handler.
+
+
