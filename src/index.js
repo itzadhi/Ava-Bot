@@ -44,6 +44,7 @@ import { registerLogListeners } from './modules/logs/listeners.js';
 import { startTicketScheduler, stopTicketScheduler, handleMemberLeave, handleChannelDelete } from './modules/tickets/autoclose.js';
 import { handleTicketImageDrop } from './modules/tickets/panel.js';
 import { instanceManager } from './core/instance.js';
+import { startShopExpiryJob, stopShopExpiryJob } from './modules/shop/jobs/expiry.js';
 import { getTicketByChannel, updateTicketLastMessage } from './db/tickets.js';
 import { autoRepairPermissionsAndTickets } from './modules/permify/repair.js';
 import { initAutoModCache } from './db/automod.js';
@@ -288,6 +289,7 @@ export class ArgoniClient extends Client {
 
       startScheduler(readyClient);
       startTicketScheduler(readyClient);
+      startShopExpiryJob(readyClient);
       await autoRepairPermissionsAndTickets(readyClient).catch(err => {
         logger.warn({ err }, 'Error during automatic permission & ticket repair on startup');
       });
@@ -404,6 +406,7 @@ async function handleShutdown(signal) {
 
   stopScheduler();
   stopTicketScheduler();
+  stopShopExpiryJob();
 
   if (queue.size > 0 || queue.pending > 0) {
     logger.info(`Waiting for ${queue.size + queue.pending} queued operations to finish...`);

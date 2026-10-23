@@ -115,10 +115,18 @@ export function generateEncryptionKey() {
   return crypto.randomBytes(32).toString('hex');
 }
 
+export const encryptStockItem = encryptItem;
+export const decryptStockItem = decryptItem;
+export const maskSensitiveCredential = maskItem;
+
 export default {
   resolveKey,
   encryptItem,
   decryptItem,
   maskItem,
-  generateEncryptionKey
+  generateEncryptionKey,
+  encryptStockItem,
+  decryptStockItem,
+  maskSensitiveCredential
 };
+

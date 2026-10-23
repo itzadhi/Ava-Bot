@@ -78,6 +78,12 @@ export const CATEGORY_DEFINITIONS = {
       name: 'Ticket System',
       emoji: theme.emojis.categories.tickets || '🎫',
       description: 'Panels, private channels, claim/close flow, transcripts & stats'
+    },
+    {
+      id: 'shop',
+      name: 'Shop & Market',
+      emoji: '🛒',
+      description: 'Automated product channels, canvas banners, instant order tickets & stock delivery'
     }
   ],
   extra: [

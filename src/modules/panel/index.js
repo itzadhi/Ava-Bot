@@ -36,6 +36,7 @@ import { buildBotProfilePanel } from '../settings/botprofile.js';
 import { buildTTSPanel } from '../voice/tts/panel.js';
 import { buildLogsPanel } from '../logs/engine.js';
 import { renderTicketSettingsDashboard } from '../tickets/settings.js';
+import { renderShopDashboard } from '../shop/wizard/dashboard.js';
 
 export const MODULE_ITEMS = [
   { id: 'antinuke', name: 'Anti-Nuke Defense', emoji: '🛡️', desc: 'Channel restore, raid locks & shields' },
@@ -49,6 +50,7 @@ export const MODULE_ITEMS = [
   { id: 'staff', name: 'Suggestions & Feedback', emoji: '💡', desc: 'Staff queues, upvotes & reviews' },
   { id: 'chatlog', name: 'Chatlog Vault', emoji: '💬', desc: 'Encrypted message disaster archive' },
   { id: 'tickets', name: 'Ticket System', emoji: '🎫', desc: 'Panels, categories, controls & logs' },
+  { id: 'shop', name: 'Shop System', emoji: '🛒', desc: 'Products, automated channels, orders & tickets' },
   { id: 'permify', name: 'Permify Wizard', emoji: '🔒', desc: 'Server permission wizard & role architect' },
   { id: 'botprofile', name: 'Bot Profile', emoji: '🎨', desc: 'Per-server nickname, avatar & bio' },
   { id: 'settings', name: 'General Settings', emoji: '⚙️', desc: 'Prefix, locale & core toggles' }
@@ -204,6 +206,8 @@ export async function renderModulePanelById(moduleId, guild) {
       return buildLogsPanel(guild);
     case 'tickets':
       return renderTicketSettingsDashboard({ guild, activeTab: 'general' });
+    case 'shop':
+      return renderShopDashboard({ guild, activeTab: 'overview' });
     case 'permify':
       return renderPermifyShortcutPanel(guild);
     case 'settings':

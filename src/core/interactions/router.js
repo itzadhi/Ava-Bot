@@ -17,6 +17,7 @@ import { handleFeedbackVoiceInteraction } from '../../modules/router.js';
 import { handleDashboardInteraction } from '../../modules/panel/index.js';
 import { handleHelpInteraction } from '../../modules/help/panel.js';
 import { handleOwnerInteraction } from '../../modules/owner/panel.js';
+import { handleShopInteraction } from '../../modules/shop/index.js';
 import { componentRegistry } from '../../structures/ComponentRegistry.js';
 import { registry } from '../../structures/CommandRegistry.js';
 import { CommandContext } from '../../structures/CommandContext.js';
@@ -338,6 +339,12 @@ async function handleComponentInteraction(interaction) {
     // 0.1 Central Router for Suggestions, Feedback, JTC, TTS & Logs (fb:*)
     if (customId.startsWith('fb:')) {
       const handled = await handleFeedbackVoiceInteraction(i);
+      if (handled) return;
+    }
+
+    // 0.2 Shop System Routing (shop:*)
+    if (customId.startsWith('shop:')) {
+      const handled = await handleShopInteraction(i);
       if (handled) return;
     }
 

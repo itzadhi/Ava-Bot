@@ -12,6 +12,17 @@ function getMemTable(tableName) {
   return memoryDb.tables[tableName];
 }
 
+export function _clearInMemoryStore() {
+  if (memoryDb.tables) {
+    for (const key of Object.keys(memoryDb.tables)) {
+      if (key.startsWith('shop_')) {
+        memoryDb.tables[key].clear();
+      }
+    }
+  }
+  shopCache.invalidateAll();
+}
+
 const localCounters = new Map();
 
 /**
@@ -123,7 +134,11 @@ export async function getShopCategories(guildId) {
   return mem;
 }
 
-export async function saveShopCategory(category) {
+export async function saveShopCategory(guildIdOrCategory, maybeCategory = null) {
+  const category = typeof guildIdOrCategory === 'string'
+    ? { ...maybeCategory, guild_id: guildIdOrCategory }
+    : guildIdOrCategory;
+
   const cat = {
     id: category.id || crypto.randomUUID(),
     guild_id: category.guild_id,
@@ -218,7 +233,11 @@ export async function getShopProductByChannel(channelId) {
   return mem || null;
 }
 
-export async function saveShopProduct(product) {
+export async function saveShopProduct(guildIdOrProduct, maybeProduct = null) {
+  const product = typeof guildIdOrProduct === 'string'
+    ? { ...maybeProduct, guild_id: guildIdOrProduct }
+    : guildIdOrProduct;
+
   const prod = {
     id: product.id || crypto.randomUUID(),
     guild_id: product.guild_id,
@@ -329,7 +348,21 @@ export async function getReservedItemsForOrder(orderId) {
 // 5. ATOMIC RPC FUNCTIONS (Stock Reservation & Lifecycle)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function reserveStock(productId, orderId, quantity = 1, ttlMinutes = 30) {
+export async function reserveStock(productId, orderIdOrQty = 1, qtyOrTtl = 1, ttlParam = 30) {
+  let orderId;
+  let quantity;
+  let ttlMinutes;
+
+  if (typeof orderIdOrQty === 'number') {
+    orderId = 'res-' + crypto.randomUUID();
+    quantity = orderIdOrQty;
+    ttlMinutes = qtyOrTtl || 30;
+  } else {
+    orderId = orderIdOrQty || ('res-' + crypto.randomUUID());
+    quantity = typeof qtyOrTtl === 'number' ? qtyOrTtl : 1;
+    ttlMinutes = ttlParam || 30;
+  }
+
   try {
     const { data, error } = await db.rpc('shop_reserve_stock', {
       p_product_id: productId,
@@ -346,7 +379,7 @@ export async function reserveStock(productId, orderId, quantity = 1, ttlMinutes 
   // In-memory atomic fallback
   const product = await getShopProductById(productId);
   if (!product || product.status !== 'active') {
-    return { success: false, error: 'PRODUCT_NOT_ACTIVE' };
+    return { success: false, error: 'PRODUCT_NOT_ACTIVE', code: 'PRODUCT_NOT_ACTIVE' };
   }
 
   const expiry = new Date(Date.now() + ttlMinutes * 60000).toISOString();
@@ -357,7 +390,7 @@ export async function reserveStock(productId, orderId, quantity = 1, ttlMinutes 
 
   if (product.stock_type === 'quantity') {
     if (product.stock_count < quantity) {
-      return { success: false, error: 'OUT_OF_STOCK', available: product.stock_count };
+      return { success: false, error: 'OUT_OF_STOCK', code: 'OUT_OF_STOCK', available: product.stock_count };
     }
     product.stock_count -= quantity;
     await saveShopProduct(product);
@@ -370,7 +403,7 @@ export async function reserveStock(productId, orderId, quantity = 1, ttlMinutes 
       .slice(0, quantity);
 
     if (available.length < quantity) {
-      return { success: false, error: 'OUT_OF_STOCK', available: available.length };
+      return { success: false, error: 'OUT_OF_STOCK', code: 'OUT_OF_STOCK', available: available.length };
     }
 
     for (const item of available) {
@@ -383,10 +416,17 @@ export async function reserveStock(productId, orderId, quantity = 1, ttlMinutes 
     product.stock_count -= quantity;
     await saveShopProduct(product);
 
-    return { success: true, stock_type: 'items', quantity, item_ids: available.map(i => i.id), reserved_until: expiry };
+    return {
+      success: true,
+      stock_type: 'items',
+      quantity,
+      items: available,
+      item_ids: available.map(i => i.id),
+      reserved_until: expiry
+    };
   }
 
-  return { success: false, error: 'INVALID_STOCK_TYPE' };
+  return { success: false, error: 'INVALID_STOCK_TYPE', code: 'INVALID_STOCK_TYPE' };
 }
 
 export async function releaseExpiredOrders() {
@@ -440,18 +480,28 @@ export async function completeOrder(orderId) {
   if (order) {
     order.status = 'completed';
     order.updated_at = new Date().toISOString();
-
-    for (const item of getMemTable('shop_stock_items').values()) {
-      if (item.reserved_order_id === orderId) {
-        item.status = 'sold';
-        item.sold_order_id = orderId;
-        item.reserved_order_id = null;
-        item.reserved_until = null;
-      }
-    }
-    return { success: true };
   }
-  return { success: false, error: 'ORDER_NOT_FOUND' };
+
+  const soldItems = [];
+  for (const item of getMemTable('shop_stock_items').values()) {
+    if (item.reserved_order_id === orderId) {
+      item.status = 'sold';
+      item.sold_order_id = orderId;
+      item.reserved_order_id = null;
+      item.reserved_until = null;
+      soldItems.push(item);
+    }
+  }
+
+  return { success: true, items: soldItems };
+}
+
+export async function getSoldItemsForOrder(orderId) {
+  try {
+    const { data } = await db.from('shop_stock_items').select('*').eq('sold_order_id', orderId);
+    if (data && data.length > 0) return data;
+  } catch (_) { }
+  return Array.from(getMemTable('shop_stock_items').values()).filter(i => i.sold_order_id === orderId);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -852,3 +902,22 @@ export default {
   createShopReview,
   getShopStats
 };
+
+// Ergonomic Aliases
+export const saveShopSettings = updateShopSettings;
+export const addShopStockItems = addEncryptedStockItems;
+export const getShopStockItems = async (productId, status = 'available') => {
+  return Array.from(getMemTable('shop_stock_items').values())
+    .filter(i => i.product_id === productId && (!status || i.status === status));
+};
+export const releaseExpiredReservations = async () => {
+  const res = await releaseExpiredOrders();
+  return { releasedProducts: res?.released_orders || 0, ...res };
+};
+export const createOrder = createShopOrder;
+export const getOrderById = getShopOrder;
+export const updateOrderStatus = (orderId, status) => updateShopOrder(orderId, { status });
+export const addWaitlistEntry = addToWaitlist;
+export const removeWaitlistEntry = clearWaitlist;
+export const addShopReview = (r) => createShopReview({ ...r, stars: r.rating || r.stars });
+

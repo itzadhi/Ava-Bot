@@ -531,4 +531,42 @@ The owner-only `/perf` command provides real-time telemetry on interaction healt
 - **Hourly Error Tracking**: Exact counts for Discord error codes `10062` (Unknown Interaction), `40060` (Already Acknowledged), `50027` (Invalid Webhook Token), and `429` (Rate Limited).
 - **Interactive Grey Refresh Button**: Trigger an instant re-profiling using persistent `perf:refresh` handler.
 
+---
+
+## 🛒 Complete Shop System
+
+Argoni includes an enterprise-grade, concurrency-safe digital storefront designed exclusively with **Discord Components V2** (`flags: MessageFlags.IsComponentsV2`), pure **grey buttons** (`ButtonStyle.Secondary`), auto-generated canvas banners, atomic Postgres stock reservations, and AES-256-GCM encryption for credentials and license keys.
+
+### 🌟 Key Highlights
+- **100% Components V2 Card Layout**: Single-container cards with MediaGallery banners (`attachment://banner.png`), key facts line rows (`kvLine`), feature bullet points, and grey action buttons.
+- **Dynamic Graphics Engine**: Generates 1200x400 auto-fitting banners with custom themes (`dark`, `light`, `neon`, `minimal`), price discount badges, and status ribbons (IN STOCK / SOLD OUT). Supports both `@napi-rs/canvas` and `canvas` (`node-canvas`).
+- **Atomic Concurrency Protection**: High-concurrency Postgres RPC function `shop_reserve_stock` using row-level locking (`FOR UPDATE SKIP LOCKED`). Two simultaneous buyers clicking "Buy Now" on the last unit will never oversell; exactly one wins and the second receives a clean "Sold Out" card with a "Notify Me" waitlist button.
+- **Deliverables Encrypted at Rest**: Item-based products (license keys, credentials, accounts) are encrypted with AES-256-GCM using `SHOP_ENCRYPTION_KEY`. Decrypted only inside the buyer's private ticket upon staff approval. Credentials are never exposed in public logs or plain-text database dumps.
+- **Automated Channel Publisher**: Publishing a product creates a dedicated Discord channel (e.g., `🔑┃steam-keys`), configures read-only permissions for `@everyone`, posts the banner & card, pins the message, and registers channel & message IDs in Supabase.
+- **Automatic Sync & Disaster Recovery**: `/shop sync` and automated deletion event handlers detect deleted channels or messages and cleanly regenerate cards and banners with intact data.
+
+### 📋 Shop Commands Reference
+| Command | Prefix | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `/shop` | `&shop` | Everyone / Staff | Opens setup wizard on first run; management dashboard afterwards |
+| `/shop setup` | `&shop setup` | Manager | Re-runs the 7-step interactive server storefront configuration wizard |
+| `/shop add` | `&shop add` | Manager | Starts product wizard, renders canvas banner, creates channel and posts card |
+| `/shop restock` | `&shop restock` | Manager | Restocks quantity or encrypted items, updates card, and pings waitlist |
+| `/shop list` | `&shop list` | Everyone | Displays active store catalog with prices, stock levels, and channel links |
+| `/shop orders` | `&shop orders` | Staff | Inspects customer order queue, reservation timers, and fulfillment statuses |
+| `/shop stats` | `&shop stats` | Staff | Displays gross revenue, conversion rates, completed orders, and reviews |
+| `/shop sync` | `&shop sync` | Manager | Scans and repairs missing product channels or corrupted message cards |
+| `/shop blacklist` | `&shop blacklist` | Manager | Manages buyer blacklist to restrict fraudulent or abusive accounts |
+
+### 🛠️ Manual Database & Storage Setup
+As per Argoni's strict policy against automated database migrations:
+1. Open your **Supabase Dashboard** -> **SQL Editor**.
+2. Open and execute [`supabase/migrations/20261023_shop.sql`](file:///w:/Argoni/supabase/migrations/20261023_shop.sql).
+3. Under **Storage** in Supabase, create a bucket named `shop-banners` (Public read access).
+4. Generate a 32-byte hex encryption key (`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`) and add to `.env`:
+   ```env
+   SHOP_ENCRYPTION_KEY=your_generated_64_char_hex_key
+   ```
+
+
 

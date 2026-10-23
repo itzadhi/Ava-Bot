@@ -155,6 +155,10 @@ class ShopCache {
     this.productByChannel.clear();
     this.blacklist.clear();
   }
+
+  invalidateAll() {
+    this.clear();
+  }
 }
 
 export const shopCache = new ShopCache();

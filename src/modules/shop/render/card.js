@@ -34,12 +34,15 @@ function formatCurrency(minorUnits, currency = 'INR', locale = 'en-IN') {
  * @param {Buffer} [params.bannerBuffer] Rendered banner PNG buffer
  * @returns {object} Discord message payload ready to send or edit
  */
-export function buildProductCard({
-  product,
-  category = null,
-  settings = null,
-  bannerBuffer = null
-}) {
+export function buildProductCard(productOrParams, maybeCategory = null, maybeSettings = null) {
+  let product, category, settings, bannerBuffer;
+  if (productOrParams && productOrParams.product) {
+    ({ product, category = null, settings = null, bannerBuffer = null } = productOrParams);
+  } else {
+    product = productOrParams;
+    category = maybeCategory;
+    settings = maybeSettings;
+  }
   const container = new ContainerBuilder();
 
   // 1. Media Gallery Banner (attachment://banner.png)
@@ -175,10 +178,11 @@ export function buildProductCard({
   }
 
   const row = new ActionRowBuilder().addComponents(buttons.slice(0, 5));
+  container.addActionRowComponents(row);
 
   const payload = {
     flags: MessageFlags.IsComponentsV2,
-    components: [container, row]
+    components: [container]
   };
 
   if (bannerBuffer) {
