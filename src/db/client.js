@@ -347,13 +347,32 @@ export function getSupabase() {
   const status = validateLiveCredentials();
   if (status.valid) {
     try {
+      const customFetch = (url, options = {}) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        if (timeoutId.unref) timeoutId.unref();
+
+        const fetchOptions = {
+          ...options,
+          signal: options.signal || controller.signal,
+          keepalive: true
+        };
+
+        return fetch(url, fetchOptions).finally(() => {
+          clearTimeout(timeoutId);
+        });
+      };
+
       supabaseClient = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY, {
         auth: {
           persistSession: false,
           autoRefreshToken: false
+        },
+        global: {
+          fetch: customFetch
         }
       });
-      logger.info('Connected to live Supabase backend');
+      logger.info('Connected to live Supabase backend (keep-alive enabled, 5s timeout guard)');
       return supabaseClient;
     } catch (err) {
       logger.warn({ err }, 'Failed to initialize live Supabase client, falling back to memory database');

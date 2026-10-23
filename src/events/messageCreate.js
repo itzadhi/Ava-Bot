@@ -1,7 +1,7 @@
 import { CommandContext } from '../structures/CommandContext.js';
 import { registry } from '../structures/CommandRegistry.js';
 import { runMiddlewareChain } from '../middleware/index.js';
-import { getGuildSettings } from '../db/guilds.js';
+import { getGuildSettingsSync } from '../db/guilds.js';
 import { parsePrefixArgs, tokenize } from '../utils/parser.js';
 import { logError } from '../db/errors.js';
 import { errorCard } from '../ui/cards.js';
@@ -35,7 +35,7 @@ export async function onMessageCreate(message) {
   // 3. Resolve Guild Prefix & Mention Prefix
   let guildSettings = null;
   if (message.guild) {
-    guildSettings = await getGuildSettings(message.guild.id);
+    guildSettings = getGuildSettingsSync(message.guild.id);
 
     // If prefix commands are disabled for this guild and it's not the owner prefix, exit
     if (guildSettings && guildSettings.prefix_commands_enabled === false && !isOwnerPrefix) {

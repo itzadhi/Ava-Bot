@@ -49,6 +49,7 @@ import { initAntiNukeCache, saveAllChannelSnapshots } from './db/antinuke.js';
 import { handleChannelDeleteEvent, queueChannelSnapshot } from './modules/antinuke/restore.js';
 import { evaluateRaidMessage, trackMemberJoin, resumeActiveLockdowns } from './modules/antinuke/lockdown.js';
 import { handleRoleDeleteEvent, handleRoleUpdateEvent, handleBotAddEvent, handleWebhookCreateEvent } from './modules/antinuke/extra.js';
+import { preloadGuildSettings } from './core/cache/guildCache.js';
 
 /**
  * ArgoniClient - Reusable Discord Bot Client powered by Components V2 & Supabase
@@ -226,7 +227,10 @@ export class ArgoniClient extends Client {
         logger.warn({ err }, 'Error during automatic permission & ticket repair on startup');
       });
 
-      // AutoMod & Anti-Nuke Write-Through Cache Preload & Active Lockdown Monitoring
+      // Write-Through Cache Preload: Guild Settings, AutoMod & Anti-Nuke
+      await preloadGuildSettings(readyClient).catch(err => {
+        logger.warn({ err }, 'Error preloading guild settings cache');
+      });
       await initAutoModCache(readyClient).catch(err => {
         logger.warn({ err }, 'Error preloading AutoMod cache');
       });
