@@ -39,16 +39,8 @@ export const moduleManifest = {
   async healthCheck() {
     return { healthy: true, details: 'Anti-Nuke defense system active' };
   },
-  async onLoad({ client, logger }) {
-    if (client) {
-      await initAntiNukeCache(client).catch(err => {
-        logger.warn({ err }, 'Error preloading AntiNuke cache');
-      });
-      await resumeActiveLockdowns(client).catch(err => {
-        logger.warn({ err }, 'Error resuming active lockdowns');
-      });
-      logger.debug('AntiNuke module loaded.');
-    }
+  async onLoad({ logger }) {
+    logger.debug('AntiNuke module loaded.');
   },
   async onUnload() {}
 };

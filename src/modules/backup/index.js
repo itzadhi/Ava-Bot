@@ -17,14 +17,7 @@ export const backupModule = defineModule({
   version: '1.0.0',
   commands: [backupCommand],
   components: backupComponents,
-  cron: [
-    {
-      expression: '*/15 * * * *',
-      run: async (client) => {
-        await runIntervalCheck(client);
-      }
-    }
-  ]
+  cron: []
 });
 
 export {

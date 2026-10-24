@@ -213,9 +213,11 @@ export async function saveStoredCommandHash(hash, count) {
  * @returns {Promise<{ deployed: boolean, count: number, hash: string, reason?: string }>}
  */
 export async function autoDeployCommands(client, options = {}) {
-  const force = options.force || process.env.FORCE_DEPLOY === 'true' || process.argv.includes('--deploy');
-  const scope = options.scope || process.env.COMMAND_SCOPE || 'global';
-  const targetGuildId = options.guildId || process.env.COMMAND_GUILD_ID;
+  const role = (process.env.INSTANCE_ROLE || '').toLowerCase();
+  const devGuildId = process.env.DEV_GUILD_ID || options.guildId || process.env.COMMAND_GUILD_ID;
+  const isDev = role === 'dev';
+  const scope = isDev && devGuildId ? 'guild' : (options.scope || process.env.COMMAND_SCOPE || 'global');
+  const targetGuildId = isDev && devGuildId ? devGuildId : (options.guildId || process.env.COMMAND_GUILD_ID);
 
   // 1. Retrieve all commands from registry
   const rawSlashData = registry.toSlashData();

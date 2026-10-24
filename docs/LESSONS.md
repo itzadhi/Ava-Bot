@@ -144,3 +144,11 @@ Every lesson follows the format: **What Went Wrong** → **Root Cause** → **Ru
 - **What Went Wrong:** Live server diagnosis revealed 5 voice channels in guild `1447230598295978198` had `deny: Connect` active from previous lockdown attempts, permanently blocking members from voice rooms.
 - **Root Cause:** Lockdown channel loop previously iterated over all channels and applied overwrites without distinguishing text messaging vs voice connect permissions, and saved corrupted "original" values if a lockdown was interrupted or retried.
 - **Rule to Prevent:** Lockdown must use write-ahead plans with pre-validation against last known good baselines. Never apply `Connect` denial unless explicitly executing an intentional voice lockdown mode, and never overwrite an existing baseline with an active lockdown state.
+
+---
+
+## Lesson 21: Startup Duplication & Module Registry Aliasing Hazards
+- **What Went Wrong:** Startup logs reported duplicate scheduler starts, preloading configs for "0 guilds" before gateway connection and again for "2 guilds", and module counts disagreed (22 loaded vs 30 registered).
+- **Root Cause:** Module `onLoad()` ran inside `init()` prior to `client.login()`, when `guilds.cache.size` was zero; schedulers were invoked both inside module manifests and inside `ClientReady`; and `ModuleRegistry` stored both module ID and alias names into the same map without deduplicating in `getAll()`.
+- **Rule to Prevent:** All background schedulers, watchers, and per-guild cache loaders must execute through the idempotent `startOnce(key, fn)` registry after `clientReady`. Never preload per-guild configurations before gateway login. `ModuleRegistry.getAll()` must deduplicate using `new Set()`.
+

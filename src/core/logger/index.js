@@ -94,7 +94,6 @@ class UniversalLogger {
     if (LOG_LEVELS[level] < CURRENT_LOG_LEVEL) return;
 
     const now = Date.now();
-    const delta = now - this.lastTimestamp;
     this.lastTimestamp = now;
 
     const timeStr = colorize(ANSI.dim + ANSI.gray, this.formatTime());
@@ -102,37 +101,50 @@ class UniversalLogger {
 
     // Module tag: Resolve explicit, binding, or caller file path
     let moduleName = meta.module || this.bindings.module || meta.scope || this.bindings.scope;
-    if (!moduleName || moduleName === 'SYSTEM') {
+    if (!moduleName || moduleName.toUpperCase() === 'SYSTEM') {
       const stack = new Error().stack || '';
       if (stack.includes('antinuke')) moduleName = 'ANTINUKE';
       else if (stack.includes('lockdown')) moduleName = 'LOCKDOWN';
       else if (stack.includes('automod')) moduleName = 'AUTOMOD';
       else if (stack.includes('tickets') || stack.includes('ticket')) moduleName = 'TICKETS';
       else if (stack.includes('shop')) moduleName = 'SHOP';
-      else if (stack.includes('permify') || stack.includes('repair.js')) moduleName = 'PERMIFY';
+      else if (stack.includes('permify') || stack.includes('repair')) moduleName = 'PERMIFY';
       else if (stack.includes('db/') || stack.includes('database')) moduleName = 'DATABASE';
       else if (stack.includes('voice') || stack.includes('tts') || stack.includes('jtc')) moduleName = 'VOICE';
-      else if (stack.includes('jobs')) moduleName = 'JOBS';
-      else if (stack.includes('pterodactyl')) moduleName = 'PANEL';
-      else if (stack.includes('startup')) moduleName = 'STARTUP';
+      else if (stack.includes('scheduler') || stack.includes('cron')) moduleName = 'SCHEDULER';
+      else if (stack.includes('jobs') || stack.includes('jobManager')) moduleName = 'JOBS';
+      else if (stack.includes('pterodactyl') || stack.includes('memory')) moduleName = 'PANEL';
+      else if (stack.includes('gateway') || stack.includes('shard') || stack.includes('clientReady')) moduleName = 'GATEWAY';
+      else if (stack.includes('interaction') || stack.includes('command') || stack.includes('trace')) moduleName = 'INTERACT';
+      else if (stack.includes('startup') || stack.includes('loader')) moduleName = 'STARTUP';
       else if (stack.includes('rest') || stack.includes('discord')) moduleName = 'REST';
-      else moduleName = 'SYSTEM';
+      else moduleName = 'CORE';
     }
 
-    const modulePill = colorize(ANSI.lavender, `[${moduleName.padEnd(8).slice(0, 8)}]`);
+    // Tag width exactly 10 characters (no truncation for BLACKLIST)
+    const formattedTag = moduleName.toUpperCase().padEnd(10).slice(0, 10);
+    const modulePill = colorize(ANSI.lavender, `[${formattedTag}]`);
 
-    // Delta time
-    const deltaStr = delta > 0 && delta < 60000 ? colorize(ANSI.dim + ANSI.gray, `+${delta}ms`) : '';
+    // Explicit operation duration (took=Xms), never idle gaps (+Nms)
+    const tookVal = meta.took ?? meta.tookMs ?? meta.durationMs;
+    const tookStr = (tookVal !== undefined && tookVal !== null) ? colorize(ANSI.dim + ANSI.lavender, ` took=${Math.round(tookVal)}ms`) : '';
+    const plainTook = (tookVal !== undefined && tookVal !== null) ? ` took=${Math.round(tookVal)}ms` : '';
 
     // Guild and Interaction tags
-    const guildTag = meta.guildName ? colorize(ANSI.dim + ANSI.gray, `(${meta.guildName.slice(0, 14)}) `) : '';
-    const intTag = meta.interactionId ? colorize(ANSI.dim + ANSI.lavender, `[#${meta.interactionId.slice(-4)}] `) : '';
+    const plainGuild = meta.guildName ? `(${meta.guildName.slice(0, 14)}) ` : '';
+    const guildTag = plainGuild ? colorize(ANSI.dim + ANSI.gray, plainGuild) : '';
+    const plainInt = meta.interactionId ? `[#${meta.interactionId.slice(-4)}] ` : '';
+    const intTag = plainInt ? colorize(ANSI.dim + ANSI.lavender, plainInt) : '';
 
-    // Cleaned message (truncated if needed so line stays under 120 cols)
+    // Calculate maximum available characters to guarantee line length <= 110
+    const prefixPlainLen = 8 + 2 + 7 + 2 + 12 + 2 + plainGuild.length + plainInt.length;
+    const maxMsgLen = Math.max(25, 110 - prefixPlainLen - plainTook.length);
+
+    // Cleaned message truncated safely to fit 110 columns
     const rawMsg = sanitize(typeof message === 'string' ? message : (message.message || JSON.stringify(message)));
-    const cleanMsg = rawMsg.length > 80 ? rawMsg.slice(0, 77) + '...' : rawMsg;
+    const cleanMsg = rawMsg.length > maxMsgLen ? rawMsg.slice(0, maxMsgLen - 3) + '...' : rawMsg;
 
-    process.stdout.write(`${timeStr}  ${badge}  ${modulePill}  ${guildTag}${intTag}${cleanMsg}  ${deltaStr}\n`);
+    process.stdout.write(`${timeStr}  ${badge}  ${modulePill}  ${guildTag}${intTag}${cleanMsg}${tookStr}\n`);
 
     // If meta has error object with stack trace, render with pink gutter
     if (meta.err && meta.err.stack) {

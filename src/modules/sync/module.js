@@ -11,10 +11,7 @@ export const moduleManifest = {
   intents: [],
   commands: [],
   components: [],
-  events: {
-    messageCreate: handleMessageSync,
-    guildMemberUpdate: handleRoleAssignSync
-  },
+  events: {},
   jobs: [],
   migrations: [],
   settingsSchema: z.object({

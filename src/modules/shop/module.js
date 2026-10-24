@@ -21,16 +21,7 @@ export const moduleManifest = {
     }
   ],
   events: {},
-  jobs: [
-    {
-      name: 'shop-order-expiry-sweep',
-      expression: '*/2 * * * *',
-      run: async (client) => {
-        const { releaseExpiredOrders } = await import('./db.js');
-        await releaseExpiredOrders().catch(() => {});
-      }
-    }
-  ],
+  jobs: [],
   migrations: [],
   settingsSchema: z.object({
     enabled: z.boolean().default(true),
@@ -43,11 +34,8 @@ export const moduleManifest = {
   async healthCheck() {
     return { healthy: true, details: 'Storefront engine active' };
   },
-  async onLoad({ client, logger }) {
-    if (client) {
-      startShopExpiryJob(client);
-      logger.debug('Shop module loaded and order expiry sweeper started.');
-    }
+  async onLoad({ logger }) {
+    logger.debug('Shop module loaded.');
   },
   async onUnload({ logger }) {
     stopShopExpiryJob();

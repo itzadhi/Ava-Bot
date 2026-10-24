@@ -38,13 +38,8 @@ export const moduleManifest = {
   async healthCheck() {
     return { healthy: true, details: 'AutoMod engine active' };
   },
-  async onLoad({ client, logger }) {
-    if (client) {
-      await initAutoModCache(client).catch(err => {
-        logger.warn({ err }, 'Error warming automod cache');
-      });
-      logger.debug('AutoMod module loaded.');
-    }
+  async onLoad({ logger }) {
+    logger.debug('AutoMod module loaded.');
   },
   async onUnload() {}
 };

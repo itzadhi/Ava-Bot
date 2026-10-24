@@ -3,6 +3,7 @@ import { logger } from '../../utils/logger.js';
 import { errorCard } from '../../ui/cards.js';
 import { isAcknowledged, markAcknowledged } from './tracker.js';
 import { metrics } from '../metrics.js';
+import { recordRestCall, recordSpan } from './trace.js';
 
 /**
  * Normalizes and sanitizes a payload to conform strictly to Components V2 standards.
@@ -104,6 +105,22 @@ export async function safeRespond(interaction, payload, options = {}) {
   const cleanPayload = sanitizePayload(payload, ephemeral);
   const acked = isAcknowledged(interaction);
 
+  const timedCall = async (kind, fn) => {
+    const t0 = performance.now();
+    try {
+      const res = await fn();
+      const ms = Math.round(performance.now() - t0);
+      recordRestCall(kind, ms);
+      recordSpan(`respond:${kind}`, ms);
+      return res;
+    } catch (err) {
+      const ms = Math.round(performance.now() - t0);
+      recordRestCall(kind, ms);
+      recordSpan(`respond:${kind}:error`, ms);
+      throw err;
+    }
+  };
+
   const respondOperation = async () => {
     try {
       if (!acked) {
@@ -112,35 +129,35 @@ export async function safeRespond(interaction, payload, options = {}) {
           // If ephemeral requested on a component, use reply; otherwise update message
           if (ephemeral) {
             markAcknowledged(interaction, 'reply');
-            return await interaction.reply(cleanPayload);
+            return await timedCall('reply', () => interaction.reply(cleanPayload));
           } else {
             markAcknowledged(interaction, 'update');
-            return await interaction.update(cleanPayload);
+            return await timedCall('update', () => interaction.update(cleanPayload));
           }
         }
 
         if (interaction.isChatInputCommand?.() || interaction.isModalSubmit?.()) {
           markAcknowledged(interaction, 'reply');
-          return await interaction.reply(cleanPayload);
+          return await timedCall('reply', () => interaction.reply(cleanPayload));
         }
 
         if (typeof interaction.reply === 'function') {
           markAcknowledged(interaction, 'reply');
-          return await interaction.reply(cleanPayload);
+          return await timedCall('reply', () => interaction.reply(cleanPayload));
         }
       } else {
         // Already acknowledged (deferred or replied)
         const needsFollowUpForEphemeral = ephemeral && interaction.deferred && !interaction.ephemeral;
         if ((followUp || needsFollowUpForEphemeral) && typeof interaction.followUp === 'function') {
-          return await interaction.followUp(cleanPayload);
+          return await timedCall('followUp', () => interaction.followUp(cleanPayload));
         }
 
         if (typeof interaction.editReply === 'function') {
-          return await interaction.editReply(cleanPayload);
+          return await timedCall('editReply', () => interaction.editReply(cleanPayload));
         }
 
         if (typeof interaction.followUp === 'function') {
-          return await interaction.followUp(cleanPayload);
+          return await timedCall('followUp', () => interaction.followUp(cleanPayload));
         }
       }
     } catch (err) {

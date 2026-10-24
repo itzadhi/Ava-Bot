@@ -188,12 +188,21 @@ export function colorize(colorCode, text) {
  * Detects real container memory limit (cgroup v2/v1, process.env.MEMORY, or host total)
  * @returns {string} Human-readable RAM string e.g. "512 MB"
  */
+export function detectEnvironment() {
+  if (process.env.P_SERVER_UUID || process.cwd().startsWith('/home/container')) {
+    return 'Pterodactyl';
+  }
+  return 'local';
+}
+
 export function getRealMemoryLimitString() {
+  const procMb = Math.round(process.memoryUsage().rss / (1024 * 1024));
+
   if (process.env.MEMORY && !isNaN(process.env.MEMORY)) {
-    return `${Math.round(parseFloat(process.env.MEMORY))} MB`;
+    return `limit ${Math.round(parseFloat(process.env.MEMORY))} MB`;
   }
   if (process.env.SERVER_MEMORY && !isNaN(process.env.SERVER_MEMORY)) {
-    return `${Math.round(parseFloat(process.env.SERVER_MEMORY))} MB`;
+    return `limit ${Math.round(parseFloat(process.env.SERVER_MEMORY))} MB`;
   }
 
   // cgroup v2
@@ -203,7 +212,7 @@ export function getRealMemoryLimitString() {
       const val = fs.readFileSync(cgroupV2, 'utf8').trim();
       if (val !== 'max' && !isNaN(val)) {
         const bytes = parseInt(val, 10);
-        return `${Math.round(bytes / (1024 * 1024))} MB`;
+        return `limit ${Math.round(bytes / (1024 * 1024))} MB`;
       }
     }
   } catch (_) {}
@@ -215,17 +224,17 @@ export function getRealMemoryLimitString() {
       const val = fs.readFileSync(cgroupV1, 'utf8').trim();
       const num = parseInt(val, 10);
       if (!isNaN(num) && num < 1099511627776) {
-        return `${Math.round(num / (1024 * 1024))} MB`;
+        return `limit ${Math.round(num / (1024 * 1024))} MB`;
       }
     }
   } catch (_) {}
 
-  // Host total fallback
+  // Host total fallback: "host 16 GB, process 152 MB"
   try {
-    const totalBytes = os.totalmem();
-    return `${Math.round(totalBytes / (1024 * 1024))} MB`;
+    const hostGb = Math.round(os.totalmem() / (1024 * 1024 * 1024));
+    return `host ${hostGb} GB, process ${procMb} MB`;
   } catch (_) {
-    return '512 MB';
+    return `process ${procMb} MB`;
   }
 }
 
@@ -242,5 +251,6 @@ export default {
   isNoColor,
   isForceColor,
   isAsciiOnly,
+  detectEnvironment,
   getRealMemoryLimitString
 };

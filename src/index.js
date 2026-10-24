@@ -63,6 +63,11 @@ import { pruneLogsDirectory } from './core/pterodactyl/storage.js';
 import { startHealthServer, stopHealthServer } from './core/pterodactyl/healthServer.js';
 import { autoDeployCommands } from './core/commands/autoDeploy.js';
 import { reconcileGuildSettings } from './core/guilds/reconcile.js';
+import { startOnce, printStartupCheck } from './core/lifecycle/startOnce.js';
+import { acquireInstanceLease, releaseInstanceLease, isLeader, validateTokenSafety } from './core/instance/lease.js';
+import { brand } from './config/brand.js';
+import { detectEnvironment } from './core/logger/style.js';
+import { getCurrentTrace, recordRestCall } from './core/interactions/trace.js';
 
 /**
  * AvaClient - Reusable Discord Bot Client powered by Components V2 & Supabase
@@ -134,6 +139,17 @@ class AvaClient extends Client {
     this.on('shardDisconnect', (event, shardId) => logger.warn({ event, shardId }, `Discord shard #${shardId} disconnected`));
     this.on('shardReconnecting', (shardId) => logger.info({ shardId }, `Discord shard #${shardId} reconnecting`));
     this.on('shardResume', (shardId, replayedEvents) => logger.info({ shardId, replayedEvents }, `Discord shard #${shardId} resumed`));
+
+    // Instrument Discord REST events for interaction trace profiling
+    this.rest.on('response', (request, response) => {
+      try {
+        const trace = getCurrentTrace();
+        if (trace) {
+          const route = request?.routeId || request?.path || 'rest';
+          recordRestCall(route, 1);
+        }
+      } catch (_) {}
+    });
 
     // Attach default core event listeners
     this.on('interactionCreate', onInteractionCreate);
@@ -227,31 +243,41 @@ class AvaClient extends Client {
 
     this.once(Events.ClientReady, async (readyClient) => {
       markCleanStartup();
-      const tWarm0 = performance.now();
-      const cachedCount = await preloadGuildSettings(readyClient).catch(() => 0);
-      const cacheWarmUpMs = performance.now() - tWarm0;
+      const env = detectEnvironment();
+      const memoryMb = Math.round(process.memoryUsage().rss / 1024 / 1024);
 
-      const isLiveDb = validateLiveCredentials().valid;
-      const dbStatus = isLiveDb ? 'Live Supabase (Online • Keep-Alive)' : 'Memory Adapter (Test/Offline)';
-
-      const configWarnings = [];
-      if (!readyClient.options.intents.has(GatewayIntentBits.MessageContent)) {
-        configWarnings.push('MessageContent intent disabled (prefix commands will degrade)');
+      // 1. Real Ping measurement (wait up to 5s for first heartbeat if not yet measured)
+      let measuredPing = Math.round(readyClient.ws.ping);
+      if (measuredPing <= 0) {
+        const tPing0 = Date.now();
+        while (Date.now() - tPing0 < 5000 && measuredPing <= 0) {
+          await new Promise(r => setTimeout(r, 200));
+          measuredPing = Math.round(readyClient.ws.ping);
+        }
       }
 
-      const memoryMb = Math.round(process.memoryUsage().rss / 1024 / 1024);
+      // 2. Render Online status box with real metrics and environment label
       if (typeof logger.ready === 'function') {
         logger.ready({
           tag: readyClient.user.tag,
+          username: readyClient.user.username,
           id: readyClient.user.id,
           guilds: readyClient.guilds.cache.size,
-          ping: Math.round(readyClient.ws.ping),
+          ping: measuredPing > 0 ? measuredPing : null,
+          env,
           memoryMb
         });
       } else {
-        logger.info(`✓ Logged in as ${readyClient.user.tag} (ID: ${readyClient.user.id})`);
+        logger.info(`✓ Logged in as ${readyClient.user.tag} (ID: ${readyClient.user.id}, Env: ${env})`);
       }
 
+      // 3. Brand & Account Sanity Check
+      if (config.CLIENT_ID && readyClient.user.id !== config.CLIENT_ID) {
+        logger.warn(`[STARTUP   ] client.user.id (${readyClient.user.id}) differs from configured CLIENT_ID (${config.CLIENT_ID})`);
+      }
+      if (brand.name && readyClient.user.username.toLowerCase() !== brand.name.toLowerCase()) {
+        logger.warn(`[STARTUP   ] client.user.username "${readyClient.user.username}" differs from brand name "${brand.name}"`);
+      }
 
       if (typeof logger.startHeartbeat === 'function') {
         logger.startHeartbeat(readyClient);
@@ -263,49 +289,48 @@ class AvaClient extends Client {
         status: presenceConfig.status || 'online'
       });
 
-      // 1. Audit and print event listener counts to verify zero duplicate registrations
+      // 4. Audit listener counts to DEBUG, warning only if a unique event has duplicates
       const monitoredEvents = ['interactionCreate', 'messageCreate', 'ready', 'guildCreate', 'guildDelete', 'error', 'shardError'];
       for (const evt of monitoredEvents) {
-        logger.info(`[LISTENERS] Event "${evt}" has ${readyClient.listenerCount(evt)} listener(s) registered`);
+        const count = readyClient.listenerCount(evt);
+        logger.debug({ event: evt, count }, `[LISTENERS ] Event "${evt}" has ${count} listener(s) registered`);
+        if ((evt === 'interactionCreate' || evt === 'ready') && count > 1) {
+          logger.warn(`[LISTENERS ] Duplicate listener detected on unique event "${evt}" (${count} listeners)`);
+        }
       }
 
-      // 2. Start dual-instance heartbeat detector
-      instanceManager.startHeartbeat();
+      // 5. Single-Instance Lease acquisition
+      const lease = await acquireInstanceLease();
+      if (!lease.isLeader) {
+        logger.warn(`[STARTUP   ] Running in STANDBY mode: single-instance lease held by another process. Schedulers, jobs, command deploy, and permission writers disabled on this node.`);
+      } else {
+        // Run core startup hooks once through idempotent startOnce registry
+        await startOnce('autoDeployCommands', () => autoDeployCommands(readyClient).catch(err => logger.warn({ err: err.message }, 'Command auto-deployment warning')));
+        await startOnce('reconcileGuildSettings', () => reconcileGuildSettings(readyClient).catch(err => logger.warn({ err: err.message }, 'Guild reconciliation warning')));
+        await startOnce('reconcileTempChannels', () => reconcileTempChannels(readyClient).catch(err => logger.warn({ err }, 'Error during temporary voice channel reconciliation')));
 
-      // 3. Automatically synchronize application commands (hash-based, non-blocking)
-      await autoDeployCommands(readyClient).catch(err => {
-        logger.warn({ err: err.message }, 'Command auto-deployment warning');
-      });
+        startOnce('scheduler:central', () => startScheduler(readyClient));
+        startOnce('scheduler:tickets', () => startTicketScheduler(readyClient));
+        startOnce('scheduler:shop', () => startShopExpiryJob(readyClient));
+        startOnce('watchdog:reliability', () => startReliabilityWatchdog(readyClient));
+        startOnce('watchdog:lockdown', () => startLockdownWatchdog(readyClient));
+        startOnce('watchdog:jobs', () => startJobWatchdog(readyClient));
 
-      // 4. Per-guild initialization & settings reconciliation (insert-if-missing, cache warm)
-      await reconcileGuildSettings(readyClient).catch(err => {
-        logger.warn({ err: err.message }, 'Guild reconciliation warning');
-      });
+        // Bulk load per-guild caches once after gateway connection
+        await Promise.all([
+          startOnce('cache:automod', () => initAutoModCache(readyClient).catch(err => logger.warn({ err: err.message }, 'Error preloading AutoMod cache'))),
+          startOnce('cache:antinuke', () => initAntiNukeCache(readyClient).catch(err => logger.warn({ err: err.message }, 'Error preloading Anti-Nuke cache')))
+        ]);
 
-      // Reconcile active temporary voice channels
-      await reconcileTempChannels(readyClient).catch(err => {
-        logger.warn({ err }, 'Error during temporary voice channel reconciliation');
-      });
-
-      startScheduler(readyClient);
-      startTicketScheduler(readyClient);
-      startShopExpiryJob(readyClient);
-      startReliabilityWatchdog(readyClient);
-
-      // Parallel cache preloads for instant readiness
-      await Promise.all([
-        initAutoModCache(readyClient).catch(err => logger.warn({ err: err.message }, 'Error preloading AutoMod cache')),
-        initAntiNukeCache(readyClient).catch(err => logger.warn({ err: err.message }, 'Error preloading Anti-Nuke cache'))
-      ]);
-
-      // Resume active lockdowns, background jobs and start background watchdogs
-      await resumeActiveLockdowns(readyClient).catch(err => logger.warn({ err: err.message }, 'Error resuming active lockdowns'));
-      await resumeUnfinishedJobs(readyClient).catch(err => logger.warn({ err: err.message }, 'Error resuming unfinished jobs'));
-      startLockdownWatchdog(readyClient);
-      startJobWatchdog(readyClient);
+        await startOnce('lockdown:resume', () => resumeActiveLockdowns(readyClient).catch(err => logger.warn({ err: err.message }, 'Error resuming active lockdowns')));
+        await startOnce('jobs:resume', () => resumeUnfinishedJobs(readyClient).catch(err => logger.warn({ err: err.message }, 'Error resuming unfinished jobs')));
+      }
 
       // Verify permission write database schema & kill switch status
-      await checkPermissionSchema().catch(err => logger.warn({ err: err.message }, 'Permission schema check error'));
+      await startOnce('schema:permissions', () => checkPermissionSchema().catch(err => logger.warn({ err: err.message }, 'Permission schema check error')));
+
+      // Final startup idempotent verification check line
+      printStartupCheck();
     });
   }
 
@@ -346,8 +371,9 @@ class AvaClient extends Client {
       logger.banner();
     }
     const t0 = performance.now();
+    const envDetected = detectEnvironment();
     if (typeof logger.bootStep === 'function') {
-      logger.bootStep('Config & Pterodactyl environment validated', performance.now() - t0);
+      logger.bootStep(`Config & ${envDetected} environment validated`, performance.now() - t0);
     }
 
     const tDb = performance.now();
@@ -397,10 +423,17 @@ class AvaClient extends Client {
     // 2. Optional health endpoint
     startHealthServer(this);
 
+    const safety = validateTokenSafety(token);
+    if (!safety.allowed) {
+      logger.error(`[STARTUP   ] ${safety.reason}`);
+      return this;
+    }
+    const effectiveToken = safety.effectiveToken;
+
     const creds = validateLiveCredentials();
-    if (creds.valid || (token && !token.startsWith('dummy_'))) {
+    if (creds.valid || (effectiveToken && !effectiveToken.startsWith('dummy_'))) {
       logger.info('Connecting to Discord Gateway...');
-      await this.login(token);
+      await this.login(effectiveToken);
     } else {
       logger.info('Running in local/test mode without live Discord token.');
     }
@@ -465,6 +498,10 @@ async function handleShutdown(signal) {
   try {
     client.destroy();
     logger.info('Discord client destroyed');
+  } catch (_) {}
+
+  try {
+    await releaseInstanceLease();
   } catch (_) {}
 
   logger.info('AVA shut down cleanly. Goodbye.');

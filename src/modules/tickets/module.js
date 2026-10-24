@@ -21,16 +21,7 @@ export const moduleManifest = {
     }
   ],
   events: {},
-  jobs: [
-    {
-      name: 'ticket-inactivity-scan',
-      expression: '*/10 * * * *',
-      run: async (client) => {
-        if (!client?.guilds?.cache) return;
-        await scanInactiveTickets(client).catch(() => {});
-      }
-    }
-  ],
+  jobs: [],
   migrations: [],
   settingsSchema: z.object({
     enabled: z.boolean().default(true),
@@ -44,11 +35,8 @@ export const moduleManifest = {
   async healthCheck() {
     return { healthy: true, details: 'Ticket engine active' };
   },
-  async onLoad({ client, logger }) {
-    if (client) {
-      startTicketScheduler(client);
-      logger.debug('Tickets module loaded and scheduler started.');
-    }
+  async onLoad({ logger }) {
+    logger.debug('Tickets module loaded.');
   },
   async onUnload({ logger }) {
     stopTicketScheduler();

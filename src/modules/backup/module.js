@@ -12,17 +12,7 @@ export const moduleManifest = {
   commands: backupModule.commands || [],
   components: backupModule.components || [],
   events: {},
-  jobs: [
-    {
-      name: 'backup-interval-check',
-      expression: '*/15 * * * *',
-      run: async (client) => {
-        if (!client?.guilds?.cache) return;
-        const { runIntervalCheck } = await import('../../services/scheduler.js');
-        await runIntervalCheck(client).catch(() => {});
-      }
-    }
-  ],
+  jobs: [],
   migrations: [],
   settingsSchema: z.object({
     enabled: z.boolean().default(true),

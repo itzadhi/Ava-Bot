@@ -141,31 +141,48 @@ export function setAckDuration(durationMs) {
 }
 
 /**
+ * Sets visible first response duration
+ * @param {number} durationMs
+ */
+export function setFirstResponseDuration(durationMs) {
+  const trace = getCurrentTrace();
+  if (!trace) return;
+  trace.firstResponseMs = Math.round(durationMs * 10) / 10;
+  recordSpan('firstResponse', trace.firstResponseMs);
+}
+
+/**
  * Summarizes the trace into structured log fields and human-readable string
+ * Adheres strictly to Phase D.5 single-line format:
+ * #6289 /lockdown ack=595ms rest=2/410ms db=7/2324ms build=12ms total=3.1s lag=35ms
  * @param {object} [options={}]
- * @returns {{ summaryLine: string, topSlowSpans: Array<{ name: string, ms: number }>, metrics: object }}
+ * @returns {{ summaryLine: string, topSlowSpans: Array<{ name: string, ms: number }>, metrics: object, totalMs: number, ackMs: number, firstResponseMs: number, unattributedMs: number }}
  */
 export function summarizeTrace(options = {}) {
   const trace = getCurrentTrace();
   if (!trace) {
-    return { summaryLine: 'trace=none', topSlowSpans: [], metrics: {} };
+    return { summaryLine: 'trace=none', topSlowSpans: [], metrics: {}, totalMs: 0, ackMs: 0, firstResponseMs: 0, unattributedMs: 0 };
   }
 
   const totalMs = Math.round(performance.now() - trace.startTime);
-  const totalSec = (totalMs / 1000).toFixed(2);
-  const ackMs = Math.round(trace.ackMs);
+  const totalSec = (totalMs / 1000).toFixed(1);
+  const ackMs = Math.round(trace.ackMs || 0);
+  const firstResponseMs = Math.round(trace.firstResponseMs || ackMs || 0);
   const dbCount = trace.db.count;
   const dbMs = Math.round(trace.db.totalMs);
   const restCount = trace.rest.count;
   const restMs = Math.round(trace.rest.totalMs);
-  const fetchCount = trace.fetch.count;
-  const fetchMs = Math.round(trace.fetch.totalMs);
   const buildMs = Math.round(trace.buildMs);
-  const loopLag = getEventLoopLagMs();
+  const loopLag = Math.round(getEventLoopLagMs());
 
-  const summaryLine = `${trace.identifier} ack=${ackMs}ms db=${dbCount} calls/${dbMs}ms rest=${restCount} calls/${restMs}ms fetch=${fetchCount}/${fetchMs}ms build=${buildMs}ms total=${totalSec}s [lag=${loopLag}ms]`;
+  // Compute unattributed time: total - union(spans)
+  const unionMs = dbMs + restMs + buildMs;
+  const unattributedMs = Math.max(0, totalMs - unionMs);
 
-  // Top 3 slowest spans
+  const idShort = trace.id ? `#${String(trace.id).slice(-4)}` : '#0000';
+  const summaryLine = `${idShort} ${trace.identifier} ack=${ackMs}ms rest=${restCount}/${restMs}ms db=${dbCount}/${dbMs}ms build=${buildMs}ms total=${totalSec}s lag=${loopLag}ms`;
+
+  // Top slowest spans
   const sortedSpans = [...trace.spans].sort((a, b) => b.durationMs - a.durationMs);
   const topSlowSpans = sortedSpans.slice(0, 3).map(s => ({
     name: s.name,
@@ -176,16 +193,19 @@ export function summarizeTrace(options = {}) {
   return {
     summaryLine,
     totalMs,
+    ackMs,
+    firstResponseMs,
+    unattributedMs,
     topSlowSpans,
     metrics: {
       ackMs,
+      firstResponseMs,
       dbCount,
       dbMs,
       restCount,
       restMs,
-      fetchCount,
-      fetchMs,
       buildMs,
+      unattributedMs,
       loopLagMs: loopLag,
       rateLimitedRestCalls: trace.rest.rateLimitedCount
     }

@@ -156,15 +156,17 @@ export async function runHandler(interaction, handler, meta = {}) {
       const duration = performance.now() - startTime;
       metrics.recordHandler(duration);
 
-      const { summaryLine, topSlowSpans, totalMs, metrics: traceMetrics } = summarizeTrace();
-      logger.info({
-        interactionId: interaction.id,
-        trace: traceMetrics,
-        durationMs: Math.round(duration)
-      }, `[TRACE] ${summaryLine}`);
+      const { summaryLine, topSlowSpans, totalMs, ackMs, firstResponseMs, metrics: traceMetrics } = summarizeTrace();
 
-      if (totalMs > 1000 && topSlowSpans.length > 0) {
-        logger.warn({ identifier, totalMs, topSlowSpans }, `⚠️ Slow interaction (>1s): ${summaryLine}`);
+      const isSlowFirstResponse = firstResponseMs > 700;
+      const isSlowVisibleResult = totalMs > 2000;
+
+      if ((isSlowFirstResponse || isSlowVisibleResult) && topSlowSpans.length > 0) {
+        const top2 = topSlowSpans.slice(0, 2).map(s => `${s.name}:${Math.round(s.ms)}ms`).join(', ');
+        const trigger = isSlowFirstResponse ? `first response ${firstResponseMs}ms > 700ms` : `visible result ${totalMs}ms > 2000ms`;
+        logger.warn({ module: 'INTERACT' }, `⚠️ Slow interaction (${trigger} | ${top2}): ${summaryLine}`);
+      } else {
+        logger.debug({ module: 'INTERACT' }, summaryLine);
       }
 
       return result;

@@ -373,6 +373,84 @@ class MemoryStorage {
       this.tables.ticket_counters.set(guildId, current);
       return { data: nextNum, error: null };
     }
+
+    if (funcName === 'ava_acquire_lease') {
+      if (!this.tables.bot_leases) this.tables.bot_leases = new Map();
+      const key = params.p_lease_key || 'ava:leader';
+      const now = Date.now();
+      const ttlMs = (params.p_ttl_seconds || 30) * 1000;
+      const current = this.tables.bot_leases.get(key);
+
+      if (!current || new Date(current.expires_at).getTime() < now || current.holder_id === params.p_holder_id) {
+        const generation = (current?.generation || 0) + 1;
+        const newRecord = {
+          lease_key: key,
+          holder_id: params.p_holder_id,
+          role: params.p_role || 'prod',
+          host_info: params.p_host_info || '',
+          pid: params.p_pid || 0,
+          generation,
+          acquired_at: new Date(now).toISOString(),
+          heartbeat_at: new Date(now).toISOString(),
+          expires_at: new Date(now + ttlMs).toISOString()
+        };
+        this.tables.bot_leases.set(key, newRecord);
+        return {
+          data: {
+            acquired: true,
+            generation,
+            holder: params.p_holder_id,
+            host: newRecord.host_info,
+            pid: newRecord.pid,
+            role: newRecord.role,
+            last_seen: newRecord.heartbeat_at
+          },
+          error: null
+        };
+      }
+
+      return {
+        data: {
+          acquired: false,
+          generation: current.generation,
+          holder: current.holder_id,
+          host: current.host_info,
+          pid: current.pid,
+          role: current.role,
+          last_seen: current.heartbeat_at
+        },
+        error: null
+      };
+    }
+
+    if (funcName === 'ava_renew_lease') {
+      if (!this.tables.bot_leases) this.tables.bot_leases = new Map();
+      const key = params.p_lease_key || 'ava:leader';
+      const current = this.tables.bot_leases.get(key);
+      const now = Date.now();
+      const ttlMs = (params.p_ttl_seconds || 30) * 1000;
+
+      if (current && current.holder_id === params.p_holder_id && String(current.generation) === String(params.p_generation)) {
+        current.heartbeat_at = new Date(now).toISOString();
+        current.expires_at = new Date(now + ttlMs).toISOString();
+        this.tables.bot_leases.set(key, current);
+        return { data: true, error: null };
+      }
+      return { data: false, error: null };
+    }
+
+    if (funcName === 'ava_release_lease') {
+      if (!this.tables.bot_leases) this.tables.bot_leases = new Map();
+      const key = params.p_lease_key || 'ava:leader';
+      const current = this.tables.bot_leases.get(key);
+
+      if (current && current.holder_id === params.p_holder_id && String(current.generation) === String(params.p_generation)) {
+        this.tables.bot_leases.delete(key);
+        return { data: true, error: null };
+      }
+      return { data: false, error: null };
+    }
+
     return { data: null, error: { message: `RPC ${funcName} not supported in memory adapter` } };
   }
 }

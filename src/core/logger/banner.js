@@ -224,15 +224,19 @@ export function printBootStep(label, durationMs = null) {
 
 /**
  * Prints the final framed "AVA is online" status box
- * Narrow width (24 columns) matching the 20-column logo block
+ * Adheres to Phase D.3 requirements:
+ * - Real ping (measuring fallback)
+ * - RAM: "limit X MB" (cgroup) or "host 16 GB, process 152 MB"
+ * - Environment label (local vs Pterodactyl)
+ * - Bot username, snowflake ID, and brand
  */
-export function printOnlineFrame({ tag, id, guilds, ping, memoryMb }) {
+export function printOnlineFrame({ tag, username, id, guilds, ping, memoryMb, env }) {
   const ascii = isAsciiOnly();
-  const top = ascii ? '+----------------------+' : '╭──────────────────────╮';
-  const bottom = ascii ? '+----------------------+' : '╰──────────────────────╯';
+  const top = ascii ? '+--------------------------------+' : '╭────────────────────────────────╮';
+  const bottom = ascii ? '+--------------------------------+' : '╰────────────────────────────────╯';
   const border = ascii ? '|' : '│';
   const icon = ascii ? '*' : '✿';
-  const innerWidth = 20; // 24 outer - 2 border - 2 padding
+  const innerWidth = 30; // 34 outer - 2 border - 2 padding
 
   function makeLine(plain, colored) {
     const truncatedPlain = plain.slice(0, innerWidth);
@@ -240,16 +244,20 @@ export function printOnlineFrame({ tag, id, guilds, ping, memoryMb }) {
     return `${colorize(ANSI.pink, border)} ${colored}${' '.repeat(spaces)} ${colorize(ANSI.pink, border)}\n`;
   }
 
-  const line1Plain = `${icon} ${brand.name} is online`;
-  const line1Colored = colorize(ANSI.bold + ANSI.mint, line1Plain);
+  const envLabel = env || (process.env.P_SERVER_UUID || process.cwd().startsWith('/home/container') ? 'Pterodactyl' : 'local');
+  const pingStr = (ping !== undefined && ping !== null && ping > 0) ? `${Math.round(ping)}ms` : 'measuring';
+  const memStr = getRealMemoryLimitString();
 
-  const line2Plain = (tag || brand.name).slice(0, innerWidth);
-  const line2Colored = colorize(ANSI.sky, line2Plain);
+  const line1Plain = `${icon} ${brand.name} is online (${envLabel})`;
+  const line1Colored = `${colorize(ANSI.bold + ANSI.mint, `${icon} ${brand.name}`)} ${colorize(ANSI.dim + ANSI.gray, `(${envLabel})`)}`;
 
-  const line3Plain = `${guilds || 0} guilds · ${ping || 0}ms`.slice(0, innerWidth);
-  const line3Colored = `${colorize(ANSI.peach, `${guilds || 0} guilds`)} · ${colorize(ANSI.mint, `${ping || 0}ms`)}`;
+  const line2Plain = `${username || tag || brand.name} (${id ? String(id).slice(-4) : '...' })`;
+  const line2Colored = `${colorize(ANSI.sky, username || tag || brand.name)} ${colorize(ANSI.dim + ANSI.lavender, `[#${id ? String(id).slice(-4) : ''}]`)}`;
 
-  const line4Plain = `RAM: ${memoryMb || 0}MB`.slice(0, innerWidth);
+  const line3Plain = `${guilds || 0} guilds · ${pingStr}`;
+  const line3Colored = `${colorize(ANSI.peach, `${guilds || 0} guilds`)} · ${colorize(ANSI.mint, pingStr)}`;
+
+  const line4Plain = `RAM: ${memStr}`;
   const line4Colored = colorize(ANSI.lavender, line4Plain);
 
   writeOut('\n' + colorize(ANSI.pink, top) + '\n');

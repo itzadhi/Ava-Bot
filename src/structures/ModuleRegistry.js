@@ -138,7 +138,7 @@ export class ModuleRegistry {
   }
 
   getAll() {
-    return Array.from(this.modules.values());
+    return Array.from(new Set(this.modules.values()));
   }
 
   has(name) {
