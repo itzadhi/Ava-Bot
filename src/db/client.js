@@ -1,6 +1,8 @@
+import { performance } from 'node:perf_hooks';
 import { createClient } from '@supabase/supabase-js';
 import { config, validateLiveCredentials } from '../config.js';
 import { logger } from '../utils/logger.js';
+import { recordDbCall } from '../core/interactions/trace.js';
 
 let supabaseClient = null;
 let isMock = false;
@@ -184,6 +186,7 @@ class MemoryStorage {
             } else if (limitCount !== null) {
               rows = rows.slice(0, limitCount);
             }
+            recordDbCall(tableName, 'select', 0.5);
             return Promise.resolve({ data: rows.map(r => ({ ...r })), error: null }).then(resolve, reject);
           }
         };
@@ -192,6 +195,7 @@ class MemoryStorage {
       },
 
       insert: (records) => {
+        recordDbCall(tableName, 'insert', 0.5);
         const toInsert = Array.isArray(records) ? records : [records];
         const inserted = [];
         for (const item of toInsert) {
@@ -212,6 +216,7 @@ class MemoryStorage {
       },
 
       upsert: (record, options = {}) => {
+        recordDbCall(tableName, 'upsert', 0.5);
         const compKey = this._getKey(tableName, record);
         const key = compKey || ++this.autoId;
         const existing = table.get(String(key)) || {};
@@ -358,7 +363,18 @@ export function getSupabase() {
           keepalive: true
         };
 
-        return fetch(url, fetchOptions).finally(() => {
+        const fetchStart = performance.now();
+        return fetch(url, fetchOptions).then(res => {
+          try {
+            const urlObj = new URL(url);
+            const pathParts = urlObj.pathname.split('/');
+            const table = pathParts[pathParts.length - 1] || 'unknown';
+            const method = options.method || 'GET';
+            const op = method === 'GET' ? 'select' : method === 'POST' ? 'insert/upsert' : method === 'PATCH' ? 'update' : method === 'DELETE' ? 'delete' : method;
+            recordDbCall(table, op, performance.now() - fetchStart);
+          } catch (_) {}
+          return res;
+        }).finally(() => {
           clearTimeout(timeoutId);
         });
       };
