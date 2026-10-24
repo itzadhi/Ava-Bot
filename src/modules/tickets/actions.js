@@ -23,6 +23,7 @@ import { sendTicketLog } from './logs.js';
 import { generateAndSaveTranscript } from './transcript.js';
 import { sendRatingPrompt } from './ratings.js';
 import { logger } from '../../utils/logger.js';
+import { perm } from '../../core/permissions/permApply.js';
 
 /**
  * Checks if a member has staff or administration permissions for a ticket
@@ -374,8 +375,19 @@ export async function handleLockToggle(target, ticketIdOrOptions) {
   const newStatus = isCurrentlyLocked ? (ticket.claimed_by ? 'claimed' : 'open') : 'locked';
 
   // Toggle channel permissions for owner
-  await channel.permissionOverwrites.edit(ticket.owner_id, {
-    SendMessages: isCurrentlyLocked ? true : false
+  await perm.apply({
+    guildId: guild.id,
+    feature: 'tickets',
+    targetType: 'channel',
+    targetId: channel.id,
+    op: 'edit_channel_overwrite',
+    field: 'permissionOverwrites',
+    oldValue: channel.permissionOverwrites?.cache?.get(ticket.owner_id),
+    newValue: { SendMessages: isCurrentlyLocked ? true : false },
+    reason: `AVA Tickets: ${isCurrentlyLocked ? 'Unlock' : 'Lock'} ticket #${ticket.ticket_number}`,
+    execute: () => channel.permissionOverwrites.edit(ticket.owner_id, {
+      SendMessages: isCurrentlyLocked ? true : false
+    })
   }).catch(() => {});
 
   await updateTicket(ticket.id, { status: newStatus });
@@ -475,11 +487,22 @@ export async function handleModifyUserAccess(target, ticketIdOrOptions, targetUs
   }
 
   if (isAdd) {
-    await channel.permissionOverwrites.edit(targetUserId, {
-      ViewChannel: true,
-      SendMessages: true,
-      ReadMessageHistory: true,
-      AttachFiles: true
+    await perm.apply({
+      guildId: guild.id,
+      feature: 'tickets',
+      targetType: 'channel',
+      targetId: channel.id,
+      op: 'edit_channel_overwrite',
+      field: 'permissionOverwrites',
+      oldValue: channel.permissionOverwrites?.cache?.get(targetUserId),
+      newValue: { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, AttachFiles: true },
+      reason: `AVA Tickets: Add participant ${targetUserId} to ticket #${ticket.ticket_number}`,
+      execute: () => channel.permissionOverwrites.edit(targetUserId, {
+        ViewChannel: true,
+        SendMessages: true,
+        ReadMessageHistory: true,
+        AttachFiles: true
+      })
     });
     if (isOptionsCall) return { success: true };
     return safeReply(target, container({
@@ -487,7 +510,18 @@ export async function handleModifyUserAccess(target, ticketIdOrOptions, targetUs
       lines: [`➕ Added <@${targetUserId}> to **Ticket #${ticket.ticket_number}**.`]
     }));
   } else {
-    await channel.permissionOverwrites.delete(targetUserId).catch(() => {});
+    await perm.apply({
+      guildId: guild.id,
+      feature: 'tickets',
+      targetType: 'channel',
+      targetId: channel.id,
+      op: 'delete_channel_overwrite',
+      field: 'permissionOverwrites',
+      oldValue: channel.permissionOverwrites?.cache?.get(targetUserId),
+      newValue: null,
+      reason: `AVA Tickets: Remove participant ${targetUserId} from ticket #${ticket.ticket_number}`,
+      execute: () => channel.permissionOverwrites.delete(targetUserId)
+    }).catch(() => {});
     if (isOptionsCall) return { success: true };
     return safeReply(target, container({
       title: 'Participant Removed',

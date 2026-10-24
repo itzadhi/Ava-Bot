@@ -85,6 +85,7 @@ import {
 } from './logs/engine.js';
 import * as format from '../utils/ui/format.js';
 import { logger } from '../utils/logger.js';
+import { perm } from '../core/permissions/permApply.js';
 
 /**
  * Converts any simple string into a compliant borderless Components V2 container card
@@ -474,8 +475,19 @@ async function routeJTCInteraction(interaction, action, channelId) {
     // 1. Lock Your Channel
     if (selectedAction === 'lock') {
       await interaction.deferUpdate().catch(() => {});
-      await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
-        Connect: false
+      await perm.apply({
+        guildId: interaction.guild?.id || '0',
+        feature: 'voice_jtc',
+        targetType: 'channel',
+        targetId: channel.id,
+        op: 'edit_channel_overwrite',
+        field: 'permissionOverwrites',
+        oldValue: channel.permissionOverwrites?.cache?.get(interaction.guild.roles.everyone.id),
+        newValue: { Connect: false },
+        reason: 'AVA Voice: Room Lock',
+        execute: () => channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+          Connect: false
+        })
       }).catch(err => logger.warn({ err }, 'Error setting lock overwrite'));
 
       await updateTempChannel(resolvedChannelId, { is_locked: true });
@@ -490,8 +502,19 @@ async function routeJTCInteraction(interaction, action, channelId) {
     // 2. Unlock Your Channel
     if (selectedAction === 'unlock') {
       await interaction.deferUpdate().catch(() => {});
-      await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
-        Connect: true
+      await perm.apply({
+        guildId: interaction.guild?.id || '0',
+        feature: 'voice_jtc',
+        targetType: 'channel',
+        targetId: channel.id,
+        op: 'edit_channel_overwrite',
+        field: 'permissionOverwrites',
+        oldValue: channel.permissionOverwrites?.cache?.get(interaction.guild.roles.everyone.id),
+        newValue: { Connect: true },
+        reason: 'AVA Voice: Room Unlock',
+        execute: () => channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+          Connect: true
+        })
       }).catch(err => logger.warn({ err }, 'Error setting unlock overwrite'));
 
       await updateTempChannel(resolvedChannelId, { is_locked: false });
@@ -506,8 +529,19 @@ async function routeJTCInteraction(interaction, action, channelId) {
     // 3. Hide Your Channel
     if (selectedAction === 'hide') {
       await interaction.deferUpdate().catch(() => {});
-      await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
-        ViewChannel: false
+      await perm.apply({
+        guildId: interaction.guild?.id || '0',
+        feature: 'voice_jtc',
+        targetType: 'channel',
+        targetId: channel.id,
+        op: 'edit_channel_overwrite',
+        field: 'permissionOverwrites',
+        oldValue: channel.permissionOverwrites?.cache?.get(interaction.guild.roles.everyone.id),
+        newValue: { ViewChannel: false },
+        reason: 'AVA Voice: Room Hide',
+        execute: () => channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+          ViewChannel: false
+        })
       }).catch(err => logger.warn({ err }, 'Error setting hide overwrite'));
 
       await updateTempChannel(resolvedChannelId, { is_hidden: true });
@@ -522,8 +556,19 @@ async function routeJTCInteraction(interaction, action, channelId) {
     // 4. Reveal Your Channel
     if (selectedAction === 'reveal') {
       await interaction.deferUpdate().catch(() => {});
-      await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
-        ViewChannel: true
+      await perm.apply({
+        guildId: interaction.guild?.id || '0',
+        feature: 'voice_jtc',
+        targetType: 'channel',
+        targetId: channel.id,
+        op: 'edit_channel_overwrite',
+        field: 'permissionOverwrites',
+        oldValue: channel.permissionOverwrites?.cache?.get(interaction.guild.roles.everyone.id),
+        newValue: { ViewChannel: true },
+        reason: 'AVA Voice: Room Reveal',
+        execute: () => channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+          ViewChannel: true
+        })
       }).catch(err => logger.warn({ err }, 'Error setting reveal overwrite'));
 
       await updateTempChannel(resolvedChannelId, { is_hidden: false });
@@ -755,8 +800,19 @@ async function routeJTCInteraction(interaction, action, channelId) {
     await interaction.deferUpdate().catch(() => {});
     const newLock = !tempRecord.is_locked;
 
-    await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
-      Connect: newLock ? false : true
+    await perm.apply({
+      guildId: interaction.guild?.id || '0',
+      feature: 'voice_jtc',
+      targetType: 'channel',
+      targetId: channel.id,
+      op: 'edit_channel_overwrite',
+      field: 'permissionOverwrites',
+      oldValue: channel.permissionOverwrites?.cache?.get(interaction.guild.roles.everyone.id),
+      newValue: { Connect: newLock ? false : true },
+      reason: `AVA Voice: Room ${newLock ? 'Lock' : 'Unlock'}`,
+      execute: () => channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+        Connect: newLock ? false : true
+      })
     }).catch(err => logger.warn({ err }, 'Error setting lock overwrite'));
 
     await updateTempChannel(resolvedChannelId, { is_locked: newLock });
@@ -773,8 +829,19 @@ async function routeJTCInteraction(interaction, action, channelId) {
     await interaction.deferUpdate().catch(() => {});
     const newHide = !tempRecord.is_hidden;
 
-    await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
-      ViewChannel: newHide ? false : true
+    await perm.apply({
+      guildId: interaction.guild?.id || '0',
+      feature: 'voice_jtc',
+      targetType: 'channel',
+      targetId: channel.id,
+      op: 'edit_channel_overwrite',
+      field: 'permissionOverwrites',
+      oldValue: channel.permissionOverwrites?.cache?.get(interaction.guild.roles.everyone.id),
+      newValue: { ViewChannel: newHide ? false : true },
+      reason: `AVA Voice: Room ${newHide ? 'Hide' : 'Unhide'}`,
+      execute: () => channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+        ViewChannel: newHide ? false : true
+      })
     }).catch(err => logger.warn({ err }, 'Error setting hide overwrite'));
 
     await updateTempChannel(resolvedChannelId, { is_hidden: newHide });
@@ -796,9 +863,20 @@ async function routeJTCInteraction(interaction, action, channelId) {
     await channel.setUserLimit(0).catch(() => {});
     await channel.setBitrate(64000).catch(() => {});
 
-    await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
-      Connect: true,
-      ViewChannel: true
+    await perm.apply({
+      guildId: interaction.guild?.id || '0',
+      feature: 'voice_jtc',
+      targetType: 'channel',
+      targetId: channel.id,
+      op: 'edit_channel_overwrite',
+      field: 'permissionOverwrites',
+      oldValue: channel.permissionOverwrites?.cache?.get(interaction.guild.roles.everyone.id),
+      newValue: { Connect: true, ViewChannel: true },
+      reason: 'AVA Voice: Room Reset to Defaults',
+      execute: () => channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+        Connect: true,
+        ViewChannel: true
+      })
     }).catch(() => {});
 
     await updateTempChannel(resolvedChannelId, {
@@ -878,16 +956,38 @@ async function routeJTCInteraction(interaction, action, channelId) {
     }
 
     if (subAction === 'permit') {
-      await channel.permissionOverwrites.edit(targetUserId, {
-        Connect: true,
-        ViewChannel: true
+      await perm.apply({
+        guildId: interaction.guild?.id || '0',
+        feature: 'voice_jtc',
+        targetType: 'channel',
+        targetId: channel.id,
+        op: 'edit_channel_overwrite',
+        field: 'permissionOverwrites',
+        oldValue: channel.permissionOverwrites?.cache?.get(targetUserId),
+        newValue: { Connect: true, ViewChannel: true },
+        reason: `AVA Voice: Permit user ${targetUserId}`,
+        execute: () => channel.permissionOverwrites.edit(targetUserId, {
+          Connect: true,
+          ViewChannel: true
+        })
       });
       return interaction.editReply({ content: `🟢 Permitted <@${targetUserId}> to join **${channel.name}**.` });
     }
 
     if (subAction === 'reject') {
-      await channel.permissionOverwrites.edit(targetUserId, {
-        Connect: false
+      await perm.apply({
+        guildId: interaction.guild?.id || '0',
+        feature: 'voice_jtc',
+        targetType: 'channel',
+        targetId: channel.id,
+        op: 'edit_channel_overwrite',
+        field: 'permissionOverwrites',
+        oldValue: channel.permissionOverwrites?.cache?.get(targetUserId),
+        newValue: { Connect: false },
+        reason: `AVA Voice: Reject user ${targetUserId}`,
+        execute: () => channel.permissionOverwrites.edit(targetUserId, {
+          Connect: false
+        })
       });
       const targetMember = channel.members.get(targetUserId);
       if (targetMember) {

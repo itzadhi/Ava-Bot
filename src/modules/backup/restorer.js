@@ -4,6 +4,7 @@ import {
 } from 'discord.js';
 import { logAudit } from '../../db/audit.js';
 import { logger } from '../../utils/logger.js';
+import { perm } from '../../core/permissions/permApply.js';
 import { sanitizeEmbeds, componentsToEmbed, sanitizeEmbedForSend } from '../../utils/embed.js';
 
 /**
@@ -152,7 +153,18 @@ export async function restoreServerBackup({
     // Apply origin @everyone permissions if present in snapshot
     if (snapshot.everyonePermissions && guild.roles?.everyone && typeof guild.roles.everyone.setPermissions === 'function') {
       try {
-        await guild.roles.everyone.setPermissions(BigInt(snapshot.everyonePermissions), 'AVA Restore: @everyone permissions');
+        await perm.apply({
+          guildId: guild.id,
+          feature: 'backup',
+          targetType: 'role',
+          targetId: guild.roles.everyone.id,
+          op: 'set_permissions',
+          field: 'permissions',
+          oldValue: guild.roles.everyone.permissions.bitfield.toString(),
+          newValue: String(snapshot.everyonePermissions),
+          reason: 'AVA Restore: @everyone permissions',
+          execute: () => guild.roles.everyone.setPermissions(BigInt(snapshot.everyonePermissions), 'AVA Restore: @everyone permissions')
+        });
       } catch (err) {
         logger.warn(`Could not update @everyone permissions: ${err.message}`);
       }
@@ -174,15 +186,27 @@ export async function restoreServerBackup({
 
         try {
           if (typeof guild.roles?.create === 'function') {
-            const newRole = await guild.roles.create({
-              name: roleData.name,
-              color: roleData.color || 0,
-              hoist: Boolean(roleData.hoist),
-              permissions: perms,
-              mentionable: Boolean(roleData.mentionable),
-              reason: 'AVA Role Hierarchy Engine'
+            const permRes = await perm.apply({
+              guildId: guild.id,
+              feature: 'backup',
+              targetType: 'role',
+              targetId: roleData.id,
+              op: 'create_role',
+              field: 'permissions',
+              oldValue: null,
+              newValue: perms.toString(),
+              reason: 'AVA Role Hierarchy Engine',
+              execute: () => guild.roles.create({
+                name: roleData.name,
+                color: roleData.color || 0,
+                hoist: Boolean(roleData.hoist),
+                permissions: perms,
+                mentionable: Boolean(roleData.mentionable),
+                reason: 'AVA Role Hierarchy Engine'
+              })
             });
 
+            const newRole = permRes.result;
             if (newRole && newRole.id) {
               roleMap.set(roleData.id, newRole.id);
               createdRolesWithTargetPos.push({
@@ -252,14 +276,26 @@ export async function restoreServerBackup({
             : [];
 
           if (typeof guild.channels?.create === 'function') {
-            const newCat = await guild.channels.create({
-              name: cat.name,
-              type: ChannelType.GuildCategory,
-              position: cat.position,
-              permissionOverwrites: mappedCatOverwrites,
-              reason: 'AVA Category Architecture Restore'
+            const permRes = await perm.apply({
+              guildId: guild.id,
+              feature: 'backup',
+              targetType: 'channel',
+              targetId: cat.id,
+              op: 'create_category_with_overwrites',
+              field: 'permissionOverwrites',
+              oldValue: null,
+              newValue: mappedCatOverwrites,
+              reason: 'AVA Category Architecture Restore',
+              execute: () => guild.channels.create({
+                name: cat.name,
+                type: ChannelType.GuildCategory,
+                position: cat.position,
+                permissionOverwrites: mappedCatOverwrites,
+                reason: 'AVA Category Architecture Restore'
+              })
             });
 
+            const newCat = permRes.result;
             if (newCat && newCat.id) {
               categoryMap.set(cat.id, newCat.id);
             }
@@ -301,17 +337,28 @@ export async function restoreServerBackup({
             : [];
 
           if (typeof guild.channels?.create === 'function') {
-            await guild.channels.create({
-              name: ch.name,
-              type: ch.type,
-              parent: newParentId,
-              topic: ch.topic || undefined,
-              nsfw: Boolean(ch.nsfw),
-              bitrate: ch.bitrate && ch.type === ChannelType.GuildVoice ? ch.bitrate : undefined,
-              userLimit: ch.userLimit && ch.type === ChannelType.GuildVoice ? ch.userLimit : undefined,
-              rateLimitPerUser: ch.rateLimitPerUser || undefined,
-              permissionOverwrites: mappedOverwrites,
-              reason: 'AVA Channel Architecture Restore'
+            await perm.apply({
+              guildId: guild.id,
+              feature: 'backup',
+              targetType: 'channel',
+              targetId: ch.id,
+              op: 'create_channel_with_overwrites',
+              field: 'permissionOverwrites',
+              oldValue: null,
+              newValue: mappedOverwrites,
+              reason: 'AVA Channel Architecture Restore',
+              execute: () => guild.channels.create({
+                name: ch.name,
+                type: ch.type,
+                parent: newParentId,
+                topic: ch.topic || undefined,
+                nsfw: Boolean(ch.nsfw),
+                bitrate: ch.bitrate && ch.type === ChannelType.GuildVoice ? ch.bitrate : undefined,
+                userLimit: ch.userLimit && ch.type === ChannelType.GuildVoice ? ch.userLimit : undefined,
+                rateLimitPerUser: ch.rateLimitPerUser || undefined,
+                permissionOverwrites: mappedOverwrites,
+                reason: 'AVA Channel Architecture Restore'
+              })
             });
             restoredChannelsCount++;
           }
@@ -360,7 +407,18 @@ export async function restoreServerBackup({
 
       if (typeof guild.edit === 'function') {
         try {
-          await guild.edit(editPayload);
+          await perm.apply({
+            guildId: guild.id,
+            feature: 'backup',
+            targetType: 'guild',
+            targetId: guild.id,
+            op: 'edit_guild',
+            field: 'settings',
+            oldValue: null,
+            newValue: editPayload,
+            reason: 'AVA Server Settings Restore',
+            execute: () => guild.edit(editPayload)
+          });
         } catch (err) {
           logger.warn(`Could not update guild settings: ${err.message}`);
           if (editPayload.icon && typeof guild.setIcon === 'function') {

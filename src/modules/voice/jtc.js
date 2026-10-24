@@ -16,6 +16,7 @@ import { getGuildSettings } from '../../db/guilds.js';
 import { buildControlCard, refreshControlMessage } from './control.js';
 import { ttsEngine } from './tts/engine.js';
 import { logger } from '../../utils/logger.js';
+import { perm } from '../../core/permissions/permApply.js';
 import { infoCard } from '../../ui/cards.js';
 
 // In-flight join-creation lock to prevent race conditions from join-spamming
@@ -165,15 +166,31 @@ async function handleTriggerJoin(member, guild, guildSettings) {
     }
 
     // Create the temporary voice channel
-    const newChannel = await guild.channels.create({
-      name: channelName.slice(0, 100),
-      type: ChannelType.GuildVoice,
-      parent: parentCategory,
-      userLimit: Math.min(Math.max(userLimit, 0), 99),
-      bitrate,
-      permissionOverwrites,
-      reason: `AVA JTC Voice Room for ${member.user.tag}`
+    const permRes = await perm.apply({
+      guildId: guild.id,
+      feature: 'voice_jtc',
+      targetType: 'channel',
+      targetId: 'new',
+      op: 'create_channel_with_overwrites',
+      field: 'permissionOverwrites',
+      oldValue: null,
+      newValue: permissionOverwrites,
+      reason: `AVA JTC Voice Room for ${member.user.tag}`,
+      execute: () => guild.channels.create({
+        name: channelName.slice(0, 100),
+        type: ChannelType.GuildVoice,
+        parent: parentCategory,
+        userLimit: Math.min(Math.max(userLimit, 0), 99),
+        bitrate,
+        permissionOverwrites,
+        reason: `AVA JTC Voice Room for ${member.user.tag}`
+      })
     });
+    if (!permRes.executed || !permRes.result) {
+      logger.warn({ guildId: guild.id }, '[JTC] Channel creation skipped: PERMISSION_WRITES is off');
+      return;
+    }
+    const newChannel = permRes.result;
 
     // Move member into the new channel
     await member.voice.setChannel(newChannel).catch(err => {
@@ -334,21 +351,43 @@ async function handleTempChannelLeave(channelId, member, guild) {
 export async function transferRoomOwnership(channel, record, newOwnerId, reason = 'Ownership transfer') {
   try {
     // Revoke special permissions from previous owner
-    await channel.permissionOverwrites.delete(record.owner_id).catch(() => {});
+    await perm.apply({
+      guildId: channel.guild?.id || '0',
+      feature: 'voice_jtc',
+      targetType: 'channel',
+      targetId: channel.id,
+      op: 'delete_channel_overwrite',
+      field: 'permissionOverwrites',
+      oldValue: channel.permissionOverwrites?.cache?.get(record.owner_id),
+      newValue: null,
+      reason: `AVA JTC: Revoke previous owner permissions (${reason})`,
+      execute: () => channel.permissionOverwrites.delete(record.owner_id)
+    }).catch(() => {});
 
     // Grant owner permissions to new owner
-    await channel.permissionOverwrites.edit(newOwnerId, {
-      ViewChannel: true,
-      Connect: true,
-      Speak: true,
-      Stream: true,
-      MoveMembers: true,
-      MuteMembers: true,
-      DeafenMembers: true,
-      PrioritySpeaker: true,
-      SendMessages: true,
-      ReadMessageHistory: true
-    }, { reason });
+    await perm.apply({
+      guildId: channel.guild?.id || '0',
+      feature: 'voice_jtc',
+      targetType: 'channel',
+      targetId: channel.id,
+      op: 'edit_channel_overwrite',
+      field: 'permissionOverwrites',
+      oldValue: channel.permissionOverwrites?.cache?.get(newOwnerId),
+      newValue: { ViewChannel: true, Connect: true, Speak: true, Stream: true, MoveMembers: true },
+      reason: `AVA JTC: Grant new owner permissions (${reason})`,
+      execute: () => channel.permissionOverwrites.edit(newOwnerId, {
+        ViewChannel: true,
+        Connect: true,
+        Speak: true,
+        Stream: true,
+        MoveMembers: true,
+        MuteMembers: true,
+        DeafenMembers: true,
+        PrioritySpeaker: true,
+        SendMessages: true,
+        ReadMessageHistory: true
+      }, { reason })
+    });
 
     // Update database record
     await updateTempChannel(channel.id, { owner_id: newOwnerId });

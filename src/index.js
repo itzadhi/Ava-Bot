@@ -46,7 +46,7 @@ import { handleTicketImageDrop } from './modules/tickets/panel.js';
 import { instanceManager } from './core/instance.js';
 import { startShopExpiryJob, stopShopExpiryJob } from './modules/shop/jobs/expiry.js';
 import { getTicketByChannel, updateTicketLastMessage } from './db/tickets.js';
-import { autoRepairPermissionsAndTickets } from './modules/permify/repair.js';
+import { checkPermissionSchema } from './core/permissions/schemaCheck.js';
 import { initAutoModCache } from './db/automod.js';
 import { initAntiNukeCache } from './db/antinuke.js';
 import { handleChannelDeleteEvent, queueChannelSnapshot } from './modules/antinuke/restore.js';
@@ -304,15 +304,8 @@ class AvaClient extends Client {
       startLockdownWatchdog(readyClient);
       startJobWatchdog(readyClient);
 
-      // Low-priority background permission & ticket repair (delayed 30s so first interactions are never delayed)
-      const repairTimer = setTimeout(async () => {
-        try {
-          await autoRepairPermissionsAndTickets(readyClient);
-        } catch (err) {
-          logger.warn({ err: err.message }, 'Error during background permission & ticket repair');
-        }
-      }, 30000);
-      if (repairTimer.unref) repairTimer.unref();
+      // Verify permission write database schema & kill switch status
+      await checkPermissionSchema().catch(err => logger.warn({ err: err.message }, 'Permission schema check error'));
     });
   }
 

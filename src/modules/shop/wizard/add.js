@@ -18,6 +18,7 @@ import { buildProductCard } from '../render/card.js';
 import { greyButton } from '../../../utils/ui/greyButton.js';
 import * as format from '../../../utils/ui/format.js';
 import { logger } from '../../../utils/logger.js';
+import { perm } from '../../../core/permissions/permApply.js';
 
 function parsePriceToMinor(priceStr) {
   if (!priceStr) return 0;
@@ -461,13 +462,28 @@ export async function publishProductChannel(guildOrOpts, maybeProduct = null, ma
   }
 
   // 3. Create Discord channel under category
-  const channel = await guild.channels.create({
-    name: channelName,
-    type: ChannelType.GuildText,
-    parent: category?.discord_category_id || null,
-    permissionOverwrites,
-    topic: `Official Product Channel for ${productData.name} • Price: ${settings.currency_symbol}${(productData.price_minor / 100).toFixed(2)}`
+  const permRes = await perm.apply({
+    guildId: guild.id,
+    feature: 'shop',
+    targetType: 'channel',
+    targetId: 'new',
+    op: 'create_channel_with_overwrites',
+    field: 'permissionOverwrites',
+    oldValue: null,
+    newValue: permissionOverwrites,
+    reason: `AVA Shop: Create product channel for ${productData.name}`,
+    execute: () => guild.channels.create({
+      name: channelName,
+      type: ChannelType.GuildText,
+      parent: category?.discord_category_id || null,
+      permissionOverwrites,
+      topic: `Official Product Channel for ${productData.name} • Price: ${settings.currency_symbol}${(productData.price_minor / 100).toFixed(2)}`
+    })
   });
+  if (!permRes.executed || !permRes.result) {
+    throw new Error('Channel creation refused: PERMISSION_WRITES is off');
+  }
+  const channel = permRes.result;
 
   // Pre-generate permanent product UUID so cards and banners have a real ID immediately
   const productId = productData.id || crypto.randomUUID();

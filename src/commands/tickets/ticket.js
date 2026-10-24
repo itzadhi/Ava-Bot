@@ -26,6 +26,7 @@ import {
 } from '../../modules/tickets/actions.js';
 import { buildTicketControlCard, refreshTicketControlCard } from '../../modules/tickets/controls.js';
 import { sendTicketLog } from '../../modules/tickets/logs.js';
+import { perm } from '../../core/permissions/permApply.js';
 
 export default {
   name: 'ticket',
@@ -487,11 +488,22 @@ export default {
       });
 
       // Restore channel permission for owner
-      await ctx.channel.permissionOverwrites.edit(ticket.owner_id, {
-        ViewChannel: true,
-        SendMessages: true,
-        ReadMessageHistory: true,
-        AttachFiles: true
+      await perm.apply({
+        guildId: ctx.guild.id,
+        feature: 'tickets',
+        targetType: 'channel',
+        targetId: ctx.channel.id,
+        op: 'edit_channel_overwrite',
+        field: 'permissionOverwrites',
+        oldValue: ctx.channel.permissionOverwrites?.cache?.get(ticket.owner_id),
+        newValue: { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, AttachFiles: true },
+        reason: `AVA Tickets: Reopen ticket #${ticket.ticket_number}`,
+        execute: () => ctx.channel.permissionOverwrites.edit(ticket.owner_id, {
+          ViewChannel: true,
+          SendMessages: true,
+          ReadMessageHistory: true,
+          AttachFiles: true
+        })
       }).catch(() => {});
 
       await buildTicketControlCard({ ticket: { ...ticket, status: 'open' }, guild: ctx.guild }).then(card => {
@@ -529,11 +541,22 @@ export default {
       }
 
       if (targetRoleId) {
-        await ctx.channel.permissionOverwrites.edit(targetRoleId, {
-          ViewChannel: true,
-          SendMessages: true,
-          ReadMessageHistory: true,
-          AttachFiles: true
+        await perm.apply({
+          guildId: ctx.guild.id,
+          feature: 'tickets',
+          targetType: 'channel',
+          targetId: ctx.channel.id,
+          op: 'edit_channel_overwrite',
+          field: 'permissionOverwrites',
+          oldValue: ctx.channel.permissionOverwrites?.cache?.get(targetRoleId),
+          newValue: { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, AttachFiles: true },
+          reason: `AVA Tickets: Add role ${targetRoleId} to ticket #${ticket.ticket_number}`,
+          execute: () => ctx.channel.permissionOverwrites.edit(targetRoleId, {
+            ViewChannel: true,
+            SendMessages: true,
+            ReadMessageHistory: true,
+            AttachFiles: true
+          })
         }).catch(() => {});
         return ctx.reply(successCard({ title: 'Role Added', subtitle: `Granted <@&${targetRoleId}> access to this ticket.` }));
       }
@@ -557,7 +580,18 @@ export default {
       }
 
       if (targetRoleId) {
-        await ctx.channel.permissionOverwrites.delete(targetRoleId).catch(() => {});
+        await perm.apply({
+          guildId: ctx.guild.id,
+          feature: 'tickets',
+          targetType: 'channel',
+          targetId: ctx.channel.id,
+          op: 'delete_channel_overwrite',
+          field: 'permissionOverwrites',
+          oldValue: ctx.channel.permissionOverwrites?.cache?.get(targetRoleId),
+          newValue: null,
+          reason: `AVA Tickets: Remove role ${targetRoleId} from ticket #${ticket.ticket_number}`,
+          execute: () => ctx.channel.permissionOverwrites.delete(targetRoleId)
+        }).catch(() => {});
         return ctx.reply(successCard({ title: 'Role Removed', subtitle: `Revoked access for <@&${targetRoleId}>.` }));
       }
     }

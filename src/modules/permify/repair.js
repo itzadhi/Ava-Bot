@@ -10,6 +10,7 @@ import {
 } from '../../db/tickets.js';
 import { refreshTicketControlCard } from '../tickets/controls.js';
 import { logger } from '../../utils/logger.js';
+import { perm } from '../../core/permissions/permApply.js';
 
 // Core Bot Permissions
 const BOT_PERMISSIONS = [
@@ -48,6 +49,12 @@ export async function autoRepairPermissionsAndTickets(client) {
   };
 
   if (!client || !client.guilds) {
+    return summary;
+  }
+
+  // Freeze kill switch guard: disable by default unless explicitly permitted
+  if (!perm.isWritable() && perm.getMode() !== 'dryrun') {
+    logger.warn('[PERMIFY] autoRepairPermissionsAndTickets skipped: PERMISSION_WRITES is off');
     return summary;
   }
 
@@ -232,7 +239,18 @@ export async function autoRepairPermissionsAndTickets(client) {
             });
           }
 
-          await chan.permissionOverwrites.set(tktOverwrites).catch(err => {
+          await perm.apply({
+            guildId,
+            feature: 'permify',
+            targetType: 'channel',
+            targetId: chan.id,
+            op: 'set_channel_overwrites',
+            field: 'permissionOverwrites',
+            oldValue: Array.from(chan.permissionOverwrites?.cache?.values() || []),
+            newValue: tktOverwrites,
+            reason: 'AVA Permify: Ticket channel private overwrite repair',
+            execute: () => chan.permissionOverwrites.set(tktOverwrites)
+          }).catch(err => {
             logger.warn({ err, channelId: chan.id }, 'Failed to set private overwrites on ticket channel');
           });
 
@@ -246,33 +264,73 @@ export async function autoRepairPermissionsAndTickets(client) {
 
         // B. REPAIR TICKET CATEGORIES
         if (chan.type === ChannelType.GuildCategory && ticketCategoryIds.has(chan.id)) {
-          await chan.permissionOverwrites.edit(guild.id, {
-            ViewChannel: false
+          await perm.apply({
+            guildId,
+            feature: 'permify',
+            targetType: 'channel',
+            targetId: chan.id,
+            op: 'edit_channel_overwrite',
+            field: 'permissionOverwrites',
+            oldValue: chan.permissionOverwrites?.cache?.get(guild.id),
+            newValue: { ViewChannel: false },
+            reason: 'AVA Permify: Ticket category hide from @everyone',
+            execute: () => chan.permissionOverwrites.edit(guild.id, { ViewChannel: false })
           }).catch(() => {});
 
           for (const roleId of memberRoleIds) {
-            await chan.permissionOverwrites.edit(roleId, {
-              ViewChannel: false
+            await perm.apply({
+              guildId,
+              feature: 'permify',
+              targetType: 'channel',
+              targetId: chan.id,
+              op: 'edit_channel_overwrite',
+              field: 'permissionOverwrites',
+              oldValue: chan.permissionOverwrites?.cache?.get(roleId),
+              newValue: { ViewChannel: false },
+              reason: 'AVA Permify: Ticket category hide from member role',
+              execute: () => chan.permissionOverwrites.edit(roleId, { ViewChannel: false })
             }).catch(() => {});
           }
 
           for (const roleId of staffRoleIds) {
-            await chan.permissionOverwrites.edit(roleId, {
-              ViewChannel: true,
-              SendMessages: true,
-              ReadMessageHistory: true,
-              ManageChannels: true,
-              ManageMessages: true
+            await perm.apply({
+              guildId,
+              feature: 'permify',
+              targetType: 'channel',
+              targetId: chan.id,
+              op: 'edit_channel_overwrite',
+              field: 'permissionOverwrites',
+              oldValue: chan.permissionOverwrites?.cache?.get(roleId),
+              newValue: { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, ManageChannels: true, ManageMessages: true },
+              reason: 'AVA Permify: Ticket category grant to staff role',
+              execute: () => chan.permissionOverwrites.edit(roleId, {
+                ViewChannel: true,
+                SendMessages: true,
+                ReadMessageHistory: true,
+                ManageChannels: true,
+                ManageMessages: true
+              })
             }).catch(() => {});
           }
 
           for (const roleId of ownerRoleIds) {
-            await chan.permissionOverwrites.edit(roleId, {
-              ViewChannel: true,
-              SendMessages: true,
-              ReadMessageHistory: true,
-              ManageChannels: true,
-              ManageMessages: true
+            await perm.apply({
+              guildId,
+              feature: 'permify',
+              targetType: 'channel',
+              targetId: chan.id,
+              op: 'edit_channel_overwrite',
+              field: 'permissionOverwrites',
+              oldValue: chan.permissionOverwrites?.cache?.get(roleId),
+              newValue: { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, ManageChannels: true, ManageMessages: true },
+              reason: 'AVA Permify: Ticket category grant to owner role',
+              execute: () => chan.permissionOverwrites.edit(roleId, {
+                ViewChannel: true,
+                SendMessages: true,
+                ReadMessageHistory: true,
+                ManageChannels: true,
+                ManageMessages: true
+              })
             }).catch(() => {});
           }
 
@@ -285,17 +343,39 @@ export async function autoRepairPermissionsAndTickets(client) {
           (chan.name.includes('ticket') && !ticketCategoryIds.has(chan.id) && !logChannelIds.has(chan.id));
 
         if (isPanel) {
-          await chan.permissionOverwrites.edit(guild.id, {
-            ViewChannel: true,
-            ReadMessageHistory: true,
-            SendMessages: false
-          }).catch(() => {});
-
-          for (const roleId of memberRoleIds) {
-            await chan.permissionOverwrites.edit(roleId, {
+          await perm.apply({
+            guildId,
+            feature: 'permify',
+            targetType: 'channel',
+            targetId: chan.id,
+            op: 'edit_channel_overwrite',
+            field: 'permissionOverwrites',
+            oldValue: chan.permissionOverwrites?.cache?.get(guild.id),
+            newValue: { ViewChannel: true, ReadMessageHistory: true, SendMessages: false },
+            reason: 'AVA Permify: Ticket panel read-only for @everyone',
+            execute: () => chan.permissionOverwrites.edit(guild.id, {
               ViewChannel: true,
               ReadMessageHistory: true,
               SendMessages: false
+            })
+          }).catch(() => {});
+
+          for (const roleId of memberRoleIds) {
+            await perm.apply({
+              guildId,
+              feature: 'permify',
+              targetType: 'channel',
+              targetId: chan.id,
+              op: 'edit_channel_overwrite',
+              field: 'permissionOverwrites',
+              oldValue: chan.permissionOverwrites?.cache?.get(roleId),
+              newValue: { ViewChannel: true, ReadMessageHistory: true, SendMessages: false },
+              reason: 'AVA Permify: Ticket panel read-only for member role',
+              execute: () => chan.permissionOverwrites.edit(roleId, {
+                ViewChannel: true,
+                ReadMessageHistory: true,
+                SendMessages: false
+              })
             }).catch(() => {});
           }
 
@@ -313,8 +393,17 @@ export async function autoRepairPermissionsAndTickets(client) {
         ) {
           const owEveryone = chan.permissionOverwrites.cache.get(guild.id);
           if (owEveryone?.deny?.has(PermissionFlagsBits.ViewChannel)) {
-            await chan.permissionOverwrites.edit(guild.id, {
-              ViewChannel: true
+            await perm.apply({
+              guildId,
+              feature: 'permify',
+              targetType: 'channel',
+              targetId: chan.id,
+              op: 'edit_channel_overwrite',
+              field: 'permissionOverwrites',
+              oldValue: owEveryone,
+              newValue: { ViewChannel: true },
+              reason: 'AVA Permify: Community channel restore ViewChannel',
+              execute: () => chan.permissionOverwrites.edit(guild.id, { ViewChannel: true })
             }).catch(() => {});
             summary.normalChannelsRepaired++;
           }

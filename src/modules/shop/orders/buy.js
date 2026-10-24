@@ -25,6 +25,7 @@ import { errorCard, successCard } from '../../../ui/cards.js';
 import { greyButton } from '../../../utils/ui/greyButton.js';
 import * as format from '../../../utils/ui/format.js';
 import { logger } from '../../../utils/logger.js';
+import { perm } from '../../../core/permissions/permApply.js';
 
 function formatCurrency(minorUnits, currency = 'INR', locale = 'en-IN') {
   const major = Number(minorUnits || 0) / 100;
@@ -232,20 +233,31 @@ export async function handleBuyNowClick(interaction, guildId, productId, request
   }
 
   try {
-    ticketChannel = await guild.channels.create({
-      name: `order-${order.number}`,
-      type: ChannelType.GuildText,
-      parent: settings.ticket_category_id || null,
-      permissionOverwrites: overwrites,
-      topic: `Shop Order #${order.number} • Buyer: ${user.tag} (${user.id}) • Total: ${formatCurrency(totalMinor, order.currency, settings.locale)}`
+    const permRes = await perm.apply({
+      guildId: guild.id,
+      feature: 'shop',
+      targetType: 'channel',
+      targetId: 'new',
+      op: 'create_channel_with_overwrites',
+      field: 'permissionOverwrites',
+      oldValue: null,
+      newValue: overwrites,
+      reason: `AVA Shop: Create order ticket #${order.number}`,
+      execute: () => guild.channels.create({
+        name: `order-${order.number}`,
+        type: ChannelType.GuildText,
+        parent: settings.ticket_category_id || null,
+        permissionOverwrites: overwrites,
+        topic: `Shop Order #${order.number} • Buyer: ${user.tag} (${user.id}) • Total: ${formatCurrency(totalMinor, order.currency, settings.locale)}`
+      })
     });
+    if (!permRes.executed || !permRes.result) {
+      throw new Error('Order channel creation refused: PERMISSION_WRITES is off');
+    }
+    ticketChannel = permRes.result;
   } catch (chanErr) {
-    logger.error({ err: chanErr.message }, 'Failed to create order ticket channel under category, retrying at root');
-    ticketChannel = await guild.channels.create({
-      name: `order-${order.number}`,
-      type: ChannelType.GuildText,
-      permissionOverwrites: overwrites
-    });
+    logger.error({ err: chanErr.message }, 'Failed to create order ticket channel');
+    throw chanErr;
   }
 
   // Update order with ticket channel ID

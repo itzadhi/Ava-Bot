@@ -26,6 +26,7 @@ import { checkCategoryAccess } from './categories.js';
 import { buildTicketControlCard } from './controls.js';
 import { sendTicketLog } from './logs.js';
 import { logger } from '../../utils/logger.js';
+import { perm } from '../../core/permissions/permApply.js';
 
 // In-memory user cooldowns (cooldown_seconds)
 const userCooldowns = new Map();
@@ -327,13 +328,32 @@ export async function handleOpenTicketFlow({
   // 10. Create Discord Channel
   let ticketChannel;
   try {
-    ticketChannel = await guild.channels.create({
-      name: channelName,
-      type: ChannelType.GuildText,
-      parent: parentCategory,
-      permissionOverwrites: overwrites,
-      topic: `🎫 Ticket #${ticketNumber} • Owner: ${user.tag} (${user.id}) • Category: ${catName}`
+    const permRes = await perm.apply({
+      guildId: guild.id,
+      feature: 'tickets',
+      targetType: 'channel',
+      targetId: 'new',
+      op: 'create_channel_with_overwrites',
+      field: 'permissionOverwrites',
+      oldValue: null,
+      newValue: overwrites,
+      reason: `AVA Tickets: Create ticket #${ticketNumber} channel`,
+      execute: () => guild.channels.create({
+        name: channelName,
+        type: ChannelType.GuildText,
+        parent: parentCategory,
+        permissionOverwrites: overwrites,
+        topic: `🎫 Ticket #${ticketNumber} • Owner: ${user.tag} (${user.id}) • Category: ${catName}`
+      })
     });
+    if (!permRes.executed || !permRes.result) {
+      return interaction.editReply(errorCard({
+        title: 'Permission Writes Disabled',
+        reason: 'Ticket channel creation is currently paused by the server administrator (PERMISSION_WRITES=off).',
+        ephemeral: true
+      }));
+    }
+    ticketChannel = permRes.result;
   } catch (err) {
     logger.error({ err, guildId: guild.id, userId: user.id }, 'Failed to create ticket text channel');
     return interaction.editReply(errorCard({

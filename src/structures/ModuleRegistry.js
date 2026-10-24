@@ -1,6 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { registry as commandRegistry } from './CommandRegistry.js';
 import { AvaModule } from './Module.js';
 import { pluginLoader } from '../core/modules/loader.js';

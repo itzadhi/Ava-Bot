@@ -3,6 +3,7 @@ import { checkStaffAccess } from '../../modules/tickets/categories.js';
 import { buildTicketControlCard } from '../../modules/tickets/controls.js';
 import { sendTicketLog } from '../../modules/tickets/logs.js';
 import { successCard, errorCard } from '../../ui/cards.js';
+import { perm } from '../../core/permissions/permApply.js';
 
 export default {
   name: 'reopen',
@@ -56,11 +57,22 @@ export default {
     });
 
     // Restore owner permissions
-    await ctx.channel.permissionOverwrites.edit(ticket.owner_id, {
-      ViewChannel: true,
-      SendMessages: true,
-      ReadMessageHistory: true,
-      AttachFiles: true
+    await perm.apply({
+      guildId: ctx.guild.id,
+      feature: 'tickets',
+      targetType: 'channel',
+      targetId: ctx.channel.id,
+      op: 'edit_channel_overwrite',
+      field: 'permissionOverwrites',
+      oldValue: ctx.channel.permissionOverwrites?.cache?.get(ticket.owner_id),
+      newValue: { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, AttachFiles: true },
+      reason: `AVA Tickets: Restore owner permissions on reopen #${ticket.ticket_number}`,
+      execute: () => ctx.channel.permissionOverwrites.edit(ticket.owner_id, {
+        ViewChannel: true,
+        SendMessages: true,
+        ReadMessageHistory: true,
+        AttachFiles: true
+      })
     }).catch(() => {});
 
     // Send fresh control card

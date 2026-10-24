@@ -49,6 +49,7 @@ import {
   pendingPanelUploads
 } from './panel.js';
 import { logger } from '../../utils/logger.js';
+import { perm } from '../../core/permissions/permApply.js';
 
 /**
  * Central Interaction Router for all Ticket System components (tkt:*)
@@ -356,13 +357,35 @@ export async function handleTicketInteraction(interaction) {
         const roleId = interaction.values?.[0];
         const channel = interaction.channel;
         if (action === 'add_role_sel') {
-          await channel.permissionOverwrites.edit(roleId, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true });
+          await perm.apply({
+            guildId: interaction.guild?.id || '0',
+            feature: 'tickets',
+            targetType: 'channel',
+            targetId: channel.id,
+            op: 'edit_channel_overwrite',
+            field: 'permissionOverwrites',
+            oldValue: channel.permissionOverwrites?.cache?.get(roleId),
+            newValue: { ViewChannel: true, SendMessages: true, ReadMessageHistory: true },
+            reason: `AVA Tickets: Grant role ${roleId} ticket access`,
+            execute: () => channel.permissionOverwrites.edit(roleId, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true })
+          });
           await interaction.reply(successCard({
             title: 'Role Access Granted',
             subtitle: `🛡️ Granted <@&${roleId}> access to this ticket.`
           }));
         } else {
-          await channel.permissionOverwrites.delete(roleId).catch(() => {});
+          await perm.apply({
+            guildId: interaction.guild?.id || '0',
+            feature: 'tickets',
+            targetType: 'channel',
+            targetId: channel.id,
+            op: 'delete_channel_overwrite',
+            field: 'permissionOverwrites',
+            oldValue: channel.permissionOverwrites?.cache?.get(roleId),
+            newValue: null,
+            reason: `AVA Tickets: Revoke role ${roleId} ticket access`,
+            execute: () => channel.permissionOverwrites.delete(roleId)
+          }).catch(() => {});
           await interaction.reply(successCard({
             title: 'Role Access Revoked',
             subtitle: `🚫 Revoked <@&${roleId}> access from this ticket.`

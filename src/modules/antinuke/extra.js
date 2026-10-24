@@ -12,6 +12,7 @@ import {
 } from '../../db/antinuke.js';
 import { punishOffender } from './restore.js';
 import { logger } from '../../utils/logger.js';
+import { perm } from '../../core/permissions/permApply.js';
 
 // Sliding windows for extra protections:
 // Map<`${guildId}:${type}:${executorId}`, Array<number timestamps>>
@@ -62,15 +63,26 @@ export async function handleRoleDeleteEvent(role) {
       let recreated = false;
       try {
         if (!settings.dry_run) {
-          await guild.roles.create({
-            name: role.name,
-            color: role.color,
-            permissions: role.permissions,
-            hoist: role.hoist,
-            mentionable: role.mentionable,
-            reason: 'AVA Anti-Nuke: Emergency role restoration'
+          const res = await perm.apply({
+            guildId: guild.id,
+            feature: 'antinuke',
+            targetType: 'role',
+            targetId: role.id,
+            op: 'create_role',
+            field: 'permissions',
+            oldValue: null,
+            newValue: role.permissions?.bitfield?.toString?.() || String(role.permissions || '0'),
+            reason: 'AVA Anti-Nuke: Emergency role restoration',
+            execute: () => guild.roles.create({
+              name: role.name,
+              color: role.color,
+              permissions: role.permissions,
+              hoist: role.hoist,
+              mentionable: role.mentionable,
+              reason: 'AVA Anti-Nuke: Emergency role restoration'
+            })
           });
-          recreated = true;
+          recreated = Boolean(res.executed);
         }
       } catch (err) {
         logger.warn({ err }, 'Could not recreate deleted role');
@@ -179,7 +191,18 @@ export async function handleRoleUpdateEvent(oldRole, newRole) {
     // Revert permissions immediately
     try {
       if (!settings.dry_run) {
-        await newRole.setPermissions(oldRole.permissions, 'AVA Anti-Nuke: Reverting unauthorized dangerous permission grant');
+        await perm.apply({
+          guildId: guild.id,
+          feature: 'antinuke',
+          targetType: 'role',
+          targetId: newRole.id,
+          op: 'set_permissions',
+          field: 'permissions',
+          oldValue: newRole.permissions?.bitfield?.toString?.() || String(newRole.permissions || '0'),
+          newValue: oldRole.permissions?.bitfield?.toString?.() || String(oldRole.permissions || '0'),
+          reason: 'AVA Anti-Nuke: Reverting unauthorized dangerous permission grant',
+          execute: () => newRole.setPermissions(oldRole.permissions, 'AVA Anti-Nuke: Reverting unauthorized dangerous permission grant')
+        });
       }
     } catch (err) {
       logger.warn({ err }, 'Could not revert role permissions');

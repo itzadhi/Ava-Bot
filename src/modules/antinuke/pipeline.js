@@ -12,6 +12,7 @@ import { getAntiNukeSettings, saveChannelSnapshotHashed } from './storage.js';
 import { isTrusted, isChannelExempt, getChannelSnapshot, deleteChannelSnapshot } from '../../db/antinuke.js';
 import { remapIds } from '../../core/db/remap.js';
 import { brand } from '../../config/brand.js';
+import { perm } from '../../core/permissions/permApply.js';
 
 // Per-guild async mutex locks to prevent simultaneous duplicate restores
 const guildRestoreLocks = new Set();
@@ -216,7 +217,22 @@ export async function restoreChannelBatch(guild, snapshots) {
         if (snap.userLimit) createOptions.userLimit = snap.userLimit;
       }
 
-      const newChan = await guild.channels.create(createOptions);
+      const permRes = await perm.apply({
+        guildId: guild.id,
+        feature: 'antinuke',
+        targetType: 'channel',
+        targetId: snap.id,
+        op: 'create_channel_with_overwrites',
+        field: 'permissionOverwrites',
+        oldValue: null,
+        newValue: overwrites,
+        reason: 'AVA Anti-Nuke: Automated emergency restoration',
+        execute: () => guild.channels.create(createOptions)
+      });
+      if (!permRes.executed || !permRes.result) {
+        continue;
+      }
+      const newChan = permRes.result;
       idMap.set(snap.id, newChan.id);
 
       // Save new channel snapshot and delete old one

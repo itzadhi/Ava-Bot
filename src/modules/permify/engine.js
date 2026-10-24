@@ -20,6 +20,7 @@ import { dispatchLog, buildLogCard } from '../logs/engine.js';
 import { greyButton } from '../../utils/ui/greyButton.js';
 import * as format from '../../utils/ui/format.js';
 import { logger } from '../../utils/logger.js';
+import { perm } from '../../core/permissions/permApply.js';
 import { endSession } from './session.js';
 
 // Rate limit helper: wait ms milliseconds
@@ -159,6 +160,11 @@ export async function executePermifyApply(interaction, session) {
     connectAutorole = true,
     backfillMembers = false
   } = session;
+
+  if (!perm.isWritable() && perm.getMode() !== 'dryrun') {
+    logger.warn({ guildId: guild.id }, '[PERMIFY] Refused applyPermifyConfiguration: PERMISSION_WRITES is off');
+    throw new Error('Permission modifications are currently disabled by the bot administrator (PERMISSION_WRITES=off).');
+  }
 
   const staffCategorySet = new Set(staffCategoryIds);
   const staffChannelSet = new Set(staffChannelIds);
@@ -476,7 +482,18 @@ export async function executePermifyApply(interaction, session) {
       }
 
       // Step C: Apply new overwrites to channel
-      await chan.permissionOverwrites.set(newOverwrites);
+      await perm.apply({
+        guildId: guild.id,
+        feature: 'permify',
+        targetType: 'channel',
+        targetId: chan.id,
+        op: 'set_channel_overwrites',
+        field: 'permissionOverwrites',
+        oldValue: Array.from(chan.permissionOverwrites?.cache?.values() || []),
+        newValue: newOverwrites,
+        reason: 'AVA Permify: Apply standardized permission overwrites',
+        execute: () => chan.permissionOverwrites.set(newOverwrites)
+      });
 
       // If category, sync child channels where appropriate (NEVER lock ticket categories or ticket channels)
       if (chan.type === ChannelType.GuildCategory && !ticketCategoryIds.has(chan.id)) {
@@ -484,7 +501,18 @@ export async function executePermifyApply(interaction, session) {
         for (const child of children.values()) {
           // If child is NOT an individually customized channel, lock to category
           if (!staffChannelSet.has(child.id) && !isTicketChannel(child) && !ticketPanelChannelIds.has(child.id)) {
-            await child.lockPermissions().catch(() => {});
+            await perm.apply({
+              guildId: guild.id,
+              feature: 'permify',
+              targetType: 'channel',
+              targetId: child.id,
+              op: 'lock_permissions',
+              field: 'permissionOverwrites',
+              oldValue: 'unlocked',
+              newValue: 'locked_to_category',
+              reason: 'AVA Permify: Sync child channel permissions to category',
+              execute: () => child.lockPermissions()
+            }).catch(() => {});
           }
         }
       }
@@ -595,7 +623,18 @@ async function resetChannelOverwrites(channel) {
   if (!channel.permissionOverwrites?.cache) return;
   const existing = Array.from(channel.permissionOverwrites.cache.values());
   for (const ow of existing) {
-    await ow.delete().catch(() => {});
+    await perm.apply({
+      guildId: channel.guild?.id || '0',
+      feature: 'permify',
+      targetType: 'channel',
+      targetId: channel.id,
+      op: 'delete_channel_overwrite',
+      field: 'permissionOverwrites',
+      oldValue: ow,
+      newValue: null,
+      reason: 'AVA Permify: Reset channel overwrite',
+      execute: () => ow.delete()
+    }).catch(() => {});
   }
 }
 
@@ -707,7 +746,18 @@ export async function executePermifyUndo(interaction, guild) {
         })).filter(ow => guild.roles.cache.has(ow.id) || guild.members.cache.has(ow.id) || ow.id === guild.id);
 
         if (restored.length > 0) {
-          await chan.permissionOverwrites.set(restored);
+          await perm.apply({
+            guildId: guild.id,
+            feature: 'permify',
+            targetType: 'channel',
+            targetId: chan.id,
+            op: 'set_channel_overwrites',
+            field: 'permissionOverwrites',
+            oldValue: Array.from(chan.permissionOverwrites?.cache?.values() || []),
+            newValue: restored,
+            reason: 'AVA Permify: Restore channel overwrites from snapshot',
+            execute: () => chan.permissionOverwrites.set(restored)
+          });
         }
       } catch (err) {
         logger.warn({ err, channelId: chan.id }, 'Error restoring channel overwrite');

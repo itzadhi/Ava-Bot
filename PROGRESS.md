@@ -44,6 +44,18 @@
 - [x] **Phase 4: Start Clean & Seed** (COMPLETED: Clean startup seeded `guild_settings` with 1 row per guild; 0 stuck jobs; 0 lockdown rows; 27 commands cached; `scripts/list-orphans.js` scans pre-reset Discord messages; `tests/fresh_start.test.js` verified pre-reset buttons show "Panel Expired" card).
 - [x] **Verification**: `npm run doctor` 8/8 PASS; `npm run lessons:check` 0 violations; `tests/fresh_start.test.js` 2/2 PASS.
 
+## Lockdown Rewrite & Permission Safety (Branch: `lockdown-rewrite`)
+- [x] **Step 0: Git Setup & Safety** (COMPLETED: Branch `lockdown-rewrite` checked out, pre-fix checkpoint committed `5798ec0`, local running bot processes terminated).
+- [x] **Phase A: Permission Freeze** (COMPLETED: `PERMISSION_WRITES=off|dryrun|on` kill switch in `src/core/permissions/permApply.js`; routed 100% of permission writes through `perm.apply()`; schema check in `schemaCheck.js`; SQL migration `20261025_permission_guard_and_lockdown.sql` written; disabled startup permission repair; `tests/permission_guard.test.js` 4/4 PASS; `npm run doctor` 8/8 PASS).
+- [ ] **Phase B: Diagnose Live Damage** (IN PROGRESS: REST-only diagnostic script `scripts/diagnose-permissions.js` generating per-guild damage reports).
+- [ ] **Phase C: Safe Recovery** (PENDING: Dry-run diff and per-guild confirmation).
+- [ ] **Phase D: Startup & Logging Fixes** (PENDING: Single-instance lease, startOnce registry, log formatting).
+- [ ] **Phase E: Components V2 Display Error & UI Validity** (PENDING: validateV2Payload auto-fix & npm run test:ui).
+- [ ] **Phase F: Speed & Adaptive First Response** (PENDING: net-check and adaptive response).
+- [ ] **Phase G: Root Cause of Stuck 0/33** (PENDING: Detailed evidence analysis & /ava jobs).
+- [ ] **Phase H: Lockdown Engine Rewrite** (PENDING: Clean write-ahead resumable engine).
+- [ ] **Phase I: Mutual Exclusion Across Permission Writers** (PENDING: Shared per-guild mutex).
+- [ ] **Phase J: Dependencies, Documentation & Verification** (PENDING: Safe updates, docs, skills).
 
 
 

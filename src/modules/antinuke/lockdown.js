@@ -23,6 +23,7 @@ import { getTicketSettings } from '../../db/tickets.js';
 import { getGuildRoles } from '../../db/permify.js';
 import { greyButton } from '../../utils/ui/greyButton.js';
 import { logger } from '../../utils/logger.js';
+import { perm } from '../../core/permissions/permApply.js';
 import {
   createJob,
   enqueueJobExecution,
@@ -276,7 +277,18 @@ export async function initiateLockdown(guild, reason = 'Emergency lockdown', off
         PermissionFlagsBits.CreatePrivateThreads |
         PermissionFlagsBits.AddReactions
       );
-      await everyoneRole.setPermissions(newPerms, `AVA Anti-Nuke: Immediate role-level raid lock [${reason}]`);
+      await perm.apply({
+        guildId: gid,
+        feature: 'lockdown',
+        targetType: 'role',
+        targetId: everyoneRole.id,
+        op: 'set_permissions',
+        field: 'permissions',
+        oldValue: originalRolePerms,
+        newValue: newPerms.toString(),
+        reason: `AVA Anti-Nuke: Immediate role-level raid lock [${reason}]`,
+        execute: () => everyoneRole.setPermissions(newPerms, `AVA Anti-Nuke: Immediate role-level raid lock [${reason}]`)
+      });
       logger.info({ guildId: gid }, '⚡ Fast-path role lock applied to @everyone');
     }
   } catch (roleErr) {
@@ -287,14 +299,25 @@ export async function initiateLockdown(guild, reason = 'Emergency lockdown', off
   const hotChannel = hotChannelId ? eligibleChannels.find(c => c.id === hotChannelId) : eligibleChannels[0];
   if (hotChannel && hotChannel.permissionOverwrites?.edit) {
     try {
-      await hotChannel.permissionOverwrites.edit(guild.id, {
-        SendMessages: false,
-        SendMessagesInThreads: false,
-        CreatePublicThreads: false,
-        CreatePrivateThreads: false,
-        AddReactions: false,
-        ...(hotChannel.type === ChannelType.GuildVoice ? { Connect: false } : {})
-      }, { reason: `AVA Anti-Nuke: Immediate hot-channel raid lock [${reason}]` });
+      await perm.apply({
+        guildId: gid,
+        feature: 'lockdown',
+        targetType: 'channel',
+        targetId: hotChannel.id,
+        op: 'edit_channel_overwrite',
+        field: 'permissionOverwrites',
+        oldValue: hotChannel.permissionOverwrites?.cache?.get(guild.id),
+        newValue: { SendMessages: false },
+        reason: `AVA Anti-Nuke: Immediate hot-channel raid lock [${reason}]`,
+        execute: () => hotChannel.permissionOverwrites.edit(guild.id, {
+          SendMessages: false,
+          SendMessagesInThreads: false,
+          CreatePublicThreads: false,
+          CreatePrivateThreads: false,
+          AddReactions: false,
+          ...(hotChannel.type === ChannelType.GuildVoice ? { Connect: false } : {})
+        }, { reason: `AVA Anti-Nuke: Immediate hot-channel raid lock [${reason}]` })
+      });
     } catch (chErr) {
       logger.warn({ err: chErr.message, channelId: hotChannel?.id }, 'Non-fatal: Immediate hot-channel lock skipped');
     }
@@ -333,16 +356,25 @@ export async function initiateLockdown(guild, reason = 'Emergency lockdown', off
           const currentOv = ch.permissionOverwrites?.cache?.get(guild.id);
           const hasDeny = currentOv && (BigInt(currentOv.deny.bitfield) & PermissionFlagsBits.SendMessages) === PermissionFlagsBits.SendMessages;
 
-          if (!hasDeny) {
-            await ch.permissionOverwrites.edit(guild.id, {
-              SendMessages: false,
-              SendMessagesInThreads: false,
-              CreatePublicThreads: false,
-              CreatePrivateThreads: false,
-              AddReactions: false,
-              ...(ch.type === ChannelType.GuildVoice ? { Connect: false } : {})
-            }, { reason: `AVA Anti-Nuke: Active raid lockdown [${reason}]` });
-          }
+            await perm.apply({
+              guildId: gid,
+              feature: 'lockdown',
+              targetType: 'channel',
+              targetId: ch.id,
+              op: 'edit_channel_overwrite',
+              field: 'permissionOverwrites',
+              oldValue: currentOv,
+              newValue: { SendMessages: false },
+              reason: `AVA Anti-Nuke: Active raid lockdown [${reason}]`,
+              execute: () => ch.permissionOverwrites.edit(guild.id, {
+                SendMessages: false,
+                SendMessagesInThreads: false,
+                CreatePublicThreads: false,
+                CreatePrivateThreads: false,
+                AddReactions: false,
+                ...(ch.type === ChannelType.GuildVoice ? { Connect: false } : {})
+              }, { reason: `AVA Anti-Nuke: Active raid lockdown [${reason}]` })
+            });
 
           lockedCount++;
           itemStatuses[ch.id] = 'locked';
@@ -465,22 +497,40 @@ export async function terminateLockdown(guild, reason = 'Lockdown terminated by 
           // If someone manually modified permissions during the lock, do NOT overwrite their change
           if (currentOv && !original.existed) {
             // Overwrite did not exist before lock: delete it
-            await currentOv.delete(`AVA Anti-Nuke: Reverting lockdown overwrite [${reason}]`);
+            await perm.apply({
+              guildId: gid,
+              feature: 'lockdown',
+              targetType: 'channel',
+              targetId: ch.id,
+              op: 'delete_channel_overwrite',
+              field: 'permissionOverwrites',
+              oldValue: currentOv,
+              newValue: null,
+              reason: `AVA Anti-Nuke: Reverting lockdown overwrite [${reason}]`,
+              execute: () => currentOv.delete(`AVA Anti-Nuke: Reverting lockdown overwrite [${reason}]`)
+            });
             unlockedCount++;
             itemStatuses[chId] = 'unlocked: deleted_created_overwrite';
           } else if (original.existed) {
-            // Check if current differs from lock value
-            const currentDeny = currentOv ? currentOv.deny.bitfield.toString() : '0';
-            const expectedDeny = (BigInt(original.deny) | PermissionFlagsBits.SendMessages).toString();
-
             // Restore exact original allow and deny bitfields
-            await ch.permissionOverwrites.edit(guild.id, {
-              SendMessages: (BigInt(original.allow) & PermissionFlagsBits.SendMessages) ? true : (BigInt(original.deny) & PermissionFlagsBits.SendMessages) ? false : null,
-              SendMessagesInThreads: (BigInt(original.allow) & PermissionFlagsBits.SendMessagesInThreads) ? true : (BigInt(original.deny) & PermissionFlagsBits.SendMessagesInThreads) ? false : null,
-              CreatePublicThreads: (BigInt(original.allow) & PermissionFlagsBits.CreatePublicThreads) ? true : (BigInt(original.deny) & PermissionFlagsBits.CreatePublicThreads) ? false : null,
-              CreatePrivateThreads: (BigInt(original.allow) & PermissionFlagsBits.CreatePrivateThreads) ? true : (BigInt(original.deny) & PermissionFlagsBits.CreatePrivateThreads) ? false : null,
-              AddReactions: (BigInt(original.allow) & PermissionFlagsBits.AddReactions) ? true : (BigInt(original.deny) & PermissionFlagsBits.AddReactions) ? false : null
-            }, { reason: `AVA Anti-Nuke: Restoring exact original permissions [${reason}]` });
+            await perm.apply({
+              guildId: gid,
+              feature: 'lockdown',
+              targetType: 'channel',
+              targetId: ch.id,
+              op: 'edit_channel_overwrite',
+              field: 'permissionOverwrites',
+              oldValue: currentOv,
+              newValue: original,
+              reason: `AVA Anti-Nuke: Restoring exact original permissions [${reason}]`,
+              execute: () => ch.permissionOverwrites.edit(guild.id, {
+                SendMessages: (BigInt(original.allow) & PermissionFlagsBits.SendMessages) ? true : (BigInt(original.deny) & PermissionFlagsBits.SendMessages) ? false : null,
+                SendMessagesInThreads: (BigInt(original.allow) & PermissionFlagsBits.SendMessagesInThreads) ? true : (BigInt(original.deny) & PermissionFlagsBits.SendMessagesInThreads) ? false : null,
+                CreatePublicThreads: (BigInt(original.allow) & PermissionFlagsBits.CreatePublicThreads) ? true : (BigInt(original.deny) & PermissionFlagsBits.CreatePublicThreads) ? false : null,
+                CreatePrivateThreads: (BigInt(original.allow) & PermissionFlagsBits.CreatePrivateThreads) ? true : (BigInt(original.deny) & PermissionFlagsBits.CreatePrivateThreads) ? false : null,
+                AddReactions: (BigInt(original.allow) & PermissionFlagsBits.AddReactions) ? true : (BigInt(original.deny) & PermissionFlagsBits.AddReactions) ? false : null
+              }, { reason: `AVA Anti-Nuke: Restoring exact original permissions [${reason}]` })
+            });
 
             unlockedCount++;
             itemStatuses[chId] = 'unlocked: restored';
@@ -506,7 +556,18 @@ export async function terminateLockdown(guild, reason = 'Lockdown terminated by 
     try {
       const everyoneRole = guild.roles?.cache?.get(guild.id) || guild.roles?.everyone;
       if (everyoneRole && typeof everyoneRole.setPermissions === 'function' && plan.originalRolePerms && guild.members?.me?.permissions?.has(PermissionFlagsBits.ManageRoles)) {
-        await everyoneRole.setPermissions(BigInt(plan.originalRolePerms), `AVA Anti-Nuke: Restoring original @everyone permissions [${reason}]`);
+        await perm.apply({
+          guildId: gid,
+          feature: 'lockdown',
+          targetType: 'role',
+          targetId: everyoneRole.id,
+          op: 'set_permissions',
+          field: 'permissions',
+          oldValue: everyoneRole.permissions.bitfield.toString(),
+          newValue: plan.originalRolePerms,
+          reason: `AVA Anti-Nuke: Restoring original @everyone permissions [${reason}]`,
+          execute: () => everyoneRole.setPermissions(BigInt(plan.originalRolePerms), `AVA Anti-Nuke: Restoring original @everyone permissions [${reason}]`)
+        });
         logger.info({ guildId: gid }, '✓ Restored original @everyone role permissions');
       }
     } catch (roleErr) {
@@ -618,13 +679,24 @@ export async function repairCorruptedLockdown(guild) {
 
     if (hasLockdownSignature) {
       try {
-        await ch.permissionOverwrites.edit(guild.id, {
-          SendMessages: null,
-          SendMessagesInThreads: null,
-          CreatePublicThreads: null,
-          CreatePrivateThreads: null,
-          AddReactions: null
-        }, { reason: 'AVA Anti-Nuke: Lockdown integrity repair tool' });
+        await perm.apply({
+          guildId: guild.id,
+          feature: 'lockdown',
+          targetType: 'channel',
+          targetId: ch.id,
+          op: 'edit_channel_overwrite',
+          field: 'permissionOverwrites',
+          oldValue: ov,
+          newValue: null,
+          reason: 'AVA Anti-Nuke: Lockdown integrity repair tool',
+          execute: () => ch.permissionOverwrites.edit(guild.id, {
+            SendMessages: null,
+            SendMessagesInThreads: null,
+            CreatePublicThreads: null,
+            CreatePrivateThreads: null,
+            AddReactions: null
+          }, { reason: 'AVA Anti-Nuke: Lockdown integrity repair tool' })
+        });
 
         fixed++;
         details.push(`Restored permissions on #${ch.name}`);
