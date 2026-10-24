@@ -50,7 +50,9 @@ import { autoRepairPermissionsAndTickets } from './modules/permify/repair.js';
 import { initAutoModCache } from './db/automod.js';
 import { initAntiNukeCache } from './db/antinuke.js';
 import { handleChannelDeleteEvent, queueChannelSnapshot } from './modules/antinuke/restore.js';
-import { evaluateRaidMessage, trackMemberJoin, resumeActiveLockdowns } from './modules/antinuke/lockdown.js';
+import { evaluateRaidMessage, trackMemberJoin, resumeActiveLockdowns, startLockdownWatchdog } from './modules/antinuke/lockdown.js';
+import { resumeUnfinishedJobs, startJobWatchdog } from './core/jobs/jobManager.js';
+import { startReliabilityWatchdog } from './core/reliability/watchdog.js';
 import { handleRoleDeleteEvent, handleRoleUpdateEvent, handleBotAddEvent, handleWebhookCreateEvent } from './modules/antinuke/extra.js';
 import { preloadGuildSettings } from './core/cache/guildCache.js';
 import { batchWriter } from './core/cache/batchWriter.js';
@@ -288,20 +290,29 @@ class AvaClient extends Client {
       startScheduler(readyClient);
       startTicketScheduler(readyClient);
       startShopExpiryJob(readyClient);
-      await autoRepairPermissionsAndTickets(readyClient).catch(err => {
-        logger.warn({ err }, 'Error during automatic permission & ticket repair on startup');
-      });
+      startReliabilityWatchdog(readyClient, { cgroupLimitMb: cgroupLimitMb || 1024 });
 
-      // AutoMod & Anti-Nuke Write-Through Cache Preload & Active Lockdown Monitoring
-      await initAutoModCache(readyClient).catch(err => {
-        logger.warn({ err }, 'Error preloading AutoMod cache');
-      });
-      await initAntiNukeCache(readyClient).catch(err => {
-        logger.warn({ err }, 'Error preloading Anti-Nuke cache');
-      });
-      await resumeActiveLockdowns(readyClient).catch(err => {
-        logger.warn({ err }, 'Error resuming active lockdowns');
-      });
+      // Parallel cache preloads for instant readiness
+      await Promise.all([
+        initAutoModCache(readyClient).catch(err => logger.warn({ err: err.message }, 'Error preloading AutoMod cache')),
+        initAntiNukeCache(readyClient).catch(err => logger.warn({ err: err.message }, 'Error preloading Anti-Nuke cache'))
+      ]);
+
+      // Resume active lockdowns, background jobs and start background watchdogs
+      await resumeActiveLockdowns(readyClient).catch(err => logger.warn({ err: err.message }, 'Error resuming active lockdowns'));
+      await resumeUnfinishedJobs(readyClient).catch(err => logger.warn({ err: err.message }, 'Error resuming unfinished jobs'));
+      startLockdownWatchdog(readyClient);
+      startJobWatchdog(readyClient);
+
+      // Low-priority background permission & ticket repair (delayed 30s so first interactions are never delayed)
+      const repairTimer = setTimeout(async () => {
+        try {
+          await autoRepairPermissionsAndTickets(readyClient);
+        } catch (err) {
+          logger.warn({ err: err.message }, 'Error during background permission & ticket repair');
+        }
+      }, 30000);
+      if (repairTimer.unref) repairTimer.unref();
     });
   }
 

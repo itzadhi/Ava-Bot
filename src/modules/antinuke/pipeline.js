@@ -253,11 +253,11 @@ export async function handleChannelDeletePipeline(channel) {
 
   // 1. Check protection enabled
   const settings = await getAntiNukeSettings(gid);
-  if (!settings.enabled) return;
+  if (!settings.enabled) return false;
 
   // 2. Check channel exempt
   const exempt = await isChannelExempt(gid, cid, channel);
-  if (exempt) return;
+  if (exempt) return false;
 
   // 3. Resolve executor with audit log retry
   const audit = await fetchChannelDeleteAuditWithRetry(guild, cid, 3);
@@ -268,7 +268,7 @@ export async function handleChannelDeletePipeline(channel) {
     const immune = await isTrusted(guild, executor.id);
     if (immune) {
       logger.info({ guildId: gid, executor: executor.tag, channel: channel.name }, 'Trusted executor deleted channel; skipping antinuke');
-      return;
+      return false;
     }
   }
 

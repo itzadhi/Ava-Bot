@@ -34,6 +34,9 @@ const BOT_PERMISSIONS = [
  * @param {import('discord.js').Client} client
  * @returns {Promise<object>} Summary of repairs executed
  */
+// Cache of last checked state hash per guild: guildId -> { hash: string, timestamp: number }
+const guildRepairHashes = new Map();
+
 export async function autoRepairPermissionsAndTickets(client) {
   const summary = {
     guildsProcessed: 0,
@@ -51,6 +54,9 @@ export async function autoRepairPermissionsAndTickets(client) {
   for (const guild of client.guilds.cache.values()) {
     try {
       const guildId = guild.id;
+
+      // Yield to event loop between guilds so interaction handling is NEVER delayed
+      await new Promise(resolve => setImmediate(resolve));
 
       // 1. Fetch current settings, role groups, and ticket configurations
       const [guildRoles, guildSettings, ticketSettings, ticketCategories, ticketPanels, openTickets] = await Promise.all([
@@ -81,7 +87,22 @@ export async function autoRepairPermissionsAndTickets(client) {
       const ticketPanelChannelIds = new Set(ticketPanels.map(p => p.channel_id).filter(Boolean));
       const openTicketChannelIds = new Set(openTickets.map(t => t.channel_id).filter(Boolean));
 
-      const channels = await guild.channels.fetch().catch(() => new Map());
+      // Compute quick state hash
+      const channelCount = guild.channels?.cache?.size || 0;
+      const stateHash = `${channelCount}:${ticketCategoryIds.size}:${ticketPanelChannelIds.size}:${openTicketChannelIds.size}`;
+      const lastCheck = guildRepairHashes.get(guildId);
+      const now = Date.now();
+
+      // Skip if state has not changed in the last 60 minutes
+      if (lastCheck && lastCheck.hash === stateHash && (now - lastCheck.timestamp < 3600000)) {
+        logger.debug({ guildId }, 'Skipping permission repair for unchanged guild state');
+        summary.guildsProcessed++;
+        continue;
+      }
+      guildRepairHashes.set(guildId, { hash: stateHash, timestamp: now });
+
+      // Read channels from cache first to avoid REST calls
+      const channels = (guild.channels?.cache?.size > 0) ? guild.channels.cache : await guild.channels.fetch().catch(() => new Map());
       const botMember = guild.members.me;
       const botTargetId = botMember?.roles?.botRole?.id || botMember?.id;
 
@@ -302,7 +323,7 @@ export async function autoRepairPermissionsAndTickets(client) {
 
       summary.guildsProcessed++;
     } catch (err) {
-      logger.error({ err, guildId: guild.id }, 'Error during guild auto-repair');
+      logger.debug({ err: err.message, guildId: guild.id }, 'Non-fatal error during guild auto-repair');
       summary.errors.push({ guildId: guild.id, error: err.message });
     }
   }

@@ -15,13 +15,21 @@
 - [x] **Phase 8: Antinuke Rebuild & Verification** (COMPLETED: root causes evidence report `docs/ANTINUKE_ROOT_CAUSES.md`, SQL migration `supabase/migrations/20261024_antinuke_v2.sql`, Zod schemas with safeInt/safeBool preprocessors, optimistic concurrency versioning, debounced MD5 content-hashed snapshots, category-first automated restore pipeline, universal ID remapping `remapIds()` across 22 modules, lockdown overhaul with `locked_channels` override reset, `/antinuke repair` and `/antinuke test`, 9/9 tests passing)
 - [x] **Phase 9: Final Verification, Documentation & Final Report** (COMPLETED: 28/28 unit tests passing across all suites, `npm run doctor` 100% passing across 242 modules, `npm run lessons:check` 0 violations, README rewritten for AVA, complete final report generated)
 
-## What Is Done
-- All 9 Phases completed, tested, documented, and committed.
-- System Doctor passes 8/8 diagnostic checks with 0 errors across 242 modules.
-- Zero legacy brand names in source code.
-- Zero banned patterns detected across codebase.
-- Full automated test suite passes 28/28 tests with zero failures.
-- Comprehensive production `README.md` and `docs/` artifacts published.
+## Reliability Overhaul (Branch: `reliability-fix`)
+- [x] **Phase 1: Measure Before Changing** (COMPLETED: AsyncLocalStorage tracer, `diagnose-suspects.js`, `docs/SLOW_PATHS.md` profiling 9 suspects).
+- [x] **Phase 2: Handler Policy & Background Queue** (COMPLETED: `ava_jobs` table migration, `jobManager.js` bounded queue with 25 req/s REST budget, per-guild mutex, `runHandler.js` 8s cap with `AbortController`, message-ID throttled edits).
+- [x] **Phase 3: Lockdown Rebuild** (COMPLETED: State machine `idle` -> `locking` -> `locked` -> `unlocking` -> `idle`, fast-path role lock < 50ms, bounded concurrency 8 workers, saved plan in DB before mutations, auto-unlock scheduler, `/lockdown repair` tool, `tests/lockdown_resilience.test.js` passing 150-channel matrix).
+- [x] **Phase 4: Anti-Nuke Panel Speed + V2 Validity** (COMPLETED: write-through cache 24h for 0.1ms navigation, `validateV2Payload.js` asserting component limits/uniqueness, Page 7 duplicate button bug fixed, `tests/antinuke_v2_payload.test.js` 15/15 passing).
+- [x] **Phase 5: Startup Job De-Prioritization** (COMPLETED: parallelized AutoMod and Anti-Nuke startup cache loading, 30s delayed permission repair job, guild state hash skipping unchanged servers, event loop yielding via `setImmediate`, investigated and confirmed "0 words, 0 regex rules" is expected).
+- [x] **Phase 6: 30-Day Reliability** (COMPLETED: `boundedStructures.js` with 80% warning triggers, `watchdog.js` with GC triggers, cgroup memory monitor, daily 24h retention pruning of old jobs and logs, UTC timestamp expiry).
+- [x] **Phase 7: Modular Subsystem Logging** (COMPLETED: pink console gutter with auto-resolved module tags `[ANTINUKE]`, `[LOCKDOWN]`, `[PERMIFY]`, `[STARTUP]`, `[JOBS]`, `[DATABASE]`, secret redaction preserved).
+
+## Verification Proof
+- `npm run doctor`: 8/8 PASS across 247 modules, 0 circular dependencies, 0 brand violations.
+- `tests/antinuke.test.js`: 6/6 PASS.
+- `tests/antinuke_v2_payload.test.js`: 15/15 PASS.
+- `tests/lockdown_resilience.test.js`: 1/1 PASS (150 channels, fast path, plan persistence, idempotency, restore, repair).
+- Banned patterns: 0 matches for `EmbedBuilder`, `.setColor(`, `setAccentColor`, `ButtonStyle.Primary|Success|Danger`, collectors, `console.` in changed code.
 
 
 

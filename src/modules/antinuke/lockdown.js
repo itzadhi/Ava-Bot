@@ -3,40 +3,52 @@ import {
   ChannelType,
   ContainerBuilder,
   TextDisplayBuilder,
+  SeparatorBuilder,
   ActionRowBuilder,
   MessageFlags
 } from 'discord.js';
+import { db } from '../../db/client.js';
 import {
   getAntiNukeSettings,
+  getAntiNukeExempt,
   isTrusted,
   isChannelExempt,
+  recordAntiNukeIncident,
   getLockdownState,
   saveLockdownState,
   clearLockdownState,
-  recordAntiNukeIncident
+  getCachedLockdownState
 } from '../../db/antinuke.js';
+import { getTicketSettings } from '../../db/tickets.js';
 import { getGuildRoles } from '../../db/permify.js';
-import { normalizeText } from '../automod/normalizer.js';
 import { greyButton } from '../../utils/ui/greyButton.js';
 import { logger } from '../../utils/logger.js';
+import {
+  createJob,
+  enqueueJobExecution,
+  updateJobProgress,
+  buildProgressCard,
+  getRunningJob,
+  cancelJob
+} from '../../core/jobs/jobManager.js';
 import * as format from '../../utils/ui/format.js';
+import PQueue from 'p-queue';
 
 // Sliding windows for raid detection:
-// Map<guildId, {
-//   messages: Array<{ userId: string, channelId: string, content: string, timestamp: number }>,
-//   joins: Array<{ userId: string, timestamp: number }>,
-//   offenders: Set<string>
-// }>
 const raidWindows = new Map();
-
-// Active lockdown timer handles: Map<guildId, NodeJS.Timeout>
-const lockdownTimers = new Map();
-
-// Post-unlock cooldown: Map<guildId, number timestamp>
 const unlockCooldowns = new Map();
 
-// Concurrency locks per guild
-const lockdownGuildLocks = new Set();
+// Bounded concurrency pool for channel overwrite edits (8 concurrent REST workers)
+const OVERWRITE_CONCURRENCY = 8;
+
+// Signature permissions denied during lockdown
+export const LOCKDOWN_DENY_BITS = [
+  PermissionFlagsBits.SendMessages,
+  PermissionFlagsBits.SendMessagesInThreads,
+  PermissionFlagsBits.CreatePublicThreads,
+  PermissionFlagsBits.CreatePrivateThreads,
+  PermissionFlagsBits.AddReactions
+];
 
 function getRaidWindow(guildId) {
   if (!raidWindows.has(guildId)) {
@@ -49,9 +61,7 @@ function getRaidWindow(guildId) {
   return raidWindows.get(guildId);
 }
 
-/**
- * Periodically prunes expired raid messages and join records (runs every 10 seconds)
- */
+// Background cleanup of raid window
 setInterval(() => {
   const now = Date.now();
   for (const [gid, win] of raidWindows.entries()) {
@@ -76,10 +86,14 @@ export function trackMemberJoin(member) {
   });
 }
 
+export {
+  getLockdownState,
+  saveLockdownState,
+  clearLockdownState
+};
+
 /**
- * Evaluates incoming message for mass raid conditions
- * Returns true if lockdown triggered
- *
+ * Evaluates incoming message for raid/flood conditions
  * @param {import('discord.js').Message} message
  * @returns {Promise<boolean>}
  */
@@ -89,94 +103,55 @@ export async function evaluateRaidMessage(message) {
   const gid = guild.id;
   const userId = message.author.id;
 
-  // Check cooldown
   const lastUnlock = unlockCooldowns.get(gid) || 0;
-  if (Date.now() - lastUnlock < 30000) return false; // 30s cooldown
+  if (Date.now() - lastUnlock < 30000) return false;
 
-  // Check active lockdown
-  const activeState = await getLockdownState(gid);
-  if (activeState?.active) {
-    // If lockdown is active, register message as potential offender
-    if (!await isTrusted(guild, userId, message.member)) {
-      activeState.offenders = Array.from(new Set([...(activeState.offenders || []), userId]));
-      await saveLockdownState(gid, activeState);
-      message.delete().catch(() => {});
-    }
-    return true;
+  const currentState = await getLockdownState(gid);
+  if (currentState && currentState.state !== 'idle') {
+    return false;
   }
 
-  // Exemptions check
-  if (await isChannelExempt(gid, message.channel.id, message.channel)) return false;
-  if (await isTrusted(guild, userId, message.member)) return false;
-
-  const permifyRoles = await getGuildRoles(gid).catch(() => ({ staff: [] }));
-  if (message.member?.roles?.cache?.some(r => permifyRoles.staff?.includes(r.id))) return false;
-
   const settings = await getAntiNukeSettings(gid);
-  if (!settings || settings.enabled === false) return false;
+  if (!settings.enabled) return false;
 
   const thresholds = settings.thresholds || {};
   const win = getRaidWindow(gid);
   const now = Date.now();
 
-  const norm = normalizeText(message.content || '');
   win.messages.push({
     userId,
     channelId: message.channel.id,
-    content: norm.collapsed,
+    content: message.content || '',
     timestamp: now
   });
 
-  const windowSecs = thresholds.raid_window_seconds || 5;
-  const recentMsgs = win.messages.filter(m => now - m.timestamp < windowSecs * 1000);
-
-  // 1. Condition: N distinct users each sending >= M messages within T seconds
-  const userCounts = new Map();
-  for (const m of recentMsgs) {
-    userCounts.set(m.userId, (userCounts.get(m.userId) || 0) + 1);
-  }
-
-  const distinctUsers = Array.from(userCounts.keys());
-  const activeSpammers = distinctUsers.filter(uid => userCounts.get(uid) >= (thresholds.raid_messages_per_user || 4));
-  const raidUserLimit = thresholds.raid_distinct_users || 5;
+  const raidSecs = thresholds.raid_window_seconds || 5;
+  const recentMsgs = win.messages.filter(m => now - m.timestamp < raidSecs * 1000);
+  const distinctUsers = Array.from(new Set(recentMsgs.map(m => m.userId)));
 
   let triggerReason = null;
-
-  if (activeSpammers.length >= raidUserLimit) {
-    triggerReason = `Mass user flood: ${activeSpammers.length} distinct users sending rapid messages in ${windowSecs}s`;
+  const userThreshold = thresholds.raid_distinct_users || 5;
+  if (distinctUsers.length >= userThreshold) {
+    triggerReason = `Mass user flood: ${distinctUsers.length} users sent messages within ${raidSecs}s`;
   }
 
-  // 2. Condition: Same normalized content from >= X distinct users in T seconds
   if (!triggerReason) {
-    const contentUsers = new Map();
+    const userMsgCounts = new Map();
     for (const m of recentMsgs) {
-      if (m.content.length > 5) {
-        if (!contentUsers.has(m.content)) contentUsers.set(m.content, new Set());
-        contentUsers.get(m.content).add(m.userId);
-      }
+      userMsgCounts.set(m.userId, (userMsgCounts.get(m.userId) || 0) + 1);
     }
-    const matchLimit = thresholds.raid_identical_content_users || 3;
-    for (const [content, uids] of contentUsers.entries()) {
-      if (uids.size >= matchLimit) {
-        triggerReason = `Coordinated spam wave: ${uids.size} users repeating identical message content`;
+    const msgsPerUser = thresholds.raid_messages_per_user || 4;
+    for (const [uid, count] of userMsgCounts.entries()) {
+      if (count >= msgsPerUser) {
+        triggerReason = `Rapid-fire spam: user sent ${count} messages within ${raidSecs}s`;
         break;
       }
     }
   }
 
-  // 3. Condition: Mass join burst combined with spam
-  if (!triggerReason) {
-    const joinWindowSecs = thresholds.raid_join_window_seconds || 10;
-    const recentJoins = win.joins.filter(j => now - j.timestamp < joinWindowSecs * 1000);
-    const joinLimit = thresholds.raid_join_burst_count || 8;
-    if (recentJoins.length >= joinLimit && recentMsgs.length >= 10 && distinctUsers.length >= 3) {
-      triggerReason = `Raid wave detected: ${recentJoins.length} accounts joined within ${joinWindowSecs}s with active chat spam`;
-    }
-  }
-
   if (triggerReason) {
-    const offendersList = Array.from(new Set([...distinctUsers, ...activeSpammers]));
-    await initiateLockdown(guild, triggerReason, offendersList, message.channel.id);
+    logger.warn({ guildId: gid, triggerReason }, '🚨 Mass raid detected by anti-nuke heuristic, initiating lockdown');
+    await initiateLockdown(guild, triggerReason, distinctUsers, message.channel.id);
     return true;
   }
 
@@ -184,353 +159,498 @@ export async function evaluateRaidMessage(message) {
 }
 
 /**
- * Initiates Emergency Server Lockdown
+ * Initiates Lockdown with Fast-Path Role Deny & Bounded Concurrency Channel Overwrites
  *
  * @param {import('discord.js').Guild} guild
  * @param {string} reason
  * @param {string[]} [offenders=[]]
  * @param {string} [hotChannelId=null]
+ * @param {string} [initiatedBy=null]
+ * @returns {Promise<object>} Status object
  */
-export async function initiateLockdown(guild, reason = 'Mass raid spam detected', offenders = [], hotChannelId = null) {
+export async function initiateLockdown(guild, reason = 'Emergency lockdown', offenders = [], hotChannelId = null, initiatedBy = null) {
+  // Support legacy signature: (guild, offenders, reason)
   if (Array.isArray(reason) && typeof offenders === 'string') {
-    const tmp = reason;
+    const temp = reason;
     reason = offenders;
-    offenders = tmp;
+    offenders = temp;
   }
   const gid = guild.id;
-  if (lockdownGuildLocks.has(gid)) return { locked: true, alreadyLocked: true };
-  lockdownGuildLocks.add(gid);
+  const current = await getLockdownState(gid);
+  if (current && (current.state === 'locking' || current.state === 'locked')) {
+    return { locked: true, alreadyLocked: true, state: current.state };
+  }
+
+  const settings = await getAntiNukeSettings(gid);
+  const calmSecs = settings.thresholds?.lockdown_calm_seconds || 60;
+  const maxSecs = settings.thresholds?.lockdown_max_duration_seconds || 900;
+  const unlockAt = new Date(Date.now() + Math.min(calmSecs, maxSecs) * 1000).toISOString();
+
+  // 1. Compute Plan BEFORE modifying permissions
+  const [ticketSettings, exempt] = await Promise.all([
+    getTicketSettings(gid).catch(() => null),
+    getAntiNukeExempt(gid).catch(() => ({ categories: [], channels: [] }))
+  ]);
+  const ticketCategoryId = ticketSettings?.channel_category_id;
+  const exemptCategories = new Set(exempt?.categories || []);
+  const exemptChannels = new Set(exempt?.channels || []);
+
+  const channels = Array.from(guild.channels.cache.values());
+  const eligibleChannels = [];
+  const originalOverwrites = {};
+
+  for (const ch of channels) {
+    if (exemptChannels.has(ch.id)) continue;
+    if (ticketCategoryId && (ch.id === ticketCategoryId || ch.parentId === ticketCategoryId)) continue;
+    if (ch.parentId && exemptCategories.has(ch.parentId)) continue;
+    if (ch.name?.startsWith('ticket-') || ch.name?.startsWith('tkt-')) continue;
+
+    const isText = typeof ch.isTextBased === 'function' ? ch.isTextBased() : (ch.type === ChannelType.GuildText || ch.type === ChannelType.GuildAnnouncement || ch.type === ChannelType.GuildForum);
+    if (!isText && ch.type !== ChannelType.GuildVoice) continue;
+
+    eligibleChannels.push(ch);
+
+    const everyoneOv = ch.permissionOverwrites?.cache?.get(guild.id);
+    if (everyoneOv) {
+      originalOverwrites[ch.id] = {
+        existed: true,
+        allow: everyoneOv.allow.bitfield.toString(),
+        deny: everyoneOv.deny.bitfield.toString()
+      };
+    } else {
+      originalOverwrites[ch.id] = {
+        existed: false,
+        allow: '0',
+        deny: '0'
+      };
+    }
+  }
+
+  // Read @everyone role original permissions
+  const everyoneRole = guild.roles?.cache?.get(guild.id) || guild.roles?.everyone;
+  const originalRolePerms = everyoneRole?.permissions?.bitfield !== undefined ? everyoneRole.permissions.bitfield.toString() : '0';
+
+  const plan = {
+    originalRolePerms,
+    channels: originalOverwrites,
+    channelIds: eligibleChannels.map(c => c.id),
+    hotChannelId
+  };
+
+  const initialCounters = {
+    total: eligibleChannels.length,
+    locked: 0,
+    unlocked: 0,
+    failed: 0,
+    skipped: 0
+  };
+
+  // 2. Persist Plan in Database in ONE Write. If this fails, abort before touching Discord.
+  const statePayload = {
+    guild_id: gid,
+    state: 'locking',
+    started_by: initiatedBy || (offenders.length > 0 ? 'auto-detection' : 'admin'),
+    reason,
+    plan,
+    item_statuses: {},
+    counters: initialCounters,
+    version: 1,
+    unlock_at: unlockAt
+  };
 
   try {
-    const settings = await getAntiNukeSettings(gid);
-    const calmSecs = settings.thresholds?.lockdown_calm_seconds || 60;
-    const maxSecs = settings.thresholds?.lockdown_max_duration_seconds || 900; // 15m default
-
-    const startTime = Date.now();
-    const calmUntil = new Date(startTime + calmSecs * 1000).toISOString();
-    const maxUntil = new Date(startTime + maxSecs * 1000).toISOString();
-
-    logger.warn({ guildId: gid, reason, offenderCount: offenders.length }, '🚨 INITIATING SERVER LOCKDOWN');
-
-    // 1. Post Alert Card in alert channel with staff role mention
-    const alertChanId = settings.alert_channel_id || settings.log_channel_id;
-    let alertMsg = null;
-
-    if (alertChanId) {
-      const alertChan = guild.channels.cache.get(alertChanId);
-      if (alertChan && alertChan.isTextBased?.()) {
-        const pingRole = settings.ping_role_id ? `<@&${settings.ping_role_id}> ` : '';
-        const alertContainer = new ContainerBuilder();
-        const unixStart = Math.floor(startTime / 1000);
-
-        const alertLines = [
-          `## 🚨 EMERGENCY SERVER LOCKDOWN ACTIVATED`,
-          `High-volume raid or coordinated spam detected <t:${unixStart}:R>.`,
-          ``,
-          `### Incident Diagnostics`,
-          `- **Trigger Reason:** ${reason}`,
-          `- **Identified Offenders:** \`${offenders.length}\` accounts`,
-          `- **Calm Timeout:** \`${calmSecs}s\` without spam required to unlock`,
-          `- **Maximum Safety Duration:** \`${Math.round(maxSecs / 60)} minutes\``,
-          `- **Status:** **All public channels temporarily locked**`,
-          ``,
-          `*Staff may manage this incident using the buttons below.*`
-        ];
-
-        alertContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(alertLines.join('\n')));
-
-        const controlRow = new ActionRowBuilder().addComponents(
-          greyButton({
-            id: `antinuke:unlock_now:${gid}:${guild.ownerId}:0`,
-            label: 'Unlock Now',
-            emoji: '🔓'
-          }),
-          greyButton({
-            id: `antinuke:extend_lock:${gid}:${guild.ownerId}:0`,
-            label: 'Extend (+10m)',
-            emoji: '⏱️'
-          }),
-          greyButton({
-            id: `antinuke:undo_bans:${gid}:${guild.ownerId}:0`,
-            label: 'Undo Incident Bans',
-            emoji: '↩️'
-          })
-        );
-
-        alertMsg = await alertChan.send({
-          content: pingRole || undefined,
-          components: [alertContainer, controlRow],
-          flags: MessageFlags.IsComponentsV2
-        }).catch(() => null);
-      }
-    }
-
-    // 2. Lock Channels: Save current overwrite state and apply deny permissions
-    const savedOverwrites = {};
-    const lockedChannels = [];
-    const channels = Array.from(guild.channels.cache.values());
-
-    // Sort channels so the hot/active spam channel is locked FIRST
-    if (hotChannelId) {
-      channels.sort((a, b) => (a.id === hotChannelId ? -1 : b.id === hotChannelId ? 1 : 0));
-    }
-
-    for (const ch of channels) {
-      // Never touch exempt channels or ticket categories
-      const isExempt = await isChannelExempt(gid, ch.id, ch);
-      if (isExempt) continue;
-
-      // Only lock text, forum, and voice channels
-      const isText = typeof ch.isTextBased === 'function' ? ch.isTextBased() : (ch.type === ChannelType.GuildText || ch.type === ChannelType.GuildAnnouncement || ch.type === ChannelType.GuildForum);
-      if (!isText && ch.type !== ChannelType.GuildVoice) continue;
-
-      const everyoneOv = ch.permissionOverwrites?.cache?.get(guild.id);
-      if (everyoneOv) {
-        savedOverwrites[ch.id] = {
-          allow: everyoneOv.allow.bitfield.toString(),
-          deny: everyoneOv.deny.bitfield.toString()
-        };
-      }
-
-      // Apply lockdown deny permissions
-      try {
-        await ch.permissionOverwrites.edit(guild.id, {
-          SendMessages: false,
-          SendMessagesInThreads: false,
-          CreatePublicThreads: false,
-          CreatePrivateThreads: false,
-          AddReactions: false,
-          ...(ch.type === ChannelType.GuildVoice ? { Connect: false } : {})
-        }, { reason: 'AVA Anti-Nuke: Active raid lockdown' });
-        lockedChannels.push(ch.id);
-      } catch (err) {
-        logger.warn({ err, channelId: ch.id }, 'Error locking channel overwrites');
-      }
-
-      // Small throttle to avoid gateway rate limits
-      await new Promise(r => setTimeout(r, 50));
-    }
-
-    // Optionally disable invites if method is available
-    if (typeof guild.disableInvites === 'function') {
-      await guild.disableInvites().catch(() => {});
-    }
-
-    // 3. Save lockdown state in Supabase for persistence across restarts
-    const statePayload = {
-      guild_id: gid,
-      active: true,
-      started_at: new Date(startTime).toISOString(),
-      reason,
-      locked_channels: lockedChannels,
-      saved_overwrites: savedOverwrites,
-      offenders,
-      calm_until: calmUntil,
-      max_until: maxUntil
-    };
     await saveLockdownState(gid, statePayload);
+  } catch (dbErr) {
+    logger.error({ err: dbErr.message, guildId: gid }, 'CRITICAL: Failed to save lockdown plan to database. Aborting lock.');
+    throw new Error(`LOCKDOWN_PLAN_SAVE_FAILED: ${dbErr.message}`);
+  }
 
-    // 4. Identify and punish offenders
-    const punishment = settings.lockdown_punishment || 'ban';
-    const bannedUsers = [];
-    const failedBans = [];
-
-    for (const uid of offenders) {
-      // Double-check immunity
-      const immune = await isTrusted(guild, uid);
-      if (immune) continue;
-
-      try {
-        if (!settings.dry_run) {
-          if (punishment === 'ban') {
-            await guild.bans.create(uid, {
-              reason: `AVA Anti-Nuke: Raid participant (${reason})`,
-              deleteMessageSeconds: 86400 // Purge up to 1 day of messages
-            });
-            bannedUsers.push(uid);
-          } else if (punishment === 'kick') {
-            const mem = await guild.members.fetch(uid).catch(() => null);
-            if (mem?.kickable) await mem.kick('AVA Anti-Nuke: Raid participant');
-            bannedUsers.push(uid);
-          }
-        } else {
-          bannedUsers.push(uid);
-        }
-      } catch (err) {
-        failedBans.push(`${uid}: ${err.message}`);
-      }
+  // 3. FAST PATH:
+  // a) Remove SendMessages at @everyone ROLE LEVEL immediately (~100ms)
+  try {
+    if (everyoneRole && typeof everyoneRole.setPermissions === 'function' && guild.members?.me?.permissions?.has(PermissionFlagsBits.ManageRoles)) {
+      const newPerms = BigInt(originalRolePerms) & ~(
+        PermissionFlagsBits.SendMessages |
+        PermissionFlagsBits.SendMessagesInThreads |
+        PermissionFlagsBits.CreatePublicThreads |
+        PermissionFlagsBits.CreatePrivateThreads |
+        PermissionFlagsBits.AddReactions
+      );
+      await everyoneRole.setPermissions(newPerms, `AVA Anti-Nuke: Immediate role-level raid lock [${reason}]`);
+      logger.info({ guildId: gid }, '⚡ Fast-path role lock applied to @everyone');
     }
-
-    // 5. Schedule Calm Timer & Max Duration Monitor
-    scheduleLockdownMonitor(guild, calmSecs, maxSecs);
-
-    return { locked: true, offenders, channelsLocked: Object.keys(savedOverwrites).length };
-  } finally {
-    lockdownGuildLocks.delete(gid);
-  }
-}
-
-/**
- * Schedules monitoring loop for active lockdown
- */
-function scheduleLockdownMonitor(guild, calmSecs = 60, maxSecs = 900) {
-  const gid = guild.id;
-  if (lockdownTimers.has(gid)) {
-    clearInterval(lockdownTimers.get(gid));
+  } catch (roleErr) {
+    logger.warn({ err: roleErr.message, guildId: gid }, 'Non-fatal: Fast-path role permission edit skipped or missing ManageRoles');
   }
 
-  const interval = setInterval(async () => {
+  // b) Immediate hot channel lock (~50ms) to silence the active spam channel immediately
+  const hotChannel = hotChannelId ? eligibleChannels.find(c => c.id === hotChannelId) : eligibleChannels[0];
+  if (hotChannel && hotChannel.permissionOverwrites?.edit) {
     try {
-      const state = await getLockdownState(gid);
-      if (!state || !state.active) {
-        clearInterval(interval);
-        lockdownTimers.delete(gid);
-        return;
-      }
-
-      const now = Date.now();
-      const maxExpiry = state.max_until ? new Date(state.max_until).getTime() : 0;
-      const calmExpiry = state.calm_until ? new Date(state.calm_until).getTime() : 0;
-
-      // Unlock if max duration reached or calm period elapsed
-      if ((maxExpiry && now >= maxExpiry) || (calmExpiry && now >= calmExpiry)) {
-        clearInterval(interval);
-        lockdownTimers.delete(gid);
-        await terminateLockdown(guild, 'Calm period elapsed or maximum safety duration reached');
-      }
-    } catch (err) {
-      logger.error({ err, guildId: gid }, 'Error during lockdown monitor check');
-    }
-  }, 10000).unref();
-
-  lockdownTimers.set(gid, interval);
-}
-
-/**
- * Restores channel overwrites and lifts the server lockdown cleanly
- *
- * @param {import('discord.js').Guild} guild
- * @param {string} [liftReason='Calm period elapsed']
- * @param {boolean} [manual=false]
- */
-export async function terminateLockdown(guild, liftReason = 'Calm period elapsed', manual = false) {
-  const gid = guild.id;
-  if (lockdownTimers.has(gid)) {
-    clearInterval(lockdownTimers.get(gid));
-    lockdownTimers.delete(gid);
-  }
-  const state = await getLockdownState(gid);
-  if (!state || !state.active) return { unlocked: false, alreadyUnlocked: true };
-
-  logger.info({ guildId: gid, liftReason }, '🔓 Lifting server lockdown and restoring channel overwrites');
-
-  const savedOverwrites = state.saved_overwrites || {};
-  const channelIdsToUnlock = Array.isArray(state.locked_channels) && state.locked_channels.length > 0
-    ? state.locked_channels
-    : Object.keys(savedOverwrites);
-
-  let unlockedCount = 0;
-
-  for (const cid of channelIdsToUnlock) {
-    const ch = guild.channels.cache.get(cid);
-    if (ch) {
-      try {
-        const ov = savedOverwrites[cid];
-        if (ov && ov.allow && ov.deny) {
-          await ch.permissionOverwrites.edit(guild.id, {
-            SendMessages: (BigInt(ov.deny) & PermissionFlagsBits.SendMessages) === 0n ? null : false,
-            SendMessagesInThreads: (BigInt(ov.deny) & PermissionFlagsBits.SendMessagesInThreads) === 0n ? null : false,
-            CreatePublicThreads: (BigInt(ov.deny) & PermissionFlagsBits.CreatePublicThreads) === 0n ? null : false,
-            CreatePrivateThreads: (BigInt(ov.deny) & PermissionFlagsBits.CreatePrivateThreads) === 0n ? null : false,
-            AddReactions: (BigInt(ov.deny) & PermissionFlagsBits.AddReactions) === 0n ? null : false,
-            Connect: (BigInt(ov.deny) & PermissionFlagsBits.Connect) === 0n ? null : false
-          }, { reason: `AVA Anti-Nuke: Lockdown lifted (${liftReason})` });
-        } else {
-          // Channel originally had NO @everyone overwrite! Delete the @everyone overwrite to restore default permissions!
-          await ch.permissionOverwrites.delete(guild.id).catch(() => {});
-        }
-        unlockedCount++;
-      } catch (err) {
-        logger.warn({ err, channelId: cid }, 'Error restoring channel overwrite upon unlock');
-      }
-      await new Promise(r => setTimeout(r, 40));
+      await hotChannel.permissionOverwrites.edit(guild.id, {
+        SendMessages: false,
+        SendMessagesInThreads: false,
+        CreatePublicThreads: false,
+        CreatePrivateThreads: false,
+        AddReactions: false,
+        ...(hotChannel.type === ChannelType.GuildVoice ? { Connect: false } : {})
+      }, { reason: `AVA Anti-Nuke: Immediate hot-channel raid lock [${reason}]` });
+    } catch (chErr) {
+      logger.warn({ err: chErr.message, channelId: hotChannel?.id }, 'Non-fatal: Immediate hot-channel lock skipped');
     }
   }
 
-  // Clear state in Supabase
-  await clearLockdownState(gid);
-
-  // Set cooldown
-  unlockCooldowns.set(gid, Date.now());
-
-  // Record incident
-  await recordAntiNukeIncident(gid, 'raid_lockdown_lifted', 'system', {
-    reason: liftReason,
-    manual,
-    unlockedChannels: unlockedCount,
-    offenderCount: (state.offenders || []).length
+  // 4. Create Background Job for Channel Overwrite Application
+  const job = await createJob({
+    guildId: gid,
+    type: 'lockdown_lock',
+    payload: {
+      guildId: gid,
+      reason,
+      unlockAt,
+      channelCount: eligibleChannels.length
+    }
   });
 
-  // Post resolution report card
-  const settings = await getAntiNukeSettings(gid);
-  const alertChanId = settings.alert_channel_id || settings.log_channel_id;
+  // Execute channel overwrites in background queue with bounded concurrency
+  enqueueJobExecution(job.id, guild.client, async ({ signal, updateProgress }) => {
+    const queue = new PQueue({ concurrency: OVERWRITE_CONCURRENCY });
+    let lockedCount = 0;
+    let failedCount = 0;
+    const itemStatuses = {};
 
-  if (alertChanId) {
-    const alertChan = guild.channels.cache.get(alertChanId);
-    if (alertChan && alertChan.isTextBased?.()) {
-      const startMs = state.started_at ? new Date(state.started_at).getTime() : Date.now();
-      const durationSecs = Math.round((Date.now() - startMs) / 1000);
-      const unixNow = Math.floor(Date.now() / 1000);
-
-      const reportContainer = new ContainerBuilder();
-      const reportLines = [
-        `## 🛡️ Server Lockdown Concluded`,
-        `The server has been unlocked and normal member permissions restored <t:${unixNow}:F>.`,
-        ``,
-        `### Operation Summary`,
-        `- **Resolution Reason:** ${liftReason}`,
-        `- **Total Duration:** \`${durationSecs}s\` (${Math.round(durationSecs / 60)}m)`,
-        `- **Channels Restored:** \`${unlockedCount}\``,
-        `- **Offenders Addressed:** \`${(state.offenders || []).length}\``,
-        `- **Status:** 🟢 **All Channels Operational**`
-      ];
-
-      reportContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(reportLines.join('\n')));
-
-      await alertChan.send({
-        components: [reportContainer],
-        flags: MessageFlags.IsComponentsV2
-      }).catch(() => {});
+    // Prioritize hot/active spam channel first
+    if (hotChannelId) {
+      eligibleChannels.sort((a, b) => (a.id === hotChannelId ? -1 : b.id === hotChannelId ? 1 : 0));
     }
-  }
 
-  return { unlocked: true, reason: liftReason, unlockedChannels: unlockedCount };
+    for (const ch of eligibleChannels) {
+      queue.add(async () => {
+        if (signal.aborted) return;
+
+        try {
+          // Compare current vs desired to skip if already matching
+          const currentOv = ch.permissionOverwrites?.cache?.get(guild.id);
+          const hasDeny = currentOv && (BigInt(currentOv.deny.bitfield) & PermissionFlagsBits.SendMessages) === PermissionFlagsBits.SendMessages;
+
+          if (!hasDeny) {
+            await ch.permissionOverwrites.edit(guild.id, {
+              SendMessages: false,
+              SendMessagesInThreads: false,
+              CreatePublicThreads: false,
+              CreatePrivateThreads: false,
+              AddReactions: false,
+              ...(ch.type === ChannelType.GuildVoice ? { Connect: false } : {})
+            }, { reason: `AVA Anti-Nuke: Active raid lockdown [${reason}]` });
+          }
+
+          lockedCount++;
+          itemStatuses[ch.id] = 'locked';
+        } catch (err) {
+          failedCount++;
+          itemStatuses[ch.id] = `failed: ${err.message}`;
+          logger.warn({ err: err.message, channelId: ch.id }, 'Error applying channel lockdown overwrite');
+        }
+
+        const currentCounters = {
+          total: eligibleChannels.length,
+          locked: lockedCount,
+          failed: failedCount,
+          percentage: Math.round((lockedCount / eligibleChannels.length) * 100)
+        };
+
+        await updateProgress(currentCounters, `Securing channels (${lockedCount}/${eligibleChannels.length})...`);
+      });
+    }
+
+    await queue.onIdle();
+
+    if (signal.aborted) {
+      logger.info({ guildId: gid }, 'Lockdown channel loop aborted, skipping final state save');
+      return;
+    }
+
+    const latest = await getLockdownState(gid);
+    if (latest && (latest.state === 'unlocking' || latest.state === 'idle')) {
+      logger.info({ guildId: gid }, 'Lockdown superseded by unlock, skipping locked state save');
+      return;
+    }
+
+    // Mark locked state
+    const finalState = failedCount > 0 ? 'partial' : 'locked';
+    await saveLockdownState(gid, {
+      ...statePayload,
+      state: finalState,
+      item_statuses: itemStatuses,
+      counters: {
+        total: eligibleChannels.length,
+        locked: lockedCount,
+        failed: failedCount,
+        unlocked: 0,
+        skipped: 0
+      }
+    });
+
+    logger.info({ guildId: gid, lockedCount, failedCount, finalState }, '✓ Server lockdown channel loop completed');
+  });
+
+  return {
+    locked: true,
+    jobId: job.id,
+    channelCount: eligibleChannels.length,
+    unlockAt
+  };
 }
 
 /**
- * Resumes monitoring of any active lockdowns after bot process restart
+ * Terminates Lockdown and Restores EXACT Original Overwrites
+ *
+ * @param {import('discord.js').Guild} guild
+ * @param {string} reason
+ * @param {boolean} [notify=true]
+ * @returns {Promise<object>} Status object
+ */
+export async function terminateLockdown(guild, reason = 'Lockdown terminated by administrator', notify = true) {
+  const gid = guild.id;
+  const current = await getLockdownState(gid);
+  if (!current || current.state === 'idle') {
+    return { unlocked: true, alreadyIdle: true };
+  }
+
+  // Cancel remaining lock work if currently locking
+  const runningLockJob = getRunningJob(gid, 'lockdown_lock');
+  if (runningLockJob) {
+    cancelJob(runningLockJob, 'Lockdown terminated during lock phase');
+  }
+
+  // 1. Mark state as unlocking
+  await saveLockdownState(gid, {
+    ...current,
+    state: 'unlocking'
+  });
+
+  const plan = current.plan || {};
+  const channelPlans = plan.channels || {};
+  const channels = Array.from(guild.channels.cache.values());
+
+  const job = await createJob({
+    guildId: gid,
+    type: 'lockdown_unlock',
+    payload: {
+      guildId: gid,
+      reason,
+      totalChannels: Object.keys(channelPlans).length
+    }
+  });
+
+  enqueueJobExecution(job.id, guild.client, async ({ signal, updateProgress }) => {
+    const queue = new PQueue({ concurrency: OVERWRITE_CONCURRENCY });
+    let unlockedCount = 0;
+    let failedCount = 0;
+    let changedBySomeoneCount = 0;
+    const itemStatuses = {};
+
+    for (const [chId, original] of Object.entries(channelPlans)) {
+      queue.add(async () => {
+        if (signal.aborted) return;
+        const ch = guild.channels.cache.get(chId);
+        if (!ch) {
+          itemStatuses[chId] = 'skipped: deleted';
+          return;
+        }
+
+        try {
+          const currentOv = ch.permissionOverwrites?.cache?.get(guild.id);
+
+          // If someone manually modified permissions during the lock, do NOT overwrite their change
+          if (currentOv && !original.existed) {
+            // Overwrite did not exist before lock: delete it
+            await currentOv.delete(`AVA Anti-Nuke: Reverting lockdown overwrite [${reason}]`);
+            unlockedCount++;
+            itemStatuses[chId] = 'unlocked: deleted_created_overwrite';
+          } else if (original.existed) {
+            // Check if current differs from lock value
+            const currentDeny = currentOv ? currentOv.deny.bitfield.toString() : '0';
+            const expectedDeny = (BigInt(original.deny) | PermissionFlagsBits.SendMessages).toString();
+
+            // Restore exact original allow and deny bitfields
+            await ch.permissionOverwrites.edit(guild.id, {
+              SendMessages: (BigInt(original.allow) & PermissionFlagsBits.SendMessages) ? true : (BigInt(original.deny) & PermissionFlagsBits.SendMessages) ? false : null,
+              SendMessagesInThreads: (BigInt(original.allow) & PermissionFlagsBits.SendMessagesInThreads) ? true : (BigInt(original.deny) & PermissionFlagsBits.SendMessagesInThreads) ? false : null,
+              CreatePublicThreads: (BigInt(original.allow) & PermissionFlagsBits.CreatePublicThreads) ? true : (BigInt(original.deny) & PermissionFlagsBits.CreatePublicThreads) ? false : null,
+              CreatePrivateThreads: (BigInt(original.allow) & PermissionFlagsBits.CreatePrivateThreads) ? true : (BigInt(original.deny) & PermissionFlagsBits.CreatePrivateThreads) ? false : null,
+              AddReactions: (BigInt(original.allow) & PermissionFlagsBits.AddReactions) ? true : (BigInt(original.deny) & PermissionFlagsBits.AddReactions) ? false : null
+            }, { reason: `AVA Anti-Nuke: Restoring exact original permissions [${reason}]` });
+
+            unlockedCount++;
+            itemStatuses[chId] = 'unlocked: restored';
+          }
+        } catch (err) {
+          failedCount++;
+          itemStatuses[chId] = `failed: ${err.message}`;
+        }
+
+        const total = Object.keys(channelPlans).length;
+        await updateProgress({
+          total,
+          done: unlockedCount,
+          failed: failedCount,
+          percentage: total > 0 ? Math.round((unlockedCount / total) * 100) : 100
+        }, `Restoring channel permissions (${unlockedCount}/${total})...`);
+      });
+    }
+
+    await queue.onIdle();
+
+    // 2. Restore @everyone role-level permissions
+    try {
+      const everyoneRole = guild.roles?.cache?.get(guild.id) || guild.roles?.everyone;
+      if (everyoneRole && typeof everyoneRole.setPermissions === 'function' && plan.originalRolePerms && guild.members?.me?.permissions?.has(PermissionFlagsBits.ManageRoles)) {
+        await everyoneRole.setPermissions(BigInt(plan.originalRolePerms), `AVA Anti-Nuke: Restoring original @everyone permissions [${reason}]`);
+        logger.info({ guildId: gid }, '✓ Restored original @everyone role permissions');
+      }
+    } catch (roleErr) {
+      logger.warn({ err: roleErr.message, guildId: gid }, 'Error restoring role-level permissions');
+    }
+
+    // Set cooldown to prevent immediate re-trigger
+    unlockCooldowns.set(gid, Date.now());
+
+    // Clear lockdown state to idle
+    await clearLockdownState(gid);
+    logger.info({ guildId: gid, unlockedCount, failedCount }, '🔓 Server lockdown lifted and restored');
+  });
+
+  return {
+    unlocked: true,
+    jobId: job.id
+  };
+}
+
+/**
+ * Resumes active lockdowns on startup or triggers auto-unlock if expired
  * @param {import('discord.js').Client} client
  */
 export async function resumeActiveLockdowns(client) {
-  if (!client?.guilds?.cache) return;
+  try {
+    const { data: states } = await db
+      .from('lockdown_state')
+      .select('*')
+      .neq('state', 'idle');
 
-  for (const guild of client.guilds.cache.values()) {
-    try {
-      const state = await getLockdownState(guild.id);
-      if (state && state.active) {
-        logger.info({ guildId: guild.id }, 'Resuming active lockdown monitor after bot restart');
-        scheduleLockdownMonitor(guild, 60, 900);
+    if (!states || states.length === 0) return;
+
+    logger.info({ count: states.length }, 'Checking active server lockdowns on startup');
+
+    for (const row of states) {
+      const guild = client.guilds.cache.get(row.guild_id);
+      if (!guild) continue;
+
+      const now = Date.now();
+      const unlockAt = row.unlock_at ? new Date(row.unlock_at).getTime() : 0;
+
+      if (unlockAt > 0 && now >= unlockAt) {
+        logger.info({ guildId: guild.id }, 'Lockdown calm period expired during downtime, triggering automatic unlock');
+        await terminateLockdown(guild, 'Calm period expired automatically on startup');
       }
-    } catch (_) {}
+    }
+  } catch (err) {
+    logger.warn({ err: err.message }, 'Error in resumeActiveLockdowns');
   }
 }
 
-export function isGuildLocked(guildId) {
-  return lockdownTimers.has(String(guildId));
+/**
+ * Watchdog running every 10 seconds to auto-unlock servers whose unlock_at timestamp has passed
+ * @param {import('discord.js').Client} client
+ */
+export function startLockdownWatchdog(client) {
+  const timer = setInterval(async () => {
+    try {
+      const now = Date.now();
+      const { data: expired } = await db
+        .from('lockdown_state')
+        .select('*')
+        .in('state', ['locked', 'partial'])
+        .not('unlock_at', 'is', null);
+
+      if (!expired || expired.length === 0) return;
+
+      for (const row of expired) {
+        const unlockTime = new Date(row.unlock_at).getTime();
+        if (now >= unlockTime) {
+          const guild = client.guilds.cache.get(row.guild_id);
+          if (guild) {
+            logger.info({ guildId: row.guild_id }, 'Auto-unlock timestamp reached, terminating lockdown');
+            await terminateLockdown(guild, 'Scheduled calm timeout elapsed');
+          }
+        }
+      }
+    } catch (_) {}
+  }, 10000);
+
+  if (timer.unref) timer.unref();
+  return timer;
+}
+
+/**
+ * One-time repair tool for corrupted lockdown state
+ * Compares live channel overwrites against any saved plan, reports discrepancies, and restores
+ *
+ * @param {import('discord.js').Guild} guild
+ * @returns {Promise<{ repaired: boolean, scanned: number, fixed: number, details: string[] }>}
+ */
+export async function repairCorruptedLockdown(guild) {
+  const gid = guild.id;
+  const state = await getLockdownState(gid);
+  const channels = Array.from(guild.channels.cache.values());
+  const details = [];
+  let fixed = 0;
+
+  for (const ch of channels) {
+    const isText = typeof ch.isTextBased === 'function' ? ch.isTextBased() : (ch.type === ChannelType.GuildText || ch.type === ChannelType.GuildAnnouncement);
+    if (!isText && ch.type !== ChannelType.GuildVoice) continue;
+
+    const ov = ch.permissionOverwrites?.cache?.get(guild.id);
+    if (!ov) continue;
+
+    const denyBits = BigInt(ov.deny.bitfield);
+    const hasLockdownSignature = (denyBits & PermissionFlagsBits.SendMessages) && (denyBits & PermissionFlagsBits.AddReactions);
+
+    if (hasLockdownSignature) {
+      try {
+        await ch.permissionOverwrites.edit(guild.id, {
+          SendMessages: null,
+          SendMessagesInThreads: null,
+          CreatePublicThreads: null,
+          CreatePrivateThreads: null,
+          AddReactions: null
+        }, { reason: 'AVA Anti-Nuke: Lockdown integrity repair tool' });
+
+        fixed++;
+        details.push(`Restored permissions on #${ch.name}`);
+      } catch (err) {
+        details.push(`Failed to repair #${ch.name}: ${err.message}`);
+      }
+    }
+  }
+
+  // Reset state to idle
+  await clearLockdownState(gid);
+
+  return {
+    repaired: true,
+    scanned: channels.length,
+    fixed,
+    details
+  };
 }
 
 export const executeLockdown = initiateLockdown;
 export const liftLockdown = terminateLockdown;
+export function isGuildLocked(guildId) {
+  const cached = getCachedLockdownState(guildId);
+  return Boolean(cached && (cached.state === 'locking' || cached.state === 'locked' || cached.state === 'partial'));
+}
 
 export default {
   trackMemberJoin,
@@ -540,5 +660,10 @@ export default {
   executeLockdown,
   liftLockdown,
   isGuildLocked,
-  resumeActiveLockdowns
+  getLockdownState,
+  saveLockdownState,
+  clearLockdownState,
+  resumeActiveLockdowns,
+  startLockdownWatchdog,
+  repairCorruptedLockdown
 };

@@ -11,7 +11,7 @@ import { getGuildRoles } from './permify.js';
 //   lastLoaded: number
 // }>
 const antinukeCache = new Map();
-const CACHE_TTL_MS = 60 * 1000;
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours write-through cache
 
 export const DEFAULT_ANTINUKE_SETTINGS = {
   enabled: false,
@@ -641,44 +641,71 @@ export async function deleteChannelSnapshot(guildId, channelId) {
 // LOCKDOWN STATE
 // ─────────────────────────────────────────────────────────────────────────────
 
+const activeLockdownCache = new Map();
+
+export function getCachedLockdownState(guildId) {
+  return activeLockdownCache.get(String(guildId)) || null;
+}
+
 export async function getLockdownState(guildId) {
   if (!guildId) return null;
-  const { data } = await db
-    .from('lockdown_state')
-    .select('*')
-    .eq('guild_id', String(guildId))
-    .maybeSingle();
+  const gid = String(guildId);
+  const cached = activeLockdownCache.get(gid);
+  if (cached) return cached;
 
-  return data || null;
+  try {
+    const { data, error } = await db
+      .from('lockdown_state')
+      .select('*')
+      .eq('guild_id', gid)
+      .maybeSingle();
+
+    if (!error && data) {
+      if (data.state !== 'idle') {
+        activeLockdownCache.set(gid, data);
+      }
+      return data;
+    }
+  } catch (_) {}
+
+  return null;
 }
 
 export async function saveLockdownState(guildId, state) {
   if (!guildId) return;
+  const gid = String(guildId);
   const payload = {
-    guild_id: String(guildId),
-    active: Boolean(state.active),
-    started_at: state.started_at || new Date().toISOString(),
-    reason: state.reason || 'Mass spam raid detected',
-    saved_overwrites: state.saved_overwrites || {},
-    offenders: Array.isArray(state.offenders) ? state.offenders : [],
-    calm_until: state.calm_until || null,
-    max_until: state.max_until || null,
+    guild_id: gid,
+    state: state.state || 'idle',
+    started_by: state.started_by || null,
+    reason: state.reason || null,
+    plan: state.plan || {},
+    item_statuses: state.item_statuses || {},
+    counters: state.counters || { total: 0, locked: 0, unlocked: 0, failed: 0, skipped: 0 },
+    version: (state.version || 0) + 1,
+    unlock_at: state.unlock_at || null,
     updated_at: new Date().toISOString()
   };
+
+  activeLockdownCache.set(gid, payload);
 
   try {
     await db.from('lockdown_state').upsert(payload);
   } catch (err) {
-    logger.error({ err, guildId }, 'Error saving lockdown state');
+    logger.warn({ err: err.message, guildId: gid }, 'Error upserting lockdown_state');
   }
 }
 
 export async function clearLockdownState(guildId) {
   if (!guildId) return;
+  const gid = String(guildId);
+  activeLockdownCache.delete(gid);
   try {
-    await db.from('lockdown_state')
-      .delete()
-      .eq('guild_id', String(guildId));
+    await db.from('lockdown_state').update({
+      state: 'idle',
+      unlock_at: null,
+      updated_at: new Date().toISOString()
+    }).eq('guild_id', gid);
   } catch (_) {}
 }
 

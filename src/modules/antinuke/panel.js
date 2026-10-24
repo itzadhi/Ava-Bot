@@ -16,6 +16,7 @@ import {
 } from 'discord.js';
 import { greyButton } from '../../utils/ui/greyButton.js';
 import * as format from '../../utils/ui/format.js';
+import { validateV2Payload } from '../../core/ui/validateV2.js';
 
 export const TOTAL_ANTINUKE_PAGES = 7;
 export const ANTINUKE_PAGE_TITLES = [
@@ -585,21 +586,16 @@ export function buildAntiNukeWizard(arg1 = {}, maybeUserId = null, maybePage = 1
         .setMaxValues(1)
     );
 
-    const saveRow = new ActionRowBuilder().addComponents(
-      greyButton({
-        id: `antinuke:close:${guild.id}:${userId}:7`,
-        label: 'Save and Close',
-        emoji: '💾'
-      })
-    );
-
-    container.addActionRowComponents(chanRow, alertChanRow, pingRoleRow, saveRow, buildNavRow(guild.id, userId, 7));
+    container.addActionRowComponents(chanRow, alertChanRow, pingRoleRow, buildNavRow(guild.id, userId, 7));
   }
 
-  return {
+  const payload = {
     components: [container],
     flags: MessageFlags.IsComponentsV2
   };
+
+  validateV2Payload(payload, { page: safePage, module: 'antinuke' });
+  return payload;
 }
 
 /**

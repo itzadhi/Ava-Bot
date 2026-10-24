@@ -96,6 +96,28 @@ Every lesson follows the format: **What Went Wrong** → **Root Cause** → **Ru
 - **Root Cause:** `const memMb = ...` was declared, while `logger.ready({ memoryMb })` used ES6 object literal shorthand with a mismatched identifier name, throwing a runtime `ReferenceError`.
 - **Rule to Prevent:** Align variable names with expected object property keys when utilizing ES6 object shorthand (`const memoryMb = ...`).
 
+---
+
+## Lesson 14: Duplicate `custom_id` on Identical Message Triggers Discord V2 Rejection
+- **What Went Wrong:** Anti-Nuke Page 7 threw "Components V2 payload validation error, falling back to minimal card".
+- **Root Cause:** Both `saveRow` and `buildNavRow` declared a button with `id: "antinuke:close:${guild.id}:${userId}:7"`. Discord's V2 component validator rejects duplicate `custom_id`s across interactive components on the same message with an `Invalid Form Body` error.
+- **Rule to Prevent:** Run `validateV2Payload(payload)` before sending any Components V2 message. Check for custom ID uniqueness across all ActionRow components.
+
+---
+
+## Lesson 15: Postgrest-js Builders Are `PromiseLike`, Not Native `Promise`s
+- **What Went Wrong:** Calling `.catch()` on `db.from(...).update(...).eq(...)` threw `TypeError: ...catch is not a function`.
+- **Root Cause:** `@supabase/postgrest-js` query builders implement `.then(resolve, reject)` (`PromiseLike`) but do not inherit from `Promise.prototype`, so `.catch()` is not a native method on the builder instance.
+- **Rule to Prevent:** Always use `try { await db.from(...); } catch (err) {}` or `Promise.resolve(db.from(...)).catch(...)` when handling Supabase query promises. In mock clients, implement `.catch` and `.finally` on query builders.
+
+---
+
+## Lesson 16: Asynchronous Jobs Must Be Decoupled from Interaction Tokens & Cancel In-Flight Superseded Work
+- **What Went Wrong:** `/lockdown` hit `HANDLER_TIMEOUT` at 10s because it iterated sequentially over 150 channels inside the interaction handler, leaving the server in an uncommitted, corrupted state. Furthermore, `/lockdown off` immediately following `/lockdown on` had its unlock state overwritten back to `locked` by the un-cancelled background lock worker.
+- **Root Cause:** Doing bulk Discord REST operations directly in the interaction handler; failing to cancel running lock jobs when unlock is triggered.
+- **Rule to Prevent:** Interaction handlers must reply with a progress card in < 1s and delegate bulk work to a persisted background job (`p-queue` bounded concurrency). Background jobs edit messages by message ID (surviving 15m token expiration). When `/lockdown off` runs, it must abort the in-flight lock job so lock workers never clobber unlock state.
+
+
 
 
 

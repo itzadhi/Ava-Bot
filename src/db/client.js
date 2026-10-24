@@ -30,6 +30,7 @@ class MemoryStorage {
       channel_snapshots: new Map(),
       antinuke_incidents: new Map(),
       lockdown_state: new Map(),
+      ava_jobs: new Map(),
       automod_settings: new Map(),
       automod_words: new Map(),
       automod_allowlist: new Map(),
@@ -188,7 +189,9 @@ class MemoryStorage {
             }
             recordDbCall(tableName, 'select', 0.5);
             return Promise.resolve({ data: rows.map(r => ({ ...r })), error: null }).then(resolve, reject);
-          }
+          },
+          catch: (reject) => queryBuilder.then(null, reject),
+          finally: (cb) => queryBuilder.then().finally(cb)
         };
 
         return queryBuilder;
@@ -206,12 +209,17 @@ class MemoryStorage {
           table.set(String(key), record);
           inserted.push(record);
         }
+        const res = Promise.resolve({ data: inserted, error: null });
         return {
           select: () => ({
             single: async () => ({ data: inserted[0], error: null }),
-            then: (resolve) => resolve({ data: inserted, error: null })
+            then: (resolve, reject) => res.then(resolve, reject),
+            catch: (reject) => res.catch(reject),
+            finally: (cb) => res.finally(cb)
           }),
-          then: (resolve) => resolve({ data: inserted, error: null })
+          then: (resolve, reject) => res.then(resolve, reject),
+          catch: (reject) => res.catch(reject),
+          finally: (cb) => res.finally(cb)
         };
       },
 
@@ -222,12 +230,17 @@ class MemoryStorage {
         const existing = table.get(String(key)) || {};
         const updated = { ...existing, ...record, updated_at: new Date().toISOString() };
         table.set(String(key), updated);
+        const res = Promise.resolve({ data: [updated], error: null });
         return {
           select: () => ({
             single: async () => ({ data: updated, error: null }),
-            then: (resolve) => resolve({ data: [updated], error: null })
+            then: (resolve, reject) => res.then(resolve, reject),
+            catch: (reject) => res.catch(reject),
+            finally: (cb) => res.finally(cb)
           }),
-          then: (resolve) => resolve({ data: [updated], error: null })
+          then: (resolve, reject) => res.then(resolve, reject),
+          catch: (reject) => res.catch(reject),
+          finally: (cb) => res.finally(cb)
         };
       },
 
@@ -250,9 +263,17 @@ class MemoryStorage {
             apply();
             return builder;
           },
-          then: (resolve) => {
+          then: (resolve, reject) => {
             const updated = apply();
-            return Promise.resolve({ data: updated, error: null }).then(resolve);
+            return Promise.resolve({ data: updated, error: null }).then(resolve, reject);
+          },
+          catch: (reject) => {
+            const updated = apply();
+            return Promise.resolve({ data: updated, error: null }).catch(reject);
+          },
+          finally: (cb) => {
+            const updated = apply();
+            return Promise.resolve({ data: updated, error: null }).finally(cb);
           }
         };
         return builder;
@@ -286,9 +307,17 @@ class MemoryStorage {
             apply();
             return builder;
           },
-          then: (resolve) => {
+          then: (resolve, reject) => {
             const deleted = apply();
-            return Promise.resolve({ data: deleted, error: null }).then(resolve);
+            return Promise.resolve({ data: deleted, error: null }).then(resolve, reject);
+          },
+          catch: (reject) => {
+            const deleted = apply();
+            return Promise.resolve({ data: deleted, error: null }).catch(reject);
+          },
+          finally: (cb) => {
+            const deleted = apply();
+            return Promise.resolve({ data: deleted, error: null }).finally(cb);
           }
         };
         return builder;

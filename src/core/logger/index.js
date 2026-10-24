@@ -92,17 +92,38 @@ class UniversalLogger {
     const timeStr = colorize(ANSI.dim + ANSI.gray, this.formatTime());
     const badge = this.getBadge(level);
 
-    // Module tag
-    const moduleName = meta.module || this.bindings.module || meta.scope || this.bindings.scope || 'SYSTEM';
+    // Module tag: Resolve explicit, binding, or caller file path
+    let moduleName = meta.module || this.bindings.module || meta.scope || this.bindings.scope;
+    if (!moduleName || moduleName === 'SYSTEM') {
+      const stack = new Error().stack || '';
+      if (stack.includes('antinuke')) moduleName = 'ANTINUKE';
+      else if (stack.includes('lockdown')) moduleName = 'LOCKDOWN';
+      else if (stack.includes('automod')) moduleName = 'AUTOMOD';
+      else if (stack.includes('tickets') || stack.includes('ticket')) moduleName = 'TICKETS';
+      else if (stack.includes('shop')) moduleName = 'SHOP';
+      else if (stack.includes('permify') || stack.includes('repair.js')) moduleName = 'PERMIFY';
+      else if (stack.includes('db/') || stack.includes('database')) moduleName = 'DATABASE';
+      else if (stack.includes('voice') || stack.includes('tts') || stack.includes('jtc')) moduleName = 'VOICE';
+      else if (stack.includes('jobs')) moduleName = 'JOBS';
+      else if (stack.includes('pterodactyl')) moduleName = 'PANEL';
+      else if (stack.includes('startup')) moduleName = 'STARTUP';
+      else if (stack.includes('rest') || stack.includes('discord')) moduleName = 'REST';
+      else moduleName = 'SYSTEM';
+    }
+
     const modulePill = colorize(ANSI.lavender, `[${moduleName.padEnd(8).slice(0, 8)}]`);
 
     // Delta time
     const deltaStr = delta > 0 && delta < 60000 ? colorize(ANSI.dim + ANSI.gray, `+${delta}ms`) : '';
 
+    // Guild and Interaction tags
+    const guildTag = meta.guildName ? colorize(ANSI.dim + ANSI.gray, `(${meta.guildName.slice(0, 14)}) `) : '';
+    const intTag = meta.interactionId ? colorize(ANSI.dim + ANSI.lavender, `[#${meta.interactionId.slice(-4)}] `) : '';
+
     // Cleaned message
     const cleanMsg = sanitize(typeof message === 'string' ? message : (message.message || JSON.stringify(message)));
 
-    console.log(`${timeStr}  ${badge}  ${modulePill}  ${cleanMsg}  ${deltaStr}`);
+    console.log(`${timeStr}  ${badge}  ${modulePill}  ${guildTag}${intTag}${cleanMsg}  ${deltaStr}`);
 
     // If meta has error object with stack trace, render with pink gutter
     if (meta.err && meta.err.stack) {
@@ -200,4 +221,17 @@ class UniversalLogger {
 }
 
 export const logger = new UniversalLogger();
+
+export const antinukeLogger = logger.child({ module: 'ANTINUKE' });
+export const lockdownLogger = logger.child({ module: 'LOCKDOWN' });
+export const automodLogger = logger.child({ module: 'AUTOMOD' });
+export const ticketsLogger = logger.child({ module: 'TICKETS' });
+export const shopLogger = logger.child({ module: 'SHOP' });
+export const permifyLogger = logger.child({ module: 'PERMIFY' });
+export const dbLogger = logger.child({ module: 'DATABASE' });
+export const restLogger = logger.child({ module: 'REST' });
+export const gatewayLogger = logger.child({ module: 'GATEWAY' });
+export const jobsLogger = logger.child({ module: 'JOBS' });
+export const startupLogger = logger.child({ module: 'STARTUP' });
+
 export default logger;

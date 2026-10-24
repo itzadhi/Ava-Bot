@@ -6,7 +6,7 @@ import {
   ActionRowBuilder,
   MessageFlags
 } from 'discord.js';
-import { db } from '../../db/index.js';
+import { db } from '../../db/client.js';
 import { logger } from '../../utils/logger.js';
 import { greyButton } from '../../utils/ui/greyButton.js';
 import PQueue from 'p-queue';
@@ -114,6 +114,24 @@ export function releaseGuildLock(guildId, type) {
 export function getRunningJob(guildId, type) {
   const lockKey = `${guildId}:${type}`;
   return guildOperationLocks.get(lockKey) || null;
+}
+
+/**
+ * Cancels an active background job by triggering its AbortController
+ * @param {string} jobId
+ * @param {string} [reason='Cancelled by system']
+ * @returns {boolean} True if cancelled, false if not found
+ */
+export function cancelJob(jobId, reason = 'Cancelled by system') {
+  if (!jobId) return false;
+  const active = activeJobs.get(jobId);
+  if (active && active.abortController) {
+    active.abortController.abort(new Error(reason));
+    releaseGuildLock(active.record.guild_id, active.record.type);
+    logger.info({ jobId, reason }, 'Cancelled active background job');
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -258,10 +276,15 @@ export async function updateJobProgress(jobId, client, progress = {}, statusText
   record.progress = mergedProgress;
 
   // 1. Update database periodically
-  db.from('ava_jobs').update({
-    progress: mergedProgress,
-    heartbeat_at: new Date().toISOString()
-  }).eq('id', jobId).catch(() => {});
+  try {
+    const q = db.from('ava_jobs').update({
+      progress: mergedProgress,
+      heartbeat_at: new Date().toISOString()
+    }).eq('id', jobId);
+    if (q && typeof q.catch === 'function') {
+      q.catch(() => {});
+    }
+  } catch (_) {}
 
   // 2. Throttle Discord message edit (at most once every 2.5s)
   if (now - active.lastProgressEdit < PROGRESS_EDIT_THROTTLE_MS) {
@@ -335,11 +358,13 @@ async function finishJob(jobId, client, state, error = null, result = null) {
     activeJobs.delete(jobId);
   }
 
-  await db.from('ava_jobs').update({
-    state,
-    last_error: error,
-    finished_at: now
-  }).eq('id', jobId).catch(() => {});
+  try {
+    await db.from('ava_jobs').update({
+      state,
+      last_error: error,
+      finished_at: now
+    }).eq('id', jobId);
+  } catch (_) {}
 }
 
 /**
@@ -403,6 +428,7 @@ export default {
   acquireGuildLock,
   releaseGuildLock,
   getRunningJob,
+  cancelJob,
   buildProgressCard,
   resumeUnfinishedJobs,
   startJobWatchdog
