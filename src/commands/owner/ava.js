@@ -102,6 +102,57 @@ export function buildAvaStatusPayload(client, userId, guildId = '') {
   };
 }
 
+export async function buildAvaModulesPayload(client, userId, guildId = '') {
+  const { pluginLoader } = await import('../../core/modules/loader.js');
+  const healthList = await pluginLoader.runHealthChecks();
+  const container = new ContainerBuilder();
+
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(`## 📦 AVA Feature Modules Registry\nTotal Registered: **${healthList.length}** modules`)
+  );
+  container.addSeparatorComponents(new SeparatorBuilder());
+
+  const lines = [];
+  for (const mod of healthList) {
+    const badge = mod.status === 'enabled'
+      ? (mod.healthy ? '🟢' : '🟡')
+      : (mod.status === 'failed' ? '🔴' : '⚪');
+    lines.push(`${badge} **${mod.name}** (\`${mod.id}\` v${mod.version})\n-# Status: **${mod.status}** · Details: ${mod.details}`);
+  }
+
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(lines.slice(0, 15).join('\n\n'))
+  );
+
+  if (lines.length > 15) {
+    container.addSeparatorComponents(new SeparatorBuilder());
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(lines.slice(15).join('\n\n'))
+    );
+  }
+
+  const refreshModulesCustomId = buildId({
+    module: 'ava',
+    action: 'modules_refresh',
+    guildId: guildId || '',
+    ownerId: userId || 'staff',
+    key: 'modules'
+  });
+
+  const row = new ActionRowBuilder().addComponents(
+    greyButton({
+      id: refreshModulesCustomId,
+      label: 'Refresh Modules',
+      emoji: '🔄'
+    })
+  );
+
+  return {
+    components: [container, row],
+    flags: MessageFlags.IsComponentsV2
+  };
+}
+
 export default {
   name: 'ava',
   description: 'AVA administrative and operational controls',
@@ -112,10 +163,21 @@ export default {
       name: 'status',
       description: 'Display live telemetry, latencies, container memory, and module health',
       type: ApplicationCommandOptionType.Subcommand
+    },
+    {
+      name: 'modules',
+      description: 'Display all loaded feature modules, versioning, status, and health',
+      type: ApplicationCommandOptionType.Subcommand
     }
   ],
   async execute(ctx) {
+    const sub = ctx.options.getSubcommand ? ctx.options.getSubcommand(false) : 'status';
+    if (sub === 'modules') {
+      const payload = await buildAvaModulesPayload(ctx.client, ctx.user.id, ctx.guild?.id);
+      return ctx.reply(payload);
+    }
     const payload = buildAvaStatusPayload(ctx.client, ctx.user.id, ctx.guild?.id);
     return ctx.reply(payload);
   }
 };
+

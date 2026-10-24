@@ -270,8 +270,10 @@ async function handleComponentInteraction(interaction) {
   return runHandler(interaction, async (i) => {
     // 0. AVA Telemetry & Status Routing (ava:*)
     if (customId.startsWith('ava:')) {
-      const { buildAvaStatusPayload } = await import('../../commands/owner/ava.js');
-      const payload = buildAvaStatusPayload(i.client, i.user.id, i.guild?.id);
+      const { buildAvaStatusPayload, buildAvaModulesPayload } = await import('../../commands/owner/ava.js');
+      const payload = parsed.action === 'modules_refresh'
+        ? await buildAvaModulesPayload(i.client, i.user.id, i.guild?.id)
+        : buildAvaStatusPayload(i.client, i.user.id, i.guild?.id);
       return await safeRespond(i, payload);
     }
 

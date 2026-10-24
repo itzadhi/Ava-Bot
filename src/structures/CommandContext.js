@@ -193,18 +193,6 @@ export class CommandContext {
     return await this.reply(payload);
   }
 
-  /**
-   * Waits for a component interaction (button or select menu)
-   * Only the invoking user can interact; other users receive ephemeral "This isn't for you."
-   * @param {object} options
-  /**
-   * @deprecated Collectors are eliminated in favor of persistent session handlers in /core/interactions/
-   * @param {object} options
-   * @returns {Promise<null>}
-   */
-  async awaitComponent({ time = 60000, filter = null } = {}) {
-    return null;
-  }
 
   /**
    * Removes or disables components after an interaction completes or times out

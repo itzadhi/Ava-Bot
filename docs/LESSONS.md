@@ -61,3 +61,11 @@ Every lesson follows the format: **What Went Wrong** → **Root Cause** → **Ru
 - **Root Cause:** Functions or classes were declared with inline `export` and also listed in a trailing `export { ... }` object.
 - **Rule to Prevent:** Standardize export conventions. Either use inline exports or a unified `export { ... }` block, never duplicate export bindings for the same name.
 
+---
+
+## Lesson 9: Module Manifest Re-Exports Must Match Internal File Signatures
+- **What Went Wrong:** During modular restructuring, several module manifests initially attempted to import functions using assumed names (`handleBoostUpdate` instead of `handleBoostMemberUpdate`, `renderHelpPanel` instead of `startHelpSession`, `handleStickyRolesMemberJoin` instead of `handleStickyRoleMemberRejoin`).
+- **Root Cause:** Re-exporting from memory without inspecting the actual named exports of internal component or engine files.
+- **Rule to Prevent:** Always view or grep named exports in module subfiles before writing `module.js` manifests. The module loader's fault isolation successfully caught all 10 import mismatches and prevented a system crash, proving the necessity of fault-isolated loaders.
+
+

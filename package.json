@@ -19,7 +19,8 @@
     "migrate:temp": "node scripts/migrate-temp.js",
     "doctor": "node scripts/doctor.js",
     "check:imports": "node scripts/check-imports.js",
-    "lessons:check": "node scripts/check-lessons.js"
+    "lessons:check": "node scripts/check-lessons.js",
+    "new:module": "node scripts/new-module.js"
   },
   "engines": {
     "node": ">=20.0.0"

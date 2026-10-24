@@ -3,6 +3,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { registry as commandRegistry } from './CommandRegistry.js';
 import { AvaModule } from './Module.js';
+import { pluginLoader } from '../core/modules/loader.js';
 import cron from 'node-cron';
 
 export class ModuleRegistry {
@@ -119,43 +120,21 @@ export class ModuleRegistry {
    * @param {string} dir
    */
   async loadModulesFromDirectory(dir) {
-    let loaded = 0;
-    try {
-      const entries = await fs.promises.readdir(dir, { withFileTypes: true });
-
-      for (const entry of entries) {
-        if (entry.isDirectory()) {
-          const indexPath = path.join(dir, entry.name, 'index.js');
-          const modulePath = path.join(dir, entry.name, `${entry.name}.js`);
-          let targetFile = null;
-
-          const hasIndex = await fs.promises.stat(indexPath).then(() => true).catch(() => false);
-          if (hasIndex) {
-            targetFile = indexPath;
-          } else {
-            const hasModule = await fs.promises.stat(modulePath).then(() => true).catch(() => false);
-            if (hasModule) targetFile = modulePath;
-          }
-
-        if (targetFile) {
-          try {
-            const fileUrl = pathToFileURL(targetFile).href;
-            const imported = await import(fileUrl);
-            const mod = imported.default || imported.module;
-            if (mod && (mod instanceof AvaModule || mod.name)) {
-              await this.register(mod);
-              loaded++;
-            }
-          } catch (err) {
-            logger.error({ err, path: targetFile }, `Failed to load module from ${entry.name}`);
-          }
+    if (this.client) {
+      pluginLoader.setClient(this.client);
+    }
+    const res = await pluginLoader.loadAll(this.client, dir);
+    for (const record of pluginLoader.getAllModules()) {
+      if (record.status === 'enabled') {
+        this.modules.set(record.manifest.id.toLowerCase(), record.manifest);
+        // Also alias by name if different
+        if (record.manifest.name && record.manifest.name.toLowerCase() !== record.manifest.id.toLowerCase()) {
+          this.modules.set(record.manifest.name.toLowerCase(), record.manifest);
         }
       }
     }
-  } catch (_) {}
-
-  return loaded;
-}
+    return res.loaded;
+  }
 
   get(name) {
     return this.modules.get(name.toLowerCase()) || null;
