@@ -75,5 +75,13 @@ Every lesson follows the format: **What Went Wrong** → **Root Cause** → **Ru
 - **Root Cause:** Banner rendering was performed synchronously on the main thread without a timeout guard, without content hashing, and error handlers directly propagated engine exceptions into Discord replies.
 - **Rule to Prevent:** All banner generation must pass through `safeRenderBanner` with a 4-second timeout guard, concurrency limits, SVG/pure text fallback, and LRU memory/disk cache. User-facing responses must never mention canvas, libraries, or stack traces; managers receive at most a calm one-line note with an Error ID, and full technical logs are retained in the system logger.
 
+---
+
+## Lesson 11: Circular Dependency in Logger Sub-Modules and ESM TDZ
+- **What Went Wrong:** Re-exporting in `src/utils/logger.js` threw `ReferenceError: Cannot access 'universalLogger' before initialization` during unit testing.
+- **Root Cause:** `src/core/logger/index.js` imported `banner.js`, which imported `pterodactyl/memory.js`, which imported `utils/logger.js`, creating an ESM import cycle where the imported binding was evaluated before initialization.
+- **Rule to Prevent:** Core logging primitives must remain leaf or near-leaf utilities and never import high-level domain or system-monitoring modules at the top level. Use live `export { logger, logger as default } from '...'` re-exports to eliminate intermediate TDZ reference errors.
+
+
 
 

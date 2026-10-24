@@ -1,6 +1,5 @@
 import { ANSI, colorize } from './palette.js';
 import { brand } from '../../config/brand.js';
-import { getMemoryStats } from '../pterodactyl/memory.js';
 
 function isAsciiOnly() {
   return Boolean(process.env.ASCII_ONLY) && process.env.ASCII_ONLY !== '0';
@@ -82,14 +81,15 @@ export function getBanner(style = process.env.BANNER_STYLE || 'block') {
  */
 export function printStartupHeader() {
   const banner = getBanner();
-  const mem = getMemoryStats();
+  const memLimit = process.env.MEMORY ? `${process.env.MEMORY} MB` : 'Dynamic';
   const nodeVer = process.versions.node;
   const djsVer = '14.27.0';
 
   console.log('\n' + banner);
   console.log(colorize(ANSI.italic + ANSI.peach, `   ${brand.tagline} • v${brand.version}`));
-  console.log(colorize(ANSI.dim + ANSI.gray, `   Node.js v${nodeVer} · discord.js v${djsVer} · Container RAM: ${mem.limitMb} MB\n`));
+  console.log(colorize(ANSI.dim + ANSI.gray, `   Node.js v${nodeVer} · discord.js v${djsVer} · Container RAM: ${memLimit}\n`));
 }
+
 
 /**
  * Prints a clean step line in the boot sequence with timing

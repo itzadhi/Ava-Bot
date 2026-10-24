@@ -48,7 +48,7 @@ import { startShopExpiryJob, stopShopExpiryJob } from './modules/shop/jobs/expir
 import { getTicketByChannel, updateTicketLastMessage } from './db/tickets.js';
 import { autoRepairPermissionsAndTickets } from './modules/permify/repair.js';
 import { initAutoModCache } from './db/automod.js';
-import { initAntiNukeCache, saveAllChannelSnapshots } from './db/antinuke.js';
+import { initAntiNukeCache } from './db/antinuke.js';
 import { handleChannelDeleteEvent, queueChannelSnapshot } from './modules/antinuke/restore.js';
 import { evaluateRaidMessage, trackMemberJoin, resumeActiveLockdowns } from './modules/antinuke/lockdown.js';
 import { handleRoleDeleteEvent, handleRoleUpdateEvent, handleBotAddEvent, handleWebhookCreateEvent } from './modules/antinuke/extra.js';
@@ -59,6 +59,8 @@ import { startMemoryMonitor, stopMemoryMonitor } from './core/pterodactyl/memory
 import { checkCrashLoopGuard, recordCrash, markCleanStartup } from './core/pterodactyl/crashGuard.js';
 import { pruneLogsDirectory } from './core/pterodactyl/storage.js';
 import { startHealthServer, stopHealthServer } from './core/pterodactyl/healthServer.js';
+import { autoDeployCommands } from './core/commands/autoDeploy.js';
+import { reconcileGuildSettings } from './core/guilds/reconcile.js';
 
 /**
  * AvaClient - Reusable Discord Bot Client powered by Components V2 & Supabase
@@ -267,27 +269,15 @@ class AvaClient extends Client {
       // 2. Start dual-instance heartbeat detector
       instanceManager.startHeartbeat();
 
-      // 3. Synchronize application commands with Discord (fast-boot guarded)
-      if (process.env.DEPLOY_COMMANDS === 'true' || process.argv.includes('--deploy')) {
-        try {
-          const slashCommands = registry.toSlashData();
-          await readyClient.application.commands.set(slashCommands);
-          logger.info(`✓ Synced ${slashCommands.length} application (/) commands globally with Discord Gateway.`);
+      // 3. Automatically synchronize application commands (hash-based, non-blocking)
+      await autoDeployCommands(readyClient).catch(err => {
+        logger.warn({ err: err.message }, 'Command auto-deployment warning');
+      });
 
-          // Clear any stale guild-level command overrides from all guilds
-          for (const guild of readyClient.guilds.cache.values()) {
-            const guildCmds = await guild.commands.fetch().catch(() => new Map());
-            if (guildCmds.size > 0) {
-              await guild.commands.set([]);
-              logger.info(`✓ Wiped ${guildCmds.size} stale guild-level commands from ${guild.name}`);
-            }
-          }
-        } catch (err) {
-          logger.warn(`Could not sync slash commands on login: ${err.message}`);
-        }
-      } else {
-        logger.info(`⚡ Fast boot: Gateway slash command sync skipped (run with DEPLOY_COMMANDS=true or --deploy to update commands)`);
-      }
+      // 4. Per-guild initialization & settings reconciliation (insert-if-missing, cache warm)
+      await reconcileGuildSettings(readyClient).catch(err => {
+        logger.warn({ err: err.message }, 'Guild reconciliation warning');
+      });
 
       // Reconcile active temporary voice channels
       await reconcileTempChannels(readyClient).catch(err => {
@@ -311,13 +301,9 @@ class AvaClient extends Client {
       await resumeActiveLockdowns(readyClient).catch(err => {
         logger.warn({ err }, 'Error resuming active lockdowns');
       });
-
-      // Snapshot all channels on ready for active servers
-      for (const guild of readyClient.guilds.cache.values()) {
-        saveAllChannelSnapshots(guild).catch(() => {});
-      }
     });
   }
+
 
   /**
    * Registers a feature module

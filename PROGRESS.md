@@ -1,7 +1,7 @@
 # AVA Overhaul Progress Tracker
 
 ## Current Phase
-- **Phase 7: Auto Command Deployment ("autoexecute") & Guild Lifecycle**
+- **Phase 8: Antinuke Rebuild & Verification**
 
 ## Status by Phase
 - [x] **Step 0: Git Setup** (Committed pre-overhaul checkpoint `d9f71f1`, switched to branch `ava-overhaul`, verified `.gitignore`)
@@ -11,30 +11,29 @@
 - [x] **Phase 4: Brand = AVA + Terminal Style + Universal Logger** (COMPLETED: `/config/brand.js`, soft-pink terminal theme, 4 startup banners + ASCII fallback, universal child logger with secret redaction and pink gutter, strict `scripts/check-brand.js` passing with 0 violations across `src/`, wired into `npm run doctor`)
 - [x] **Phase 5: Modular Plugin Architecture & Dead Code Removal** (COMPLETED: standard module contract in `src/core/modules/contract.js`, Zod settings validation with safe defaults in `settings.js`, fault-isolated loader in `loader.js`, `/ava modules` command, 22 feature module manifests created, `npm run new:module <name>` generator, dead root stubs and deprecated collector wrappers removed, `docs/ARCHITECTURE.md` written)
 - [x] **Phase 6: Canvas & Banner Failure Handling Rewrite** (COMPLETED: safe worker pool with concurrency queue and 4s timeout, preflight verification on startup, disk cache with 10MB cap and LRU memory cache, SVG/pure text fallback, zero user-facing canvas errors, calm 1-line manager note with Error ID, bundled AVA pink theme, 6/6 tests passing)
-- [ ] **Phase 7: Auto Command Deployment & Guild Lifecycle** (NEXT: hash-based command comparison, auto-deploy with 429 backoff, stale command pruning, per-guild initialization reconciliation, prefix command parity)
-- [ ] **Phase 8: Antinuke Rebuild & Verification**
+- [x] **Phase 7: Auto Command Deployment & Guild Lifecycle** (COMPLETED: hash-based command comparison, auto-deploy with 429 backoff, stale command pruning, per-guild initialization reconciliation, prefix command parity, 6/6 tests passing)
+- [ ] **Phase 8: Antinuke Rebuild & Verification** (NEXT: root causes evidence report, SQL migration file with optimistic locking, debounced snapshots, automated execution pipeline, central ID remapping, lockdown overhaul, dropdown wizard panel, /antinuke test and repair)
 - [ ] **Phase 9: Final Verification, Documentation & Final Report**
 
 ## What Is Done
-- Phases 1 through 5 completed and committed.
-- Phase 6 Canvas & Banner Failure Handling Rewrite completed:
-  - Built `src/core/canvas/safeBanner.js` with worker pool, concurrency queue, 4-second render timeout, and worker restart on hang.
-  - Implemented multi-tier caching: content hash (MD5 of product state, theme, compact) LRU in-memory cache plus capped disk cache (`cache/banners/`).
-  - Implemented safe Discord CDN asset fetch with 5-second timeout and 5MB size limit; strictly rejects untrusted hosts.
-  - Built graceful SVG fallback rendering with product details and zero canvas dependency when graphics engine is offline or times out.
-  - Added calm 1-line manager note with unique Error ID (`Banner used the simple style this time (Ref: ERR-XXXXXX)`), completely eliminating user-facing technical error messages.
-  - Added `ava` soft-pink aesthetic theme to `src/modules/shop/render/themes.js`.
-  - Added startup preflight graphics engine verification in `src/index.js:init()`.
-  - Created automated test suite `tests/canvas_safe.test.js` (6/6 passing).
+- Phases 1 through 6 completed and committed.
+- Phase 7 Auto Command Deployment & Guild Lifecycle completed:
+  - Built `src/core/commands/autoDeploy.js` featuring deterministic SHA-256 hash calculation, Discord slash command validation (1-32 name regex, 1-100 desc length, max 25 options limit), and dual-tier hash storage (local `cache/.command_hash.json` + Supabase `bot_state`).
+  - Implemented smart deployment skip (`✿ Commands up to date (cached, no changes)`), automatic stale command pruning, Discord 429 rate limit backoff handler, and a 5-second non-blocking timeout guard.
+  - Built `src/core/guilds/reconcile.js` providing startup settings reconciliation via bulk insert-if-missing (never overwriting existing records), batch cache warming, `guildCreate` initialization, and `guildDelete` departure tracking.
+  - Eliminated startup channel snapshot storms and blind upserts across guilds.
+  - Verified prefix commands share identical registry and handler logic with case-insensitivity and alias support.
+  - Created automated test suite `tests/autodeploy.test.js` (6/6 passing).
 
 ## What Is Next
-- Phase 7: Auto Command Deployment ("autoexecute") & Guild Lifecycle
-  - Build `src/core/commands/autoDeploy.js` with SHA-256 hash comparison against stored hash.
-  - Deploy commands only when changes occur; skip deploy when unchanged (`Commands up to date`).
-  - Background retry with exponential backoff on Discord 429 rate limits.
-  - Auto-prune stale / removed commands.
-  - Validate command definitions before deployment with per-module error isolation.
-  - Build `src/core/guilds/reconcile.js` for safe insert-if-missing per-guild initialization on startup and `guildCreate`.
-  - Prefix command compatibility test.
+- Phase 8: Antinuke Rebuild & Verification
+  - Investigate all 12 failure paths and output `docs/ANTINUKE_ROOT_CAUSES.md` with evidence.
+  - Author Supabase SQL migration `supabase/migrations/20261024_antinuke_v2.sql` with versioned optimistic locking, action log, and data copy script (do not run automatically).
+  - Rebuild `src/modules/antinuke/`: Zod settings schema, optimistic concurrency, debounced content-hashed snapshots, audit log lookup with retry, automated execution pipeline with punishment + restore + `remapIds()` across all modules.
+  - Rebuild lockdown engine: exact overwrite tracking + `locked_channels`, auto-unlock with clean override deletion.
+  - Rebuild panel as Components V2 dropdown wizard (owner/extra-owners only).
+  - Add `/antinuke test` (simulation) and `/antinuke repair` commands.
+  - Run full antinuke automated test suite.
+
 
 
