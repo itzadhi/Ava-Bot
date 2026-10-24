@@ -373,6 +373,13 @@ class AvaClient extends Client {
       logger.bootStep(`${cmdCount} commands registered`, performance.now() - tCmd);
     }
 
+    const tCnv = performance.now();
+    const { preflightCanvas } = await import('./core/canvas/safeBanner.js');
+    const canvasRes = await preflightCanvas();
+    if (typeof logger.bootStep === 'function') {
+      logger.bootStep(`Graphics engine verified (${canvasRes.provider})`, performance.now() - tCnv);
+    }
+
     const tMod = performance.now();
     await loadModules();
     const modCount = moduleRegistry.getAll().length;

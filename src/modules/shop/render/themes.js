@@ -53,6 +53,19 @@ export const THEMES = {
     cardBorder: 'rgba(255, 255, 255, 0.07)',
     badgeBg: 'rgba(255, 255, 255, 0.08)',
     dotColor: 'rgba(255, 255, 255, 0.02)'
+  },
+  ava: {
+    name: 'AVA Pastel Pink',
+    bgStart: '#1A0E18',
+    bgEnd: '#33152B',
+    accent: '#FFB7D5',
+    accentGlow: 'rgba(255, 183, 213, 0.4)',
+    textColor: '#FFF0F5',
+    textMuted: '#C9B6FF',
+    cardBg: 'rgba(255, 183, 213, 0.08)',
+    cardBorder: 'rgba(255, 183, 213, 0.25)',
+    badgeBg: 'rgba(255, 183, 213, 0.18)',
+    dotColor: 'rgba(255, 183, 213, 0.06)'
   }
 };
 

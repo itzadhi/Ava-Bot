@@ -145,6 +145,12 @@ export const copy = {
     title: 'Support Tickets',
     desc: 'Configure support ticket categories, staff roles, and automated transcripts.',
     categoryPlaceholder: 'Select ticket category'
+  },
+
+  banner: {
+    fallbackManagerNote: (refId) => `Banner used the simple style this time · Ref: ${refId}`,
+    previewTitle: 'Banner Presentation',
+    previewDesc: 'Product showcase card'
   }
 };
 

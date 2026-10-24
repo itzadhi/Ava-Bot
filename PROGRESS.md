@@ -1,7 +1,7 @@
 # AVA Overhaul Progress Tracker
 
 ## Current Phase
-- **Phase 6: Canvas & Banner Failure Handling Rewrite**
+- **Phase 7: Auto Command Deployment ("autoexecute") & Guild Lifecycle**
 
 ## Status by Phase
 - [x] **Step 0: Git Setup** (Committed pre-overhaul checkpoint `d9f71f1`, switched to branch `ava-overhaul`, verified `.gitignore`)
@@ -10,32 +10,31 @@
 - [x] **Phase 3: Pterodactyl Readiness & Performance** (COMPLETED: zero-compilation prebuilt setup, `engines: >=20.0.0`, cgroup memory monitor with 80/90% thresholds, bounded 20MB log rotation, crash loop backoff, optional HTTP health endpoint, `/ava status` command, `tests/pterodactyl.test.js` passing 7/7)
 - [x] **Phase 4: Brand = AVA + Terminal Style + Universal Logger** (COMPLETED: `/config/brand.js`, soft-pink terminal theme, 4 startup banners + ASCII fallback, universal child logger with secret redaction and pink gutter, strict `scripts/check-brand.js` passing with 0 violations across `src/`, wired into `npm run doctor`)
 - [x] **Phase 5: Modular Plugin Architecture & Dead Code Removal** (COMPLETED: standard module contract in `src/core/modules/contract.js`, Zod settings validation with safe defaults in `settings.js`, fault-isolated loader in `loader.js`, `/ava modules` command, 22 feature module manifests created, `npm run new:module <name>` generator, dead root stubs and deprecated collector wrappers removed, `docs/ARCHITECTURE.md` written)
-- [ ] **Phase 6: Canvas & Banner Failure Handling Rewrite** (NEXT: zero user-facing canvas errors, automatic SVG/pure-text fallback, calm 1-line note to managers only, worker pool with 4s timeout, preflight verification)
-- [ ] **Phase 7: Auto Command Deployment & Guild Lifecycle**
+- [x] **Phase 6: Canvas & Banner Failure Handling Rewrite** (COMPLETED: safe worker pool with concurrency queue and 4s timeout, preflight verification on startup, disk cache with 10MB cap and LRU memory cache, SVG/pure text fallback, zero user-facing canvas errors, calm 1-line manager note with Error ID, bundled AVA pink theme, 6/6 tests passing)
+- [ ] **Phase 7: Auto Command Deployment & Guild Lifecycle** (NEXT: hash-based command comparison, auto-deploy with 429 backoff, stale command pruning, per-guild initialization reconciliation, prefix command parity)
 - [ ] **Phase 8: Antinuke Rebuild & Verification**
 - [ ] **Phase 9: Final Verification, Documentation & Final Report**
 
 ## What Is Done
-- Phase 1 & Phase 2 completed and committed.
-- Phase 3 Pterodactyl readiness completed and committed.
-- Phase 4 Brand & Terminal completed and committed.
-- Phase 5 Modular Architecture & Dead Code Removal completed:
-  - Standardized module contract `{ id, name, version, dependsOn, defaultEnabled, intents, commands, components, events, jobs, migrations, settingsSchema, defaultSettings, copy, healthCheck, onLoad, onUnload }` with Zod schema validation in `src/core/modules/contract.js`.
-  - Built Zod settings validation engine with safe defaults and zero crashes in `src/core/modules/settings.js`.
-  - Built fault-isolated, topologically sorted plugin loader in `src/core/modules/loader.js` supporting dynamic enabling/disabling via `DISABLED_MODULES`, `ENABLED_MODULES`, and `MODULE_<ID>_ENABLED`.
-  - Created module manifests for all 22 feature modules in `src/modules/<name>/module.js`.
-  - Integrated `/ava modules` (Components V2, grey refresh button) for live module registry and health inspection.
-  - Implemented module generator CLI `npm run new:module <name>` (`scripts/new-module.js`) scaffolding manifest, logic, and automated tests.
-  - Removed dead root stubs (`config/theme.js`, `utils/ui/format.js`, `utils/ui/index.js`) and deprecated collector stub in `CommandContext.js`.
-  - Documented full plugin architecture and "add a feature in 10 minutes" guide in `docs/ARCHITECTURE.md`.
-  - Doctor passes 100% across all 235 modules with zero errors.
+- Phases 1 through 5 completed and committed.
+- Phase 6 Canvas & Banner Failure Handling Rewrite completed:
+  - Built `src/core/canvas/safeBanner.js` with worker pool, concurrency queue, 4-second render timeout, and worker restart on hang.
+  - Implemented multi-tier caching: content hash (MD5 of product state, theme, compact) LRU in-memory cache plus capped disk cache (`cache/banners/`).
+  - Implemented safe Discord CDN asset fetch with 5-second timeout and 5MB size limit; strictly rejects untrusted hosts.
+  - Built graceful SVG fallback rendering with product details and zero canvas dependency when graphics engine is offline or times out.
+  - Added calm 1-line manager note with unique Error ID (`Banner used the simple style this time (Ref: ERR-XXXXXX)`), completely eliminating user-facing technical error messages.
+  - Added `ava` soft-pink aesthetic theme to `src/modules/shop/render/themes.js`.
+  - Added startup preflight graphics engine verification in `src/index.js:init()`.
+  - Created automated test suite `tests/canvas_safe.test.js` (6/6 passing).
 
 ## What Is Next
-- Phase 6: Canvas & Banner Failure Handling Rewrite
-  - Eliminate all user-facing canvas/render error messages (no stack traces, no library names, no file paths).
-  - Implement worker pool with concurrency limits and 4-second timeout guard with auto-restart on hang.
-  - Automatic fallback to clean SVG/text-only banner or last good cached banner.
-  - Friendly calm 1-line note to managers only with Error ID (`Banner used the simple style this time`).
-  - Preflight startup check: verify `@napi-rs/canvas` and font registration; fallback permanently if unavailable without failing each user request.
-  - Centralize all banner copy in `/config/copy.js`.
+- Phase 7: Auto Command Deployment ("autoexecute") & Guild Lifecycle
+  - Build `src/core/commands/autoDeploy.js` with SHA-256 hash comparison against stored hash.
+  - Deploy commands only when changes occur; skip deploy when unchanged (`Commands up to date`).
+  - Background retry with exponential backoff on Discord 429 rate limits.
+  - Auto-prune stale / removed commands.
+  - Validate command definitions before deployment with per-module error isolation.
+  - Build `src/core/guilds/reconcile.js` for safe insert-if-missing per-guild initialization on startup and `guildCreate`.
+  - Prefix command compatibility test.
+
 

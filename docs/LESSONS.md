@@ -68,4 +68,12 @@ Every lesson follows the format: **What Went Wrong** → **Root Cause** → **Ru
 - **Root Cause:** Re-exporting from memory without inspecting the actual named exports of internal component or engine files.
 - **Rule to Prevent:** Always view or grep named exports in module subfiles before writing `module.js` manifests. The module loader's fault isolation successfully caught all 10 import mismatches and prevented a system crash, proving the necessity of fault-isolated loaders.
 
+---
+
+## Lesson 10: Canvas/Banner Failure Isolation and Zero Technical Copy
+- **What Went Wrong:** Canvas rendering failures previously surfaced raw technical errors ("Failed to render banner: Cairo context error", etc.) to Discord users or caused unhandled rejections during interaction processing.
+- **Root Cause:** Banner rendering was performed synchronously on the main thread without a timeout guard, without content hashing, and error handlers directly propagated engine exceptions into Discord replies.
+- **Rule to Prevent:** All banner generation must pass through `safeRenderBanner` with a 4-second timeout guard, concurrency limits, SVG/pure text fallback, and LRU memory/disk cache. User-facing responses must never mention canvas, libraries, or stack traces; managers receive at most a calm one-line note with an Error ID, and full technical logs are retained in the system logger.
+
+
 
