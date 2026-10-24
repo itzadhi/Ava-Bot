@@ -1,8 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { ANSI, colorize } from './palette.js';
-import { printStartupHeader, printBootStep, printOnlineFrame } from './banner.js';
-import { pruneLogsDirectory } from '../pterodactyl/storage.js';
+import {
+  ANSI,
+  colorize
+} from './style.js';
+import {
+  printStartupHeader,
+  printShutdownHeader,
+  printCrashHeader,
+  printBootStep,
+  printOnlineFrame
+} from './banner.js';
 
 const LOG_LEVELS = {
   trace: 10,
@@ -120,16 +128,17 @@ class UniversalLogger {
     const guildTag = meta.guildName ? colorize(ANSI.dim + ANSI.gray, `(${meta.guildName.slice(0, 14)}) `) : '';
     const intTag = meta.interactionId ? colorize(ANSI.dim + ANSI.lavender, `[#${meta.interactionId.slice(-4)}] `) : '';
 
-    // Cleaned message
-    const cleanMsg = sanitize(typeof message === 'string' ? message : (message.message || JSON.stringify(message)));
+    // Cleaned message (truncated if needed so line stays under 120 cols)
+    const rawMsg = sanitize(typeof message === 'string' ? message : (message.message || JSON.stringify(message)));
+    const cleanMsg = rawMsg.length > 80 ? rawMsg.slice(0, 77) + '...' : rawMsg;
 
-    console.log(`${timeStr}  ${badge}  ${modulePill}  ${guildTag}${intTag}${cleanMsg}  ${deltaStr}`);
+    process.stdout.write(`${timeStr}  ${badge}  ${modulePill}  ${guildTag}${intTag}${cleanMsg}  ${deltaStr}\n`);
 
     // If meta has error object with stack trace, render with pink gutter
     if (meta.err && meta.err.stack) {
       const stackLines = meta.err.stack.split('\n').slice(1, 4);
       for (const sl of stackLines) {
-        console.log(`          ${colorize(ANSI.pink, '│')}  ${colorize(ANSI.dim + ANSI.rose, sl.trim())}`);
+        process.stdout.write(`          ${colorize(ANSI.pink, '│')}  ${colorize(ANSI.dim + ANSI.rose, sl.trim())}\n`);
       }
     }
 
@@ -184,6 +193,14 @@ class UniversalLogger {
 
   banner() {
     printStartupHeader();
+  }
+
+  shutdown(uptimeSec) {
+    printShutdownHeader({ uptimeSec });
+  }
+
+  crash(reason, restartDelaySec) {
+    printCrashHeader({ reason, restartDelaySec });
   }
 
   bootStep(label, durationMs) {

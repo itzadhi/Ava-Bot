@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { printCrashHeader } from '../logger/banner.js';
 
 const LOGS_DIR = path.resolve('logs');
 const CRASH_HISTORY_FILE = path.join(LOGS_DIR, 'crash-history.json');
@@ -35,8 +36,10 @@ export async function checkCrashLoopGuard() {
     if (recent.length >= MAX_FAST_CRASHES) {
       const exponent = recent.length - MAX_FAST_CRASHES;
       const backoffSecs = Math.min(60, 5 * Math.pow(2, exponent));
-      console.warn(`\n⚠️  [CRASH LOOP GUARD] Detected ${recent.length} rapid crashes in the last 5 minutes.`);
-      console.warn(`⚠️  Enforcing ${backoffSecs}s exponential backoff to protect Discord Gateway session...\n`);
+      printCrashHeader({
+        reason: `Crash loop protection (${recent.length} crashes in 5m)`,
+        restartDelaySec: backoffSecs
+      });
       return backoffSecs * 1000;
     }
   } catch (_) {}

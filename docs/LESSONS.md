@@ -117,6 +117,14 @@ Every lesson follows the format: **What Went Wrong** → **Root Cause** → **Ru
 - **Root Cause:** Doing bulk Discord REST operations directly in the interaction handler; failing to cancel running lock jobs when unlock is triggered.
 - **Rule to Prevent:** Interaction handlers must reply with a progress card in < 1s and delegate bulk work to a persisted background job (`p-queue` bounded concurrency). Background jobs edit messages by message ID (surviving 15m token expiration). When `/lockdown off` runs, it must abort the in-flight lock job so lock workers never clobber unlock state.
 
+---
+
+## Lesson 17: ASCII Art Escapes and Plain Text Assets vs String Templates
+- **What Went Wrong:** Inline string templates or shell strings containing backslashes in ASCII art are vulnerable to escape eating (`\` interpreted as an escape sequence rather than literal character).
+- **Root Cause:** Standard string literals process `\` as an escape prefix, corrupting ASCII art containing backslashes (such as `\\` or `\_`) unless double-escaped or loaded from plain text.
+- **Rule to Prevent:** Store complex ASCII art containing backslashes in dedicated plain text asset files (`assets/banner/ava.txt`) read synchronously at startup, or use `String.raw`. Validate exact art width and character content via snapshot unit tests.
+
+
 
 
 

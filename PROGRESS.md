@@ -29,7 +29,12 @@
 - `tests/antinuke.test.js`: 6/6 PASS.
 - `tests/antinuke_v2_payload.test.js`: 15/15 PASS.
 - `tests/lockdown_resilience.test.js`: 1/1 PASS (150 channels, fast path, plan persistence, idempotency, restore, repair).
-- Banned patterns: 0 matches for `EmbedBuilder`, `.setColor(`, `setAccentColor`, `ButtonStyle.Primary|Success|Danger`, collectors, `console.` in changed code.
+## Banner Update (Branch: `banner-update`)
+- [x] **Phase 1: Find and Remove Old Banner** (COMPLETED: Old multi-style block logotypes removed; investigated red `⊗` mark which is VS Code shell integration marker, not bot-generated).
+- [x] **Phase 2: New Banner Module & Style Primitives** (COMPLETED: Exact 4-row, 18-col ASCII logo loaded via plain text asset `assets/banner/ava.txt`; `src/core/logger/style.js` with truecolor/256/16-color degradation and horizontal gradient `#FFB7D5` -> `#C9B6FF`; real RAM limit string; narrow terminal wrapping; compact `< 20` cols support; `tests/banner.test.js` 4/4 passing snapshot and layout assertions).
+- [x] **Phase 3: Themed Headers across Bot Lifecycle** (COMPLETED: Dimmed lavender shutdown header with uptime; soft rose `#FF7C98` crash backoff header; 24-col online status frame matching logo art width; wired to `index.js`, `crashGuard.js`, `logger/index.js`).
+- [x] **Phase 4: Small Log Fixes** (COMPLETED: Child loggers for startup lines `[DATABASE]` and `[BLACKLIST]`; message length capping to prevent wrapping beyond 120 columns).
+- [x] **Verification**: `npm run banner:preview`, `node --test tests/banner.test.js` (4/4 PASS), `npm run doctor` (8/8 PASS), `npm run lessons:check` (0 violations), zero `console.*` in changed logger code.
 
 
 

@@ -17,7 +17,7 @@ export async function initBlacklistCache() {
         if (item.type === 'user') userBlacklist.add(item.target_id);
         if (item.type === 'guild') guildBlacklist.add(item.target_id);
       }
-      logger.info(`Blacklist loaded: ${userBlacklist.size} users, ${guildBlacklist.size} guilds`);
+      logger.child({ module: 'BLACKLIST' }).info(`Blacklist loaded: ${userBlacklist.size} users, ${guildBlacklist.size} guilds`);
     }
     initialized = true;
   } catch (err) {

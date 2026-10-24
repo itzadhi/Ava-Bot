@@ -20,7 +20,8 @@
     "doctor": "node scripts/doctor.js",
     "check:imports": "node scripts/check-imports.js",
     "lessons:check": "node scripts/check-lessons.js",
-    "new:module": "node scripts/new-module.js"
+    "new:module": "node scripts/new-module.js",
+    "banner:preview": "node scripts/banner-preview.js"
   },
   "engines": {
     "node": ">=20.0.0"

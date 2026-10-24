@@ -438,6 +438,7 @@ process.on('unhandledRejection', async (reason) => {
 });
 
 process.on('uncaughtException', async (err) => {
+  logger.crash(err.message, 0);
   logger.fatal({ err }, 'Uncaught Exception in process');
   recordCrash(err);
   await logError({
@@ -449,6 +450,7 @@ process.on('uncaughtException', async (err) => {
 
 // 3. GRACEFUL SHUTDOWN
 async function handleShutdown(signal) {
+  logger.shutdown(Math.floor(process.uptime()));
   logger.info(`Received ${signal}. Starting graceful shutdown...`);
 
   stopMemoryMonitor();

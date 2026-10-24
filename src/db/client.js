@@ -417,13 +417,13 @@ export function getSupabase() {
           fetch: customFetch
         }
       });
-      logger.info('Connected to live Supabase backend (keep-alive enabled, 5s timeout guard)');
+      logger.child({ module: 'DATABASE' }).info('Connected to live Supabase backend (keep-alive, 5s timeout guard)');
       return supabaseClient;
     } catch (err) {
-      logger.warn({ err }, 'Failed to initialize live Supabase client, falling back to memory database');
+      logger.child({ module: 'DATABASE' }).warn({ err }, 'Failed to initialize live Supabase client, falling back to memory database');
     }
   } else {
-    logger.debug('Using in-memory Supabase adapter (live credentials not supplied or in test mode)');
+    logger.child({ module: 'DATABASE' }).debug('Using in-memory Supabase adapter (live credentials not supplied or in test mode)');
   }
 
   isMock = true;
