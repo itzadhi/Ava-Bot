@@ -47,8 +47,8 @@
 ## Lockdown Rewrite & Permission Safety (Branch: `lockdown-rewrite`)
 - [x] **Step 0: Git Setup & Safety** (COMPLETED: Branch `lockdown-rewrite` checked out, pre-fix checkpoint committed `5798ec0`, local running bot processes terminated).
 - [x] **Phase A: Permission Freeze** (COMPLETED: `PERMISSION_WRITES=off|dryrun|on` kill switch in `src/core/permissions/permApply.js`; routed 100% of permission writes through `perm.apply()`; schema check in `schemaCheck.js`; SQL migration `20261025_permission_guard_and_lockdown.sql` written; disabled startup permission repair; `tests/permission_guard.test.js` 4/4 PASS; `npm run doctor` 8/8 PASS).
-- [ ] **Phase B: Diagnose Live Damage** (IN PROGRESS: REST-only diagnostic script `scripts/diagnose-permissions.js` generating per-guild damage reports).
-- [ ] **Phase C: Safe Recovery** (PENDING: Dry-run diff and per-guild confirmation).
+- [x] **Phase B: Diagnose Live Damage** (COMPLETED: REST-only diagnostic script `scripts/diagnose-permissions.js` generated reports for both guilds; identified 5 voice channels with Connect deny in guild 1447230598295978198 and 2 ticket channels with SendMessages deny; 0 stuck rows in DB).
+- [x] **Phase C: Safe Recovery** (DRY-RUN COMPLETED: `scripts/recover-permissions.js` generated non-destructive diff tables for both guilds; `tests/recovery.test.js` 2/2 PASS; STOP point reached for user review/approval).
 - [ ] **Phase D: Startup & Logging Fixes** (PENDING: Single-instance lease, startOnce registry, log formatting).
 - [ ] **Phase E: Components V2 Display Error & UI Validity** (PENDING: validateV2Payload auto-fix & npm run test:ui).
 - [ ] **Phase F: Speed & Adaptive First Response** (PENDING: net-check and adaptive response).

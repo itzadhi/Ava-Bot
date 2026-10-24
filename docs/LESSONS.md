@@ -131,11 +131,16 @@ Every lesson follows the format: **What Went Wrong** → **Root Cause** → **Ru
 - **Root Cause:** Fast-path lock mutated `@everyone` permissions before ensuring the original role permission bitfield was committed to the database plan; on unlock, an empty plan skipped role permission restoration.
 - **Rule to Prevent:** Never mutate Discord role permissions until the pre-lock permission bitfield is saved and verified in the database plan. On unlock, if the plan is missing, fall back to standard Discord default permissions for `@everyone` rather than leaving bitfield at 0.
 
+---
 
+## Lesson 19: BigInt Serialization in Audit/Permission Logging Wrappers
+- **What Went Wrong:** `tests/shop_system.test.js` failed with `TypeError: Do not know how to serialize a BigInt at JSON.stringify (<anonymous>) at Object.apply (permApply.js)`.
+- **Root Cause:** Discord bitfield permissions in discord.js are native `BigInt` primitives or objects holding BigInt values. Standard `JSON.stringify(val)` throws a TypeError when encountering BigInt.
+- **Rule to Prevent:** In all logging and serialization wrappers handling Discord data, use a safe serializer replacer: `JSON.stringify(val, (_, v) => (typeof v === 'bigint' ? v.toString() : v))`.
 
+---
 
-
-
-
-
-
+## Lesson 20: Lockdown Voice Channel Clobbering & Missing Original Baseline
+- **What Went Wrong:** Live server diagnosis revealed 5 voice channels in guild `1447230598295978198` had `deny: Connect` active from previous lockdown attempts, permanently blocking members from voice rooms.
+- **Root Cause:** Lockdown channel loop previously iterated over all channels and applied overwrites without distinguishing text messaging vs voice connect permissions, and saved corrupted "original" values if a lockdown was interrupted or retried.
+- **Rule to Prevent:** Lockdown must use write-ahead plans with pre-validation against last known good baselines. Never apply `Connect` denial unless explicitly executing an intentional voice lockdown mode, and never overwrite an existing baseline with an active lockdown state.
