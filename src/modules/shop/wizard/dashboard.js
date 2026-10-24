@@ -251,7 +251,7 @@ export async function renderShopDashboard({
 
   container.addSeparatorComponents(new SeparatorBuilder());
   container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(`-# Argoni Shop Dashboard • Components V2`)
+    new TextDisplayBuilder().setContent(`-# Shop Dashboard`)
   );
 
   return {

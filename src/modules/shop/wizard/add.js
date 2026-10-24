@@ -197,48 +197,63 @@ export async function renderAddProductStep(session, guild) {
   }
 
   // ───────────────────────────────────────────────────────────────────────────
-  // STEP 5: STOCK TYPE & DELIVERABLES
+  // STEP 5: STOCK TYPE, DELIVERY & LIMITS (DROPDOWNS)
   // ───────────────────────────────────────────────────────────────────────────
   else if (step === 5) {
+    const stockType = session.data.stock_type || 'unlimited';
+    const deliveryMode = session.data.delivery_mode || 'automatic';
+    const limit = session.data.max_per_order || 'unlimited';
+
     const body = [
-      `### 5. Stock Mode & Deliverables`,
-      `Choose how stock is managed and delivered to buyers.`,
+      `### 5. Stock Mode & Fulfillment Settings`,
+      `Select how inventory is tracked, customer purchase limits, and delivery fulfillment.`,
       '',
-      `- **Stock Type**: \`${session.data.stock_type.toUpperCase()}\``,
-      `- **Current Stock Count**: \`${session.data.stock_count}\``,
-      `- **Delivery Mode**: \`${session.data.delivery_mode.toUpperCase()}\` *(automatic in ticket or manual by staff)*`,
+      `- **Stock Type**: \`${stockType.toUpperCase()}\` (${session.data.stock_count || 0} units)`,
+      `- **Delivery**: \`${deliveryMode.toUpperCase()}\` *(automated in ticket or manual by staff)*`,
+      `- **Max per Order**: \`${limit}\``,
       '',
-      `**Options:**`,
-      `• **Unlimited**: Always available (e.g. custom services)`,
-      `• **Quantity**: Fixed slot count (e.g. 50 invites)`,
-      `• **Items**: Unique encrypted accounts or keys delivered automatically upon payment`
+      `Select settings using the dropdowns below:`
     ].join('\n');
 
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(body));
 
-    const typeRow = new ActionRowBuilder().addComponents(
-      greyButton({
-        id: `shop:add:${sessionId}:set_stock_type:unlimited`,
-        label: 'Unlimited',
-        emoji: '♾️',
-        disabled: session.data.stock_type === 'unlimited'
-      }),
-      greyButton({
-        id: `shop:add:${sessionId}:set_stock_type:quantity`,
-        label: 'Quantity Slots',
-        emoji: '🔢',
-        disabled: session.data.stock_type === 'quantity'
-      }),
-      greyButton({
-        id: `shop:add:${sessionId}:set_stock_type:items`,
-        label: 'Unique Items/Keys',
-        emoji: '🔑',
-        disabled: session.data.stock_type === 'items'
-      })
-    );
-    rows.push(typeRow);
+    // 1. Stock Type Select
+    const stockSelect = new StringSelectMenuBuilder()
+      .setCustomId(`shop:add:${sessionId}:set_stock_type`)
+      .setPlaceholder('Select Stock Management Type...')
+      .addOptions([
+        new StringSelectMenuOptionBuilder().setLabel('Unlimited').setDescription('Always available for purchase (e.g. services, subscriptions)').setValue('unlimited').setDefault(stockType === 'unlimited'),
+        new StringSelectMenuOptionBuilder().setLabel('Quantity Slots').setDescription('Fixed stock count (e.g. 50 slots)').setValue('quantity').setDefault(stockType === 'quantity'),
+        new StringSelectMenuOptionBuilder().setLabel('Unique Items / Keys').setDescription('Encrypted account credentials or product keys').setValue('items').setDefault(stockType === 'items')
+      ]);
 
-    if (session.data.stock_type === 'items') {
+    // 2. Delivery Mode Select
+    const deliverySelect = new StringSelectMenuBuilder()
+      .setCustomId(`shop:add:${sessionId}:set_delivery_mode`)
+      .setPlaceholder('Select Delivery Mode...')
+      .addOptions([
+        new StringSelectMenuOptionBuilder().setLabel('Automated Delivery').setDescription('Bot instantly delivers items in order ticket after payment').setValue('automatic').setDefault(deliveryMode === 'automatic'),
+        new StringSelectMenuOptionBuilder().setLabel('Manual Staff Delivery').setDescription('Staff manually delivers orders in order ticket').setValue('manual').setDefault(deliveryMode === 'manual')
+      ]);
+
+    // 3. Max Per Order Select
+    const limitSelect = new StringSelectMenuBuilder()
+      .setCustomId(`shop:add:${sessionId}:set_limit`)
+      .setPlaceholder('Select Maximum Items Per Order...')
+      .addOptions([
+        new StringSelectMenuOptionBuilder().setLabel('1 item per order').setValue('1').setDefault(String(limit) === '1'),
+        new StringSelectMenuOptionBuilder().setLabel('2 items per order').setValue('2').setDefault(String(limit) === '2'),
+        new StringSelectMenuOptionBuilder().setLabel('3 items per order').setValue('3').setDefault(String(limit) === '3'),
+        new StringSelectMenuOptionBuilder().setLabel('5 items per order').setValue('5').setDefault(String(limit) === '5'),
+        new StringSelectMenuOptionBuilder().setLabel('10 items per order').setValue('10').setDefault(String(limit) === '10'),
+        new StringSelectMenuOptionBuilder().setLabel('Unlimited items').setValue('unlimited').setDefault(String(limit) === 'unlimited')
+      ]);
+
+    rows.push(new ActionRowBuilder().addComponents(stockSelect));
+    rows.push(new ActionRowBuilder().addComponents(deliverySelect));
+    rows.push(new ActionRowBuilder().addComponents(limitSelect));
+
+    if (stockType === 'items') {
       const itemsBtn = greyButton({
         id: `shop:wizard:items:${sessionId}`,
         label: `Paste Stock Items (${session.data.items?.length || 0} loaded)`,
@@ -454,6 +469,10 @@ export async function publishProductChannel(guildOrOpts, maybeProduct = null, ma
     topic: `Official Product Channel for ${productData.name} • Price: ${settings.currency_symbol}${(productData.price_minor / 100).toFixed(2)}`
   });
 
+  // Pre-generate permanent product UUID so cards and banners have a real ID immediately
+  const productId = productData.id || crypto.randomUUID();
+  productData.id = productId;
+
   // 4. Render product banner
   const bannerBuffer = await renderBanner({
     product: productData,
@@ -466,6 +485,7 @@ export async function publishProductChannel(guildOrOpts, maybeProduct = null, ma
   const cardPayload = buildProductCard({
     product: {
       ...productData,
+      id: productId,
       guild_id: guild.id
     },
     category,
@@ -481,6 +501,7 @@ export async function publishProductChannel(guildOrOpts, maybeProduct = null, ma
   // 6. Save product to database with channel & message ID
   const savedProduct = await saveShopProduct({
     ...productData,
+    id: productId,
     guild_id: guild.id,
     channel_id: channel.id,
     message_id: productMessage.id,

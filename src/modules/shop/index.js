@@ -12,6 +12,7 @@ import { handleShopWizardInteraction } from './wizard/router.js';
 import { handleBuyNowClick } from './orders/buy.js';
 import { handleDeliverOrder, handleMarkPaid } from './orders/delivery.js';
 import { renderAddProductStep, publishProductChannel } from './wizard/add.js';
+import { executeRestock } from './stock/restock.js';
 import { sessionStore } from '../../core/interactions/session.js';
 import { safeRespond } from '../../core/interactions/safeRespond.js';
 import { errorCard, successCard } from '../../ui/cards.js';
@@ -50,7 +51,7 @@ export async function handleShopInteraction(interaction) {
   // 2. Buy Now Click
   if (moduleName === 'buy') {
     const guildId = arg1;
-    const productId = arg2;
+    const productId = (arg2 === 'public' || arg2 === '*') ? arg3 : arg2;
     await handleBuyNowClick(interaction, guildId, productId, 1);
     return true;
   }
@@ -58,7 +59,7 @@ export async function handleShopInteraction(interaction) {
   // 2.1 Quantity Select on Buy
   if (moduleName === 'buy_qty') {
     const guildId = arg1;
-    const productId = arg2;
+    const productId = (arg2 === 'public' || arg2 === '*') ? arg3 : arg2;
     const qty = parseInt(interaction.values?.[0] || '1', 10);
     await handleBuyNowClick(interaction, guildId, productId, qty);
     return true;
@@ -67,13 +68,64 @@ export async function handleShopInteraction(interaction) {
   // 3. Waitlist Button (Notify Me)
   if (moduleName === 'waitlist') {
     const guildId = arg1;
-    const productId = arg2;
+    const productId = (arg2 === 'public' || arg2 === '*') ? arg3 : arg2;
     await addToWaitlist(guildId, productId, interaction.user.id);
     await safeRespond(interaction, successCard({
       title: 'Added to Restock Waitlist',
-      reason: 'You will receive an automatic direct message when this product is restocked.',
+      body: 'You will receive an automated direct message when this product is restocked.',
       ephemeral: true
     }), { ephemeral: true });
+    return true;
+  }
+
+  // 3.1 Details / FAQ Button
+  if (moduleName === 'details') {
+    const guildId = arg1;
+    const productId = (arg2 === 'public' || arg2 === '*') ? arg3 : arg2;
+    const product = await getShopProductById(productId);
+    if (!product) {
+      await safeRespond(interaction, errorCard({
+        title: 'Product Not Found',
+        reason: 'This product is no longer available.',
+        ephemeral: true
+      }), { ephemeral: true });
+      return true;
+    }
+
+    const lines = [];
+    if (product.description) lines.push(product.description.trim());
+    if (Array.isArray(product.features) && product.features.length > 0) {
+      lines.push('\n**Features & Inclusions:**');
+      lines.push(product.features.map(f => `• ${f}`).join('\n'));
+    }
+    if (product.warranty_text) {
+      lines.push(`\n**Warranty:** ${product.warranty_text}`);
+    }
+    const delivery = product.delivery_time_text || (product.delivery_mode === 'automatic' ? 'Instant Automated Delivery' : 'Manual Staff Fulfillment');
+    lines.push(`**Fulfillment:** ${delivery}`);
+
+    await safeRespond(interaction, {
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+      components: [
+        new ContainerBuilder()
+          .addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ℹ️ ${product.name}\n${lines.join('\n')}`))
+      ]
+    }, { ephemeral: true });
+    return true;
+  }
+
+  // 3.2 Vouch / Reviews Channel Button
+  if (moduleName === 'vouch_channel') {
+    const guildId = arg1;
+    const settings = await getShopSettings(guildId);
+    const targetChannel = settings?.vouch_channel_id ? `<#${settings.vouch_channel_id}>` : 'the designated reviews channel';
+    await safeRespond(interaction, {
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+      components: [
+        new ContainerBuilder()
+          .addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ⭐ Customer Reviews\nBrowse authentic customer reviews in ${targetChannel}.`))
+      ]
+    }, { ephemeral: true });
     return true;
   }
 
@@ -128,7 +180,23 @@ export async function handleShopInteraction(interaction) {
     }
 
     if (action === 'set_stock_type') {
-      session.data.stock_type = val || 'unlimited';
+      const type = interaction.values?.[0] || val || 'unlimited';
+      session.data.stock_type = type;
+      const payload = await renderAddProductStep(session, interaction.guild);
+      await safeRespond(interaction, payload);
+      return true;
+    }
+
+    if (action === 'set_delivery_mode') {
+      session.data.delivery_mode = interaction.values?.[0] || 'automatic';
+      const payload = await renderAddProductStep(session, interaction.guild);
+      await safeRespond(interaction, payload);
+      return true;
+    }
+
+    if (action === 'set_limit') {
+      const limitVal = interaction.values?.[0];
+      session.data.max_per_order = (limitVal === 'unlimited') ? null : parseInt(limitVal, 10);
       const payload = await renderAddProductStep(session, interaction.guild);
       await safeRespond(interaction, payload);
       return true;
@@ -500,7 +568,7 @@ export async function handleShopInteraction(interaction) {
             )
             .addSeparatorComponents(new SeparatorBuilder())
             .addTextDisplayComponents(
-              new TextDisplayBuilder().setContent(`- **Customer**: <@${interaction.user.id}>\n- **Product**: **${order?.product_name_snapshot || 'Product'}**\n- **Rating**: \`${stars}/5\`\n\n> "${comment || 'Excellent product and instant delivery!'}"\n\n-# Verified Argoni Shop Customer • <t:${Math.floor(Date.now() / 1000)}:R>`)
+              new TextDisplayBuilder().setContent(`- **Customer**: <@${interaction.user.id}>\n- **Product**: **${order?.product_name_snapshot || 'Product'}**\n- **Rating**: \`${stars}/5\`\n\n> "${comment || 'Excellent product and instant delivery!'}"\n\n-# Verified Customer • <t:${Math.floor(Date.now() / 1000)}:R>`)
             );
 
           vouchChan.send({
@@ -512,7 +580,95 @@ export async function handleShopInteraction(interaction) {
 
       await safeRespond(interaction, successCard({
         title: 'Thank You for Your Review!',
-        reason: `Your ${stars}-star rating has been recorded and posted to the vouches channel.`,
+        body: `Your ${stars}-star rating has been recorded and posted to the vouches channel.`,
+        ephemeral: true
+      }), { ephemeral: true });
+      return true;
+    }
+  }
+
+  // 10. Restock Interaction Routing (shop:restock:...)
+  if (moduleName === 'restock') {
+    const action = arg1;
+    if (action === 'select') {
+      const productId = interaction.values?.[0];
+      const product = await getShopProductById(productId);
+      if (!product) {
+        await safeRespond(interaction, errorCard({ title: 'Product Not Found', ephemeral: true }), { ephemeral: true });
+        return true;
+      }
+
+      if (product.stock_type === 'items') {
+        const modal = new ModalBuilder()
+          .setCustomId(`shop:restock:items:${interaction.guildId}:${productId}`)
+          .setTitle(`Restock: ${product.name.slice(0, 30)}`)
+          .addComponents(
+            new ActionRowBuilder().addComponents(
+              new TextInputBuilder()
+                .setCustomId('items_text')
+                .setLabel('Paste Stock Items (1 per line)')
+                .setStyle(TextInputStyle.Paragraph)
+                .setPlaceholder('key-12345\nkey-67890')
+                .setRequired(true)
+            )
+          );
+        await interaction.showModal(modal);
+        return true;
+      }
+
+      // Quantity restock dropdown
+      const amountSelect = new StringSelectMenuBuilder()
+        .setCustomId(`shop:restock:qty:${interaction.guildId}:${productId}`)
+        .setPlaceholder('Select units to add...')
+        .addOptions([
+          new StringSelectMenuOptionBuilder().setLabel('+5 units').setValue('5'),
+          new StringSelectMenuOptionBuilder().setLabel('+10 units').setValue('10'),
+          new StringSelectMenuOptionBuilder().setLabel('+25 units').setValue('25'),
+          new StringSelectMenuOptionBuilder().setLabel('+50 units').setValue('50'),
+          new StringSelectMenuOptionBuilder().setLabel('+100 units').setValue('100')
+        ]);
+
+      await safeRespond(interaction, {
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+        components: [
+          new ContainerBuilder()
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`## 📥 Restock ${product.name}\nCurrent stock: \`${product.stock_count}\` units.\nSelect quantity to add below:`)),
+          new ActionRowBuilder().addComponents(amountSelect)
+        ]
+      }, { ephemeral: true });
+      return true;
+    }
+
+    if (action === 'qty') {
+      const productId = arg2;
+      const addQty = parseInt(interaction.values?.[0] || '10', 10);
+      const res = await executeRestock({
+        guild: interaction.guild,
+        productId,
+        addedItemsOrQuantity: addQty,
+        actorMember: interaction.member
+      });
+      await safeRespond(interaction, successCard({
+        title: 'Restock Completed',
+        body: `Added +${res.addedCount} units. Total stock is now \`${res.newStock}\`.`,
+        ephemeral: true
+      }), { ephemeral: true });
+      return true;
+    }
+
+    if (action === 'items' && interaction.isModalSubmit?.()) {
+      const productId = arg2;
+      const raw = interaction.fields.getTextInputValue('items_text')?.trim() || '';
+      const lines = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const res = await executeRestock({
+        guild: interaction.guild,
+        productId,
+        addedItemsOrQuantity: lines,
+        actorMember: interaction.member
+      });
+      await safeRespond(interaction, successCard({
+        title: 'Restock Completed',
+        body: `Encrypted and added ${res.addedCount} new stock items. Total stock is now \`${res.newStock}\`.`,
         ephemeral: true
       }), { ephemeral: true });
       return true;

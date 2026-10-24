@@ -100,7 +100,7 @@ export async function renderChatlogPanel({ guild, channel = null }) {
     glyph: '⚡',
     subtitle: `Real-time chat protection for ${guild.name}`,
     body: overviewBlock,
-    subtext: 'Argoni Autonomous Vault • Zero manual archiving required',
+    subtext: 'Zero manual archiving required',
     rows,
     thumbnail: guild.iconURL() || 'attachment://logo.jpg'
   });
@@ -141,7 +141,7 @@ export function renderChannelRestorePrompt({ guild, channel, messageCount }) {
       '',
       '⚠️ Replay will stream messages into this channel. Tap **Confirm Restore** to begin.'
     ].join('\n'),
-    subtext: 'Argoni Autonomous Recovery Engine',
+    subtext: null,
     rows: [row],
     thumbnail: guild.iconURL() || 'attachment://logo.jpg'
   });

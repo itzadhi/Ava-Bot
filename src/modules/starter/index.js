@@ -49,11 +49,11 @@ export const starterModule = defineModule({
         );
 
         return interaction.update(card({
-          title: 'Argoni Starter Module',
+          title: 'Starter Module',
           glyph: THEME.glyphs.sparkle,
-          subtitle: 'Demonstrating reusable Components V2 & Supabase persistence',
-          body: `**Counter**: \`${currentCount}\` clicks recorded\n**Stored Note**: ${note}\n\n*Click the buttons below to interactively test stateful Components V2.*`,
-          subtext: 'Updated just now • Argoni',
+          subtitle: 'Interactive test module',
+          body: `**Counter**: \`${currentCount}\` clicks recorded\n**Stored Note**: ${note}\n\n*Click the buttons below to interactively test stateful components.*`,
+          subtext: 'Updated just now',
           color: THEME.colors.success,
           rows: [row]
         }));
@@ -96,10 +96,10 @@ export const starterModule = defineModule({
         await setModuleData('starter', 'note', note, targetGuild);
 
         return interaction.reply(successCard({
-          title: 'Note Saved to Supabase',
-          subtitle: 'Persisted to module_data table successfully',
+          title: 'Note Saved',
+          subtitle: 'Persisted successfully',
           body: `**Stored Note**: "${note}"`,
-          subtext: 'Argoni Supabase Persistence',
+          subtext: null,
           ephemeral: true
         }));
       }

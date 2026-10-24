@@ -26,8 +26,16 @@ export async function handleShopWizardInteraction(interaction) {
   // 1. SETUP WIZARD ROUTING (shop:setup:...)
   // ───────────────────────────────────────────────────────────────────────────
   if (sub === 'setup') {
-    const sessionId = arg1;
-    const action = arg2;
+    let sessionId, action;
+    if (parts[4]) {
+      // 5-part format: shop:setup:guildId:ownerId:sessionId:action
+      sessionId = parts[4];
+      action = parts[5] || parts.slice(5).join(':');
+    } else {
+      // Legacy 4-part format: shop:setup:sessionId:action
+      sessionId = arg1;
+      action = arg2;
+    }
 
     const session = sessionStore.getSession(sessionId);
     if (!session) {
@@ -62,7 +70,7 @@ export async function handleShopWizardInteraction(interaction) {
     }
 
     if (action === 'next') {
-      session.data.step = Math.min(7, (session.data.step || 1) + 1);
+      session.data.step = Math.min(8, (session.data.step || 1) + 1);
       session.data.showPreview = false;
       const payload = await renderSetupStep(session, interaction.guild);
       await safeRespond(interaction, payload);
@@ -77,6 +85,14 @@ export async function handleShopWizardInteraction(interaction) {
       return true;
     }
 
+    if (action === 'status_select') {
+      const val = interaction.values?.[0];
+      session.data.is_enabled = (val === 'enabled');
+      const payload = await renderSetupStep(session, interaction.guild);
+      await safeRespond(interaction, payload);
+      return true;
+    }
+
     if (action === 'toggle_enabled') {
       session.data.is_enabled = !session.data.is_enabled;
       const payload = await renderSetupStep(session, interaction.guild);
@@ -85,18 +101,16 @@ export async function handleShopWizardInteraction(interaction) {
     }
 
     if (action === 'cat_select') {
-      const selectedId = interaction.values?.[0];
-      if (selectedId) {
-        const chan = interaction.guild.channels.cache.get(selectedId);
-        if (chan) {
-          if (!session.data.categories) session.data.categories = [];
-          if (!session.data.categories.some(c => c.discord_category_id === selectedId)) {
-            session.data.categories.push({
-              name: chan.name,
-              discord_category_id: selectedId,
-              emoji: '📦'
-            });
-          }
+      const selectedIds = interaction.values || [];
+      if (!session.data.categories) session.data.categories = [];
+      for (const catId of selectedIds) {
+        const chan = interaction.guild.channels.cache.get(catId);
+        if (chan && !session.data.categories.some(c => c.discord_category_id === catId)) {
+          session.data.categories.push({
+            name: chan.name,
+            discord_category_id: catId,
+            emoji: '📦'
+          });
         }
       }
       const payload = await renderSetupStep(session, interaction.guild);
@@ -115,8 +129,26 @@ export async function handleShopWizardInteraction(interaction) {
       return true;
     }
 
+    if (action === 'pay_select') {
+      const selected = interaction.values || [];
+      session.data.payment_methods = selected.map(name => ({
+        name,
+        instructions: `Please send payment via ${name} and provide confirmation in this ticket.`
+      }));
+      const payload = await renderSetupStep(session, interaction.guild);
+      await safeRespond(interaction, payload);
+      return true;
+    }
+
     if (action === 'tkt_cat_select') {
       session.data.ticket_category_id = interaction.values?.[0] || null;
+      const payload = await renderSetupStep(session, interaction.guild);
+      await safeRespond(interaction, payload);
+      return true;
+    }
+
+    if (action === 'max_orders_select') {
+      session.data.max_open_orders_per_user = parseInt(interaction.values?.[0] || '2', 10);
       const payload = await renderSetupStep(session, interaction.guild);
       await safeRespond(interaction, payload);
       return true;
@@ -136,8 +168,29 @@ export async function handleShopWizardInteraction(interaction) {
       return true;
     }
 
+    if (action === 'restock_ping_select') {
+      session.data.restock_ping_role_id = interaction.values?.[0] || null;
+      const payload = await renderSetupStep(session, interaction.guild);
+      await safeRespond(interaction, payload);
+      return true;
+    }
+
     if (action === 'theme_select') {
       session.data.banner_theme = interaction.values?.[0] || 'dark';
+      const payload = await renderSetupStep(session, interaction.guild);
+      await safeRespond(interaction, payload);
+      return true;
+    }
+
+    if (action === 'stock_display_select') {
+      session.data.stock_display_mode = interaction.values?.[0] || 'exact';
+      const payload = await renderSetupStep(session, interaction.guild);
+      await safeRespond(interaction, payload);
+      return true;
+    }
+
+    if (action === 'jump_step_select') {
+      session.data.step = Math.max(1, Math.min(8, parseInt(interaction.values?.[0] || '1', 10)));
       const payload = await renderSetupStep(session, interaction.guild);
       await safeRespond(interaction, payload);
       return true;
@@ -161,6 +214,13 @@ export async function handleShopWizardInteraction(interaction) {
         ticket_category_id: session.data.ticket_category_id,
         manager_role_ids: session.data.manager_role_ids,
         orders_channel_id: session.data.orders_channel_id,
+        delivery_channel_id: session.data.delivery_channel_id,
+        vouch_channel_id: session.data.vouch_channel_id,
+        restock_channel_id: session.data.restock_channel_id,
+        restock_ping_role_id: session.data.restock_ping_role_id,
+        stock_display_mode: session.data.stock_display_mode,
+        low_stock_threshold: session.data.low_stock_threshold,
+        max_open_orders_per_user: session.data.max_open_orders_per_user,
         banner_theme: session.data.banner_theme,
         banner_font: session.data.banner_font
       });

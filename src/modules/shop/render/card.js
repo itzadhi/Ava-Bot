@@ -132,46 +132,48 @@ export function buildProductCard(productOrParams, maybeCategory = null, maybeSet
 
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(facts.join('\n')));
 
-  // 6. Subtext / Timestamps
+  // 6. Subtext / Timestamps (Never show 'undefined')
   const updatedUnix = Math.floor(new Date(product.updated_at || Date.now()).getTime() / 1000);
-  const subtext = `-# Product ID: \`${product.id}\` • Updated <t:${updatedUnix}:R>`;
+  const idSnippet = (product.id && product.id !== 'undefined') ? `ID: \`${String(product.id).slice(0, 8)}\` • ` : '';
+  const subtext = `-# ${idSnippet}Updated <t:${updatedUnix}:R>`;
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(subtext));
 
   // 7. Divider before Buttons
   container.addSeparatorComponents(new SeparatorBuilder());
 
-  // 8. Grey Buttons Row (ButtonStyle.Secondary only)
+  // 8. Grey Buttons Row (ButtonStyle.Secondary only, public access tier)
   const buttons = [];
   const isPaused = product.status === 'paused';
+  const prodId = product.id || 'new';
 
-  // Buy Now Button
+  // Buy Now Button (Always public access)
   buttons.push(greyButton({
-    id: `shop:buy:${product.guild_id}:${product.id}`,
+    id: `shop:buy:${product.guild_id}:public:${prodId}`,
     label: isSoldOut ? 'Sold Out' : (isPaused ? 'Paused' : 'Buy Now'),
     emoji: isSoldOut ? '✖' : (isPaused ? '⏸' : '🛒'),
     disabled: isSoldOut || isPaused
   }));
 
-  // Notify Me button (only visible/enabled when sold out)
+  // Notify Me button (only visible/enabled when sold out, public access)
   if (isSoldOut) {
     buttons.push(greyButton({
-      id: `shop:waitlist:${product.guild_id}:${product.id}`,
+      id: `shop:waitlist:${product.guild_id}:public:${prodId}`,
       label: 'Notify Me',
       emoji: '🔔'
     }));
   }
 
-  // Details / FAQ button
+  // Details / FAQ button (public access)
   buttons.push(greyButton({
-    id: `shop:details:${product.guild_id}:${product.id}`,
+    id: `shop:details:${product.guild_id}:public:${prodId}`,
     label: 'Details / FAQ',
     emoji: 'ℹ️'
   }));
 
-  // Vouches link or button (if vouch channel configured)
+  // Vouches button (if vouch channel configured, public access)
   if (settings?.vouch_channel_id) {
     buttons.push(greyButton({
-      id: `shop:vouch_channel:${product.guild_id}`,
+      id: `shop:vouch_channel:${product.guild_id}:public:reviews`,
       label: 'Reviews',
       emoji: '⭐'
     }));

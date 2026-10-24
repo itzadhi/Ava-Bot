@@ -43,7 +43,7 @@ export function card({
   glyph = '',
   subtitle = null,
   body = null,
-  subtext = 'Argoni',
+  subtext = null,
   color = THEME.colors.neutral,
   rows = [],
   thumbnail = null,
@@ -133,7 +133,7 @@ export function successCard({
   subtitle = null,
   body = null,
   tip = null,
-  subtext = 'Argoni Operations',
+  subtext = null,
   rows = [],
   files = [],
   ephemeral = false
@@ -154,23 +154,30 @@ export function successCard({
 
 /**
  * Error card (Crimson accent #ED4245, ✕ glyph)
- * Rich diagnostics with "Issue Encountered" and "Suggested Solution" callouts
+ * Plain friendly layout: single reason, optional fix, optional error ID
  */
 export function errorCard({
-  title = 'Execution Error',
+  title = 'Something went wrong',
   subtitle = null,
   reason,
   fix,
-  subtext = 'Argoni Safety Diagnostics',
+  errorId = null,
+  subtext = null,
   rows = [],
   files = [],
   ephemeral = false
 }) {
-  const body = `> 🛑 **Issue Encountered**\n> ${reason || 'An unexpected issue occurred.'}\n\n> 💡 **Recommended Solution**\n> ${fix || 'Check your permissions and command arguments, then try again.'}`;
+  let body = reason || 'An unexpected issue occurred.';
+  if (fix) {
+    body += `\n-# 💡 ${fix}`;
+  }
+  if (errorId) {
+    body += `\n-# Error ID: \`${errorId}\``;
+  }
   return card({
     title,
     glyph: THEME.glyphs.error,
-    subtitle: subtitle || 'Operation could not be completed',
+    subtitle,
     body,
     subtext,
     color: THEME.colors.error,
@@ -187,7 +194,7 @@ export function infoCard({
   title = 'Information',
   subtitle = null,
   body = null,
-  subtext = 'Argoni',
+  subtext = null,
   rows = [],
   thumbnail = null,
   files = [],
@@ -214,7 +221,7 @@ export function warnCard({
   title = 'Warning',
   subtitle = null,
   body = null,
-  subtext = 'Argoni',
+  subtext = null,
   rows = [],
   files = [],
   ephemeral = false
@@ -245,7 +252,7 @@ export function confirmCard({
   confirmLabel = 'Confirm & Proceed',
   cancelLabel = 'Cancel',
   danger = true,
-  subtext = 'Confirmation expires in 60s • Argoni',
+  subtext = 'Confirmation expires in 60s',
   ephemeral = false
 }) {
   const row = new ActionRowBuilder().addComponents(
@@ -281,7 +288,7 @@ export function progressCard({
   step = 'Processing',
   done = 0,
   total = 100,
-  subtext = 'Argoni Operations',
+  subtext = null,
   ephemeral = false
 }) {
   const safeTotal = total > 0 ? total : 1;
@@ -365,9 +372,7 @@ export function backupCard({
     lines.push(`> 🕒 **Created**: ${createdAt}`);
   }
 
-  const defaultTip = isCrossServer
-    ? `Universal Deployment: Run /backup load id:${id} on any server you manage to restore this layout.`
-    : `To deploy this backup to another server, invite Argoni there and run /backup load id:${id}`;
+  const defaultTip = `Universal Deployment: Run /backup load id:${id} on any server you manage to restore this layout.`;
 
   const body = `${lines.join('\n')}\n\n-# 💡 ${tip || defaultTip}`;
 
@@ -376,7 +381,7 @@ export function backupCard({
     glyph: '📦',
     subtitle: subtitle || 'Universal Encrypted Snapshot (AES-256-GCM + gzip)',
     body,
-    subtext: 'Argoni Universal Backup Engine',
+    subtext: null,
     color: isCrossServer ? THEME.colors.blurple : THEME.colors.success,
     rows,
     thumbnail: 'attachment://logo.jpg',
@@ -405,7 +410,7 @@ export function listCard({
     ? items.join('\n\n')
     : '_No entries found._';
 
-  const footer = `Page ${safePage}/${safeTotal}${subtext ? ` • ${subtext}` : ' • Argoni'}`;
+  const footer = `Page ${safePage}/${safeTotal}${subtext ? ` • ${subtext}` : ''}`;
 
   const buttons = [];
 
@@ -449,7 +454,7 @@ export function detailCard({
   title,
   subtitle = null,
   fields = [],
-  subtext = 'Argoni',
+  subtext = null,
   rows = [],
   thumbnail = null,
   files = [],
@@ -479,7 +484,7 @@ export function detailCard({
  */
 export function loadingCard({
   title = 'Processing Request',
-  subtitle = 'Please wait a moment while Argoni processes your operation...',
+  subtitle = 'Please wait a moment while your operation completes...',
   ephemeral = false
 }) {
   return card({
@@ -487,7 +492,7 @@ export function loadingCard({
     glyph: THEME.glyphs.loading,
     subtitle,
     color: THEME.colors.neutral,
-    subtext: 'Argoni Core Engine',
+    subtext: null,
     ephemeral
   });
 }
@@ -499,7 +504,7 @@ export function metricCard({
   title = 'System Overview',
   subtitle = null,
   metrics = [],
-  subtext = 'Argoni Telemetry',
+  subtext = null,
   rows = [],
   color = THEME.colors.blurple,
   ephemeral = false
@@ -530,7 +535,7 @@ export function formCard({
   buttonLabel = 'Open Form',
   buttonCustomId = 'open_form',
   color = THEME.colors.info,
-  subtext = 'Argoni Forms',
+  subtext = null,
   ephemeral = false
 }) {
   const row = new ActionRowBuilder().addComponents(
@@ -560,7 +565,7 @@ export function mediaGalleryCard({
   subtitle = null,
   body = null,
   images = [],
-  subtext = 'Argoni Media',
+  subtext = null,
   color = THEME.colors.blurple,
   rows = [],
   ephemeral = false
@@ -619,8 +624,8 @@ export function mediaGalleryCard({
  * Brand card configured with Argoni logo asset
  */
 export function brandCard({
-  title = 'Argoni Discord Framework',
-  subtitle = 'Modular Components V2 Discord Engine',
+  title = 'Bot Information',
+  subtitle = 'Modular Discord Engine',
   body = null,
   rows = [],
   ephemeral = false
@@ -629,8 +634,8 @@ export function brandCard({
     title,
     glyph: THEME.glyphs.sparkle,
     subtitle,
-    body: body || '> 🧩 **Engine**: Discord Components V2 Layout System\n> 🗄️ **Database**: Supabase (PostgreSQL + Storage with RLS)\n> 📦 **Architecture**: Reusable Universal Modules\n> 🌐 **Cross-Server**: Full Server Replication & Cloning Support',
-    subtext: THEME.brand.footerSubtext,
+    body: body || '> 🔒 **Encryption**: AES-256-GCM Secure Storage\n> 📦 **Architecture**: Modular Services\n> 🌐 **Cross-Server**: Multi-Server Management Support',
+    subtext: null,
     color: THEME.colors.blurple,
     rows,
     thumbnail: 'attachment://logo.jpg',
@@ -643,12 +648,12 @@ export function brandCard({
  * Displays the Argoni Control Center with live status chips, command matrix, and interactive controls
  */
 export function homeCard({
-  title = 'Argoni Control Center',
+  title = 'Control Center',
   subtitle = 'Universal Server Snapshots • Live Guild Sync • Blueprint Hub',
   body = null,
   rows = [],
   files = [],
-  subtext = 'Argoni Control Center • Universal Operations',
+  subtext = null,
   color = THEME.colors.blurple,
   ephemeral = false
 }) {
@@ -660,7 +665,7 @@ export function homeCard({
     attachedFiles.push(brandAttachment);
   }
 
-  // Hero Section with Argoni logo accessory
+  // Hero Section with brand accessory
   const headerContent = `${formatTitle(title, '⚡')}\n${subtitle}`;
   const heroSection = new SectionBuilder()
     .addTextDisplayComponents(new TextDisplayBuilder().setContent(headerContent))
@@ -670,14 +675,14 @@ export function homeCard({
   container.addSeparatorComponents(new SeparatorBuilder());
 
   const defaultBody = [
-    `> 🟢 **STATUS**: Operational • \`v1.0.0\` • 🔒 **AES-256-GCM Vault**`,
-    `> 🌐 **CROSS-SERVER**: Universal Server Snapshot Replication Active`,
-    `> 🎛️ **FRAMEWORK**: Discord Components V2 Native • Supabase Powered`,
+    `> 🟢 **STATUS**: Operational • \`v1.0.0\` • 🔒 **Secure Vault**`,
+    `> 🌐 **CROSS-SERVER**: Server Snapshot Replication Active`,
+    `> 🎛️ **FRAMEWORK**: High Performance Native Engine`,
     '',
     '### 🧭 Centralized Control Panels',
     '• 📦 **Backups** (`/backup`) — Multi-server snapshot, universal cross-server restore, role hierarchy & clean wipe',
     '• ⚙️ **Settings** (`/setting`) — Centralized server configuration, chatlog vault & sync toggles',
-    '• 💬 **Chatlog Vault** (`/chatlog`) — AES-256-GCM encrypted channel chat archive & webhook replay'
+    '• 💬 **Chatlog Vault** (`/chatlog`) — Encrypted channel chat archive & webhook replay'
   ].join('\n');
 
   const contentToDisplay = body || defaultBody;
@@ -738,7 +743,7 @@ export function restoreConsoleCard({
   const brandAttachment = getBrandAttachment();
   const attachedFiles = brandAttachment ? [brandAttachment] : [];
 
-  let title = 'Argoni Restoration Console';
+  let title = 'Restoration Console';
   let subtitle = `Deploying to "${targetGuildName}"`;
   let color = THEME.colors.blurple;
   let actionRows = Array.isArray(rows) ? [...rows] : [];
@@ -769,7 +774,7 @@ export function restoreConsoleCard({
     container.addSectionComponents(hero);
     container.addSeparatorComponents(new SeparatorBuilder());
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      `${preflightLines.join('\n')}\n\n-# ⚠️ Confirmation expires in 60s • Argoni Universal Engine`
+      `${preflightLines.join('\n')}\n\n-# ⚠️ Confirmation expires in 60s`
     ));
 
     const confirmRow = new ActionRowBuilder().addComponents(
@@ -786,7 +791,7 @@ export function restoreConsoleCard({
     );
     actionRows = [confirmRow];
   } else if (stage === 'running') {
-    title = 'Argoni Deployment Console';
+    title = 'Deployment Console';
     subtitle = `Deploying "${record.name || 'Snapshot'}" into "${targetGuildName}"`;
     color = THEME.colors.blurple;
 
@@ -814,7 +819,7 @@ export function restoreConsoleCard({
     container.addSectionComponents(hero);
     container.addSeparatorComponents(new SeparatorBuilder());
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      `${runningLines.join('\n')}\n\n-# ⚙️ Live Component V2 Pipeline • Do not modify server settings • Argoni`
+      `${runningLines.join('\n')}\n\n-# ⚙️ Live deployment in progress • Do not modify server settings`
     ));
   } else if (stage === 'complete') {
     title = isCrossServer ? 'Cross-Server Migration Complete' : 'Server Deployment Complete';
@@ -836,7 +841,7 @@ export function restoreConsoleCard({
     container.addSectionComponents(hero);
     container.addSeparatorComponents(new SeparatorBuilder());
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      `${completeLines.join('\n')}\n\n-# 💡 All roles, hierarchy levels, channels, and permissions are active • Argoni`
+      `${completeLines.join('\n')}\n\n-# 💡 All roles, hierarchy levels, channels, and permissions are active`
     ));
   } else if (stage === 'error') {
     title = 'Deployment Interrupted';
@@ -844,8 +849,8 @@ export function restoreConsoleCard({
     color = THEME.colors.error;
 
     const errorLines = [
-      `> 🛑 **Encountered Issue**: ${errorMessage || 'An unexpected error occurred during execution.'}`,
-      `> 💡 **Recommended Fix**: ${errorFix || 'Check bot role hierarchy and permissions, then retry.'}`,
+      `> 🛑 **Issue**: ${errorMessage || 'An unexpected error occurred during execution.'}`,
+      `> 💡 **Next Step**: ${errorFix || 'Check bot role hierarchy and permissions, then retry.'}`,
       '',
       checklist.length > 0 ? `**Completed Steps Prior to Failure**:\n${checklist.join('\n')}` : ''
     ];
@@ -856,7 +861,7 @@ export function restoreConsoleCard({
     container.addSectionComponents(hero);
     container.addSeparatorComponents(new SeparatorBuilder());
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      `${errorLines.join('\n')}\n\n-# Argoni Deployment Diagnostics`
+      `${errorLines.join('\n')}\n\n-# Deployment encountered an issue`
     ));
   }
 

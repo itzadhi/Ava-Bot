@@ -16,6 +16,7 @@ import { executePermifyApply, executePermifyUndo } from './engine.js';
 import { logger } from '../../utils/logger.js';
 import * as format from '../../utils/ui/format.js';
 import { greyButton } from '../../utils/ui/greyButton.js';
+import { safeRespond } from '../../core/interactions/safeRespond.js';
 
 /**
  * Validates role candidates against hierarchy, managed state, and group exclusivity
@@ -86,15 +87,17 @@ export async function handlePermifyInteraction(interaction) {
     return true;
   }
 
-  // 2. Authorization check: Only session owner may interact
+  // 2. Authorization check: Only session owner or Admin may interact
   if (interaction.user.id !== targetUserId) {
-    await interaction.reply(errorCard({
-      title: 'Wizard Active',
-      reason: `Only <@${targetUserId}> can interact with this permission wizard.`,
-      fix: 'Wait for this setup session to finish or open a new one once completed.',
-      ephemeral: true
-    }));
-    return true;
+    const isAdmin = interaction.member?.permissions?.has(PermissionFlagsBits.Administrator) ||
+                    interaction.guild.ownerId === interaction.user.id;
+    if (!isAdmin) {
+      return await safeRespond(interaction, errorCard({
+        title: 'Not your panel',
+        reason: `Only <@${targetUserId}> can use this setup session.`,
+        ephemeral: true
+      }), { ephemeral: true });
+    }
   }
 
   const session = getSession(guild.id);
@@ -218,6 +221,15 @@ export async function handlePermifyInteraction(interaction) {
       }
 
       // ─── STEP 1 CONTROLS ──────────────────────────────────────────────────
+      case 'scope_select': {
+        const choice = interaction.values?.[0];
+        session.includeCustomOverwrites = (choice === 'all');
+        updateSession(guild.id, { includeCustomOverwrites: session.includeCustomOverwrites });
+        const payload = await renderWizardStep(session, guild);
+        await interaction.update(payload);
+        return true;
+      }
+
       case 'toggle_custom': {
         session.includeCustomOverwrites = !session.includeCustomOverwrites;
         updateSession(guild.id, { includeCustomOverwrites: session.includeCustomOverwrites });
@@ -454,6 +466,15 @@ export async function handlePermifyInteraction(interaction) {
         return true;
       }
 
+      case 'autorole_select': {
+        const choice = interaction.values?.[0];
+        session.connectAutorole = (choice === 'true');
+        updateSession(guild.id, { connectAutorole: session.connectAutorole });
+        const payload = await renderWizardStep(session, guild);
+        await interaction.update(payload);
+        return true;
+      }
+
       case 'toggle_autorole': {
         session.connectAutorole = !session.connectAutorole;
         updateSession(guild.id, { connectAutorole: session.connectAutorole });
@@ -508,6 +529,19 @@ export async function handlePermifyInteraction(interaction) {
       }
 
       // ─── STEP 7 CONTROLS (PREVIEW & APPLY) ─────────────────────────────────
+      case 'final_options_select': {
+        const selections = interaction.values || [];
+        session.hideEveryone = selections.includes('hide_everyone');
+        session.backfillMembers = selections.includes('backfill');
+        updateSession(guild.id, {
+          hideEveryone: session.hideEveryone,
+          backfillMembers: session.backfillMembers
+        });
+        const payload = await renderWizardStep(session, guild);
+        await interaction.update(payload);
+        return true;
+      }
+
       case 'toggle_everyone': {
         session.hideEveryone = !session.hideEveryone;
         updateSession(guild.id, { hideEveryone: session.hideEveryone });

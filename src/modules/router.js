@@ -2466,7 +2466,7 @@ async function routeLogsInteraction(interaction, action, id) {
       details: [
         format.kvLine('Logging Status', '🟢 Connected & Fully Operational'),
         format.kvLine('Triggered By', format.userMention(interaction.user.id)),
-        format.kvLine('Engine', 'Argoni Components V2')
+        format.kvLine('Status', 'Operational')
       ]
     });
 

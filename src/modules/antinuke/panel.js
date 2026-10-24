@@ -193,17 +193,35 @@ export function buildAntiNukeWizard(arg1 = {}, maybeUserId = null, maybePage = 1
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(lines));
     container.addSeparatorComponents(new SeparatorBuilder());
 
-    const togglesRow = new ActionRowBuilder().addComponents(
-      greyButton({
-        id: `antinuke:toggle_enable:${guild.id}:${userId}:1`,
-        label: isEnabled ? 'Anti-Nuke: ON' : 'Anti-Nuke: OFF',
-        emoji: isEnabled ? '🟢' : '⚪'
-      }),
-      greyButton({
-        id: `antinuke:toggle_dry_run:${guild.id}:${userId}:1`,
-        label: isDryRun ? 'Dry Run: ACTIVE' : 'Dry Run: OFF',
-        emoji: isDryRun ? '🟡' : '⚡'
-      }),
+    const stateSelect = new StringSelectMenuBuilder()
+      .setCustomId(`antinuke:state_select:${guild.id}:${userId}:1`)
+      .setPlaceholder('Choose Anti-Nuke state...')
+      .addOptions([
+        {
+          label: 'Active Enforcement (Recommended)',
+          value: 'active',
+          description: 'Immediate automated defense and punishments applied',
+          emoji: '⚡',
+          default: isEnabled && !isDryRun
+        },
+        {
+          label: 'Dry Run (Audit Only)',
+          value: 'dry_run',
+          description: 'Log attacks in audit channel without executing punishments',
+          emoji: '🟡',
+          default: isEnabled && isDryRun
+        },
+        {
+          label: 'Disabled',
+          value: 'disabled',
+          description: 'Turn off automated security enforcement',
+          emoji: '⚪',
+          default: !isEnabled
+        }
+      ]);
+
+    const selectRow = new ActionRowBuilder().addComponents(stateSelect);
+    const actionRow = new ActionRowBuilder().addComponents(
       greyButton({
         id: `antinuke:snapshot_all:${guild.id}:${userId}:1`,
         label: 'Refresh Snapshots',
@@ -211,7 +229,7 @@ export function buildAntiNukeWizard(arg1 = {}, maybeUserId = null, maybePage = 1
       })
     );
 
-    container.addActionRowComponents(togglesRow, buildNavRow(guild.id, userId, 1));
+    container.addActionRowComponents(selectRow, actionRow, buildNavRow(guild.id, userId, 1));
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -294,31 +312,38 @@ export function buildAntiNukeWizard(arg1 = {}, maybeUserId = null, maybePage = 1
       `## 📁 Channel Restoration Engine`,
       `${progressBar}`,
       ``,
-      `Maintains live snapshots of all server channels in Supabase. When an unauthorized user deletes channels rapidly, the executor is neutralized and all deleted channels are recreated.`,
+      `Maintains secure snapshots of all server channels. When an unauthorized user deletes channels rapidly, the executor is neutralized and all deleted channels are recreated.`,
       ``,
       `### Configuration Parameters`,
       `- **Mass Delete Threshold:** **${deleteLimit} channels** within **${windowSecs}s**`,
       `- **Restore Single Deletions:** ${restoreSingle ? '🟢 **Enabled** (Even 1 deletion restored)' : '⚪ **Disabled** (Only mass deletions restored)'}`,
       `- **Offender Punishment:** \`${punishment.toUpperCase()}\``,
       `- **Preservation Details:** Categories, order, topics, bitrate, and permission overwrites restored.`,
-      `- **Database Re-mapping:** Automatically updates log channels, tickets, and panels with new IDs.`
+      `- **Channel Re-linking:** Automatically updates log channels, tickets, and panels with new IDs.`
     ].join('\n');
 
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(lines));
     container.addSeparatorComponents(new SeparatorBuilder());
 
-    const toggleRow = new ActionRowBuilder().addComponents(
-      greyButton({
-        id: `antinuke:toggle_single_restore:${guild.id}:${userId}:3`,
-        label: restoreSingle ? 'Single Restore: ON' : 'Single Restore: OFF',
-        emoji: '📁'
-      }),
-      greyButton({
-        id: `antinuke:channel_threshold_modal:${guild.id}:${userId}:3`,
-        label: 'Edit Limits via Modal',
-        emoji: '⚙️'
-      })
-    );
+    const restoreSelect = new StringSelectMenuBuilder()
+      .setCustomId(`antinuke:single_restore_select:${guild.id}:${userId}:3`)
+      .setPlaceholder('Single deletion restore behavior...')
+      .addOptions([
+        {
+          label: 'Restore Single & Mass Deletions (High Security)',
+          value: 'true',
+          description: 'Recreate channels even if only 1 is deleted by an unauthorized user',
+          emoji: '🛡️',
+          default: restoreSingle
+        },
+        {
+          label: 'Mass Deletions Only (Standard)',
+          value: 'false',
+          description: 'Only trigger channel rebuilds when mass deletion threshold is reached',
+          emoji: '📁',
+          default: !restoreSingle
+        }
+      ]);
 
     const punishmentRow = new ActionRowBuilder().addComponents(
       new StringSelectMenuBuilder()
@@ -332,7 +357,20 @@ export function buildAntiNukeWizard(arg1 = {}, maybeUserId = null, maybePage = 1
         ])
     );
 
-    container.addActionRowComponents(toggleRow, punishmentRow, buildNavRow(guild.id, userId, 3));
+    const limitsRow = new ActionRowBuilder().addComponents(
+      greyButton({
+        id: `antinuke:channel_threshold_modal:${guild.id}:${userId}:3`,
+        label: 'Edit Limits via Modal',
+        emoji: '⚙️'
+      })
+    );
+
+    container.addActionRowComponents(
+      new ActionRowBuilder().addComponents(restoreSelect),
+      punishmentRow,
+      limitsRow,
+      buildNavRow(guild.id, userId, 3)
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────

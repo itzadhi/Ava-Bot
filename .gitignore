@@ -9,4 +9,4 @@ yarn-error.log*
 Thumbs.db
 _reference/
 logs/
-transcripts/
+cache/

@@ -179,19 +179,27 @@ function renderStep1(container, session, guild) {
     new TextDisplayBuilder().setContent(`${quoteText}\n\n${countsText}`)
   );
 
-  // Scope Toggle Button (Grey)
-  const toggleLabel = includeCustomOverwrites
-    ? '[✓] Include channels with custom overwrites (Reset All)'
-    : '[ ] Skip channels with custom overwrites';
+  const scopeSelect = new StringSelectMenuBuilder()
+    .setCustomId(`permify:scope_select:${guildId}:${userId}:${step}`)
+    .setPlaceholder('Choose reset scope...')
+    .addOptions([
+      {
+        label: 'Standard Reset (Recommended)',
+        value: 'standard',
+        description: 'Skip channels that already have custom permission overwrites',
+        emoji: '🛡️',
+        default: !includeCustomOverwrites
+      },
+      {
+        label: 'Complete Reset (All Channels)',
+        value: 'all',
+        description: 'Clear and rebuild all category & channel overwrites from clean slate',
+        emoji: '🔄',
+        default: Boolean(includeCustomOverwrites)
+      }
+    ]);
 
-  const toggleRow = new ActionRowBuilder().addComponents(
-    greyButton({
-      id: `permify:toggle_custom:${guildId}:${userId}:${step}`,
-      label: toggleLabel,
-      emoji: '⚙️'
-    })
-  );
-
+  const toggleRow = new ActionRowBuilder().addComponents(scopeSelect);
   const footerRow = buildFooterRow({ guildId, userId, step, hasBack: false });
 
   container.addActionRowComponents(toggleRow);
@@ -518,21 +526,36 @@ function renderStep5(container, session, guild) {
     container.addActionRowComponents(new ActionRowBuilder().addComponents(removeSelect));
   }
 
-  // Toggle for connecting to autorole
-  const autoroleBtn = greyButton({
-    id: `permify:toggle_autorole:${guildId}:${userId}:${step}`,
-    label: connectAutorole ? '[✓] Connect Autorole to Member Roles' : '[ ] Connect Autorole to Member Roles',
-    emoji: '👤'
-  });
+  const autoroleSelect = new StringSelectMenuBuilder()
+    .setCustomId(`permify:autorole_select:${guildId}:${userId}:${step}`)
+    .setPlaceholder('Autorole connection...')
+    .addOptions([
+      {
+        label: 'Connect Autorole to Member Roles',
+        value: 'true',
+        description: 'Automatically assign configured member roles to new members',
+        emoji: '👤',
+        default: Boolean(connectAutorole)
+      },
+      {
+        label: 'Do Not Connect Autorole',
+        value: 'false',
+        description: 'Manage autorole assignments independently',
+        emoji: '⚪',
+        default: !connectAutorole
+      }
+    ]);
 
-  const clearBtn = greyButton({
-    id: `permify:clear_member:${guildId}:${userId}:${step}`,
-    label: 'Clear All Member Roles',
-    emoji: '🗑️',
-    disabled: count === 0
-  });
+  container.addActionRowComponents(new ActionRowBuilder().addComponents(autoroleSelect));
 
-  container.addActionRowComponents(new ActionRowBuilder().addComponents(autoroleBtn, clearBtn));
+  if (count > 0) {
+    const clearBtn = greyButton({
+      id: `permify:clear_member:${guildId}:${userId}:${step}`,
+      label: 'Clear All Member Roles',
+      emoji: '🗑️'
+    });
+    container.addActionRowComponents(new ActionRowBuilder().addComponents(clearBtn));
+  }
 
   const footerRow = buildFooterRow({ guildId, userId, step, hasBack: true });
   container.addActionRowComponents(footerRow);
@@ -669,27 +692,40 @@ async function renderStep7(container, session, guild) {
     `Members      View+Send+Speak          View ONLY (No Speak)     DENY View`,
     `Staff        View+Send+ManageMsgs     View+Send (No Manage)    View ONLY`,
     `Owners       Full Administrative      Full Administrative      Full Administrative`,
-    `Argoni Bot   Full Administrative      Full Administrative      Full Administrative`
+    `Bot          Full Administrative      Full Administrative      Full Administrative`
   ].join('\n');
 
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(`${summaryLines}\n\n${format.ansiBlock(ansiMatrix)}`)
   );
 
-  // Toggle Controls Row: Restrict @everyone & Backfill Members
-  const hideEveryoneBtn = greyButton({
-    id: `permify:toggle_everyone:${guildId}:${userId}:${step}`,
-    label: hideEveryone ? '[✓] Restrict @everyone on normal channels' : '[ ] Restrict @everyone on normal channels',
-    emoji: '🔒'
-  });
+  const finalOptions = [];
+  if (hideEveryone) finalOptions.push('hide_everyone');
+  if (backfillMembers) finalOptions.push('backfill');
 
-  const backfillBtn = greyButton({
-    id: `permify:toggle_backfill:${guildId}:${userId}:${step}`,
-    label: backfillMembers ? '[✓] Backfill unroled members' : '[ ] Backfill unroled members',
-    emoji: '👥'
-  });
+  const optionsSelect = new StringSelectMenuBuilder()
+    .setCustomId(`permify:final_options_select:${guildId}:${userId}:${step}`)
+    .setPlaceholder('Additional enforcement options...')
+    .setMinValues(0)
+    .setMaxValues(2)
+    .addOptions([
+      {
+        label: 'Restrict @everyone on Normal Channels',
+        value: 'hide_everyone',
+        description: 'Deny view channel permission for @everyone on community channels',
+        emoji: '🔒',
+        default: Boolean(hideEveryone)
+      },
+      {
+        label: 'Backfill Unroled Members',
+        value: 'backfill',
+        description: 'Batch assign configured member roles to current members without roles',
+        emoji: '👥',
+        default: Boolean(backfillMembers)
+      }
+    ]);
 
-  container.addActionRowComponents(new ActionRowBuilder().addComponents(hideEveryoneBtn, backfillBtn));
+  container.addActionRowComponents(new ActionRowBuilder().addComponents(optionsSelect));
 
   // Footer: Back, Apply, Cancel
   const footerRow = buildFooterRow({ guildId, userId, step, hasBack: true, isConfirm: true });

@@ -11,9 +11,9 @@ export async function checkMaintenance(ctx, command) {
   if (isMaintenanceActive()) {
     const payload = warnCard({
       title: 'Under Maintenance',
-      subtitle: 'Argoni is temporarily paused for system updates.',
+      subtitle: 'System is temporarily paused for updates.',
       body: getMaintenanceMessage(),
-      subtext: 'Check support server for updates • Argoni',
+      subtext: 'Check support server for updates',
       ephemeral: true
     });
     await ctx.reply(payload);

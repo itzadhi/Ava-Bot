@@ -123,7 +123,7 @@ async function renderPanelMessage(session, client) {
     glyph: 'ℹ',
     subtitle: sub,
     body: rendered.body,
-    subtext: rendered.subtext || 'Argoni System Administration',
+    subtext: rendered.subtext || null,
     color: THEME.colors.neutral,
     rows
   });

@@ -406,7 +406,7 @@ export async function renderBackupList({ guild, user, page = 1 }) {
     glyph: '📦',
     subtitle: `${allBackups.length} snapshot(s) available`,
     body: content,
-    subtext: totalPages > 1 ? `${pagination.pageLabel} • Argoni Central Panel` : 'Argoni Central Panel',
+    subtext: totalPages > 1 ? pagination.pageLabel : null,
     rows
   });
 }

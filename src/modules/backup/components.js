@@ -191,7 +191,7 @@ export const backupComponents = [
         glyph: '🗑️',
         subtitle: `Choose which snapshot to delete from ${guild.name}`,
         body: '> ⚠️ **Choose a backup to permanently delete** from the dropdown below.\n> Locked backups must be unlocked first before deletion.',
-        subtext: 'Argoni Safety Diagnostics • Tap Cancel to return',
+        subtext: 'Tap Cancel to return',
         rows: [deleteRow, cancelRow]
       });
 
@@ -584,7 +584,7 @@ export const backupComponents = [
         glyph: '📢',
         subtitle: `Set notifications channel for ${guild.name}`,
         body: '> Choose a text channel from the menu below where backup snapshots, restore logs, and safety reports will be sent.',
-        subtext: 'Argoni Backup System',
+        subtext: null,
         rows: [new ActionRowBuilder().addComponents(channelSelect), cancelRow]
       });
 

@@ -79,7 +79,7 @@ export async function renderSettingsPanel({ guild }) {
     glyph: '⚙️',
     subtitle: `Configuration for ${guild.name}`,
     body: `${block1}\n\n💡 Use the menus above to set channels/roles, or tap buttons to toggle features.`,
-    subtext: 'Argoni Settings Panel',
+    subtext: null,
     rows,
     thumbnail: guild.iconURL() || 'attachment://logo.jpg'
   });

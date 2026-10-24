@@ -57,11 +57,11 @@ export const THEME = {
     gear: '⚙'
   },
   brand: {
-    name: 'Argoni',
-    footerSubtext: 'Argoni • Components V2 Modular Engine',
+    name: config.BOT_NAME || 'Bot',
+    footerSubtext: null,
     logoUrl: 'attachment://logo.jpg',
     getLogo: getBrandLogo,
-    fallbackLogoUrl: 'https://cdn.discordapp.com/attachments/111111111111111111/argoni_logo.png',
+    fallbackLogoUrl: 'https://cdn.discordapp.com/attachments/111111111111111111/logo.png',
     links: {
       support: config.SUPPORT_SERVER_URL,
       invite: config.INVITE_URL,
