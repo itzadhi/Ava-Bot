@@ -82,6 +82,14 @@ Every lesson follows the format: **What Went Wrong** → **Root Cause** → **Ru
 - **Root Cause:** `src/core/logger/index.js` imported `banner.js`, which imported `pterodactyl/memory.js`, which imported `utils/logger.js`, creating an ESM import cycle where the imported binding was evaluated before initialization.
 - **Rule to Prevent:** Core logging primitives must remain leaf or near-leaf utilities and never import high-level domain or system-monitoring modules at the top level. Use live `export { logger, logger as default } from '...'` re-exports to eliminate intermediate TDZ reference errors.
 
+---
+
+## Lesson 12: Zod Preprocessing for Nullable Coerced Primitives
+- **What Went Wrong:** `z.coerce.number().min(1)` coerced `null` from corrupted database records to `0`, failing `.min(1)` bounds rather than falling back to schema defaults.
+- **Root Cause:** Standard JavaScript `Number(null)` evaluates to `0`, circumventing Zod's `.default()` fallback because `0` is a valid number primitive.
+- **Rule to Prevent:** Use `z.preprocess()` on integer and boolean fields to map `null`, `undefined`, and empty strings to their respective default values prior to validation.
+
+
 
 
 

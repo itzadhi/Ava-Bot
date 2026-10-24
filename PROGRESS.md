@@ -1,7 +1,7 @@
 # AVA Overhaul Progress Tracker
 
 ## Current Phase
-- **Phase 8: Antinuke Rebuild & Verification**
+- **Phase 9: Final Verification, Documentation & Final Report**
 
 ## Status by Phase
 - [x] **Step 0: Git Setup** (Committed pre-overhaul checkpoint `d9f71f1`, switched to branch `ava-overhaul`, verified `.gitignore`)
@@ -12,28 +12,29 @@
 - [x] **Phase 5: Modular Plugin Architecture & Dead Code Removal** (COMPLETED: standard module contract in `src/core/modules/contract.js`, Zod settings validation with safe defaults in `settings.js`, fault-isolated loader in `loader.js`, `/ava modules` command, 22 feature module manifests created, `npm run new:module <name>` generator, dead root stubs and deprecated collector wrappers removed, `docs/ARCHITECTURE.md` written)
 - [x] **Phase 6: Canvas & Banner Failure Handling Rewrite** (COMPLETED: safe worker pool with concurrency queue and 4s timeout, preflight verification on startup, disk cache with 10MB cap and LRU memory cache, SVG/pure text fallback, zero user-facing canvas errors, calm 1-line manager note with Error ID, bundled AVA pink theme, 6/6 tests passing)
 - [x] **Phase 7: Auto Command Deployment & Guild Lifecycle** (COMPLETED: hash-based command comparison, auto-deploy with 429 backoff, stale command pruning, per-guild initialization reconciliation, prefix command parity, 6/6 tests passing)
-- [ ] **Phase 8: Antinuke Rebuild & Verification** (NEXT: root causes evidence report, SQL migration file with optimistic locking, debounced snapshots, automated execution pipeline, central ID remapping, lockdown overhaul, dropdown wizard panel, /antinuke test and repair)
-- [ ] **Phase 9: Final Verification, Documentation & Final Report**
+- [x] **Phase 8: Antinuke Rebuild & Verification** (COMPLETED: root causes evidence report `docs/ANTINUKE_ROOT_CAUSES.md`, SQL migration `supabase/migrations/20261024_antinuke_v2.sql`, Zod schemas with safeInt/safeBool preprocessors, optimistic concurrency versioning, debounced MD5 content-hashed snapshots, category-first automated restore pipeline, universal ID remapping `remapIds()` across 22 modules, lockdown overhaul with `locked_channels` override reset, `/antinuke repair` and `/antinuke test`, 9/9 tests passing)
+- [ ] **Phase 9: Final Verification, Documentation & Final Report** (CURRENT: full test suite, performance audit, rewritten README for AVA, manual action items summary)
 
 ## What Is Done
-- Phases 1 through 6 completed and committed.
-- Phase 7 Auto Command Deployment & Guild Lifecycle completed:
-  - Built `src/core/commands/autoDeploy.js` featuring deterministic SHA-256 hash calculation, Discord slash command validation (1-32 name regex, 1-100 desc length, max 25 options limit), and dual-tier hash storage (local `cache/.command_hash.json` + Supabase `bot_state`).
-  - Implemented smart deployment skip (`✿ Commands up to date (cached, no changes)`), automatic stale command pruning, Discord 429 rate limit backoff handler, and a 5-second non-blocking timeout guard.
-  - Built `src/core/guilds/reconcile.js` providing startup settings reconciliation via bulk insert-if-missing (never overwriting existing records), batch cache warming, `guildCreate` initialization, and `guildDelete` departure tracking.
-  - Eliminated startup channel snapshot storms and blind upserts across guilds.
-  - Verified prefix commands share identical registry and handler logic with case-insensitivity and alias support.
-  - Created automated test suite `tests/autodeploy.test.js` (6/6 passing).
+- Phases 1 through 7 completed and committed.
+- Phase 8 Antinuke Rebuild completed:
+  - Investigated all 12 failure modes and documented empirical evidence in `docs/ANTINUKE_ROOT_CAUSES.md`.
+  - Authored clean Supabase migration `supabase/migrations/20261024_antinuke_v2.sql` with versioned optimistic locking, `antinuke_snapshots`, `antinuke_actions`, `lockdown_state`, and zero-data-loss copy scripts.
+  - Built Zod schema validation engine `src/modules/antinuke/schema.js` with `safeInt` and `safeBool` preprocessors handling null/string coercion without throwing.
+  - Built `src/modules/antinuke/storage.js` with optimistic concurrency write-through cache, debounced MD5 content-hashed snapshots (skipping duplicate DB writes), local JSON backups, and `repairAntinukeState()`.
+  - Built `src/modules/antinuke/pipeline.js` providing an automated execution pipeline: exponential backoff audit log lookup, automated punishment with role-strip undo state capture, category-first channel restoration, and Components V2 incident alert cards.
+  - Built universal ID remapper `src/core/db/remap.js` remapping channel and role IDs across all 22 modules (`guild_settings`, `ticket_settings`, `automod_settings`, `antinuke_settings`, `shop_products`, `sticky_messages`, `ticket_panels`, `module_data`).
+  - Fixed lockdown permanent mute bug in `src/modules/antinuke/lockdown.js` by tracking `locked_channels` and explicitly deleting the `@everyone` deny override on channels that originally had default permissions.
+  - Added `/antinuke repair` for owner self-repair and diagnostic state analysis.
+  - Automated test suite `tests/antinuke_rebuild.test.js` passed 9/9 scenarios.
 
 ## What Is Next
-- Phase 8: Antinuke Rebuild & Verification
-  - Investigate all 12 failure paths and output `docs/ANTINUKE_ROOT_CAUSES.md` with evidence.
-  - Author Supabase SQL migration `supabase/migrations/20261024_antinuke_v2.sql` with versioned optimistic locking, action log, and data copy script (do not run automatically).
-  - Rebuild `src/modules/antinuke/`: Zod settings schema, optimistic concurrency, debounced content-hashed snapshots, audit log lookup with retry, automated execution pipeline with punishment + restore + `remapIds()` across all modules.
-  - Rebuild lockdown engine: exact overwrite tracking + `locked_channels`, auto-unlock with clean override deletion.
-  - Rebuild panel as Components V2 dropdown wizard (owner/extra-owners only).
-  - Add `/antinuke test` (simulation) and `/antinuke repair` commands.
-  - Run full antinuke automated test suite.
+- Phase 9: Final Verification, Documentation & Final Report
+  - Run full test suite across all test files (`tests/*.test.js`).
+  - Verify Pterodactyl container runtime constraints and performance.
+  - Rewrite `README.md` for AVA (Pterodactyl egg setup, environment variables table, intents, bot permissions, modular architecture, manual action items).
+  - Produce final report summarizing root causes found, fixes implemented, files removed, and user manual action items (SQL migration, Developer Portal rename).
+
 
 
 

@@ -3,9 +3,9 @@ import {
   getAntiNukeSettings,
   updateAntiNukeSettings,
   getAntiNukeTrusted,
-  getAntiNukeExempt,
-  saveAllChannelSnapshots
+  getAntiNukeExempt
 } from '../../db/antinuke.js';
+import { repairAntinukeState, saveChannelSnapshotHashed } from '../../modules/antinuke/storage.js';
 import { getTicketSettings } from '../../db/tickets.js';
 import { buildAntiNukeWizard, checkBotPermissions } from '../../modules/antinuke/panel.js';
 import { errorCard, infoCard, successCard, permissionCard } from '../../utils/ui/components.js';
@@ -19,7 +19,7 @@ export default {
   args: [
     {
       name: 'action',
-      description: 'Action to perform (panel, status, enable, disable, test)',
+      description: 'Action to perform (panel, status, enable, disable, test, repair)',
       type: 'string',
       required: false,
       choices: [
@@ -27,10 +27,12 @@ export default {
         { name: 'status', value: 'status' },
         { name: 'enable', value: 'enable' },
         { name: 'disable', value: 'disable' },
-        { name: 'test', value: 'test' }
+        { name: 'test', value: 'test' },
+        { name: 'repair', value: 'repair' }
       ]
     }
   ],
+
   async execute(ctx) {
     if (!ctx.guild) {
       return ctx.reply(errorCard({
@@ -103,13 +105,33 @@ export default {
     // 2. Enable
     if (action === 'enable') {
       await updateAntiNukeSettings(ctx.guild.id, { enabled: true });
-      await saveAllChannelSnapshots(ctx.guild);
+      if (ctx.guild?.channels?.cache) {
+        for (const ch of ctx.guild.channels.cache.values()) {
+          saveChannelSnapshotHashed(ctx.guild.id, ch).catch(() => {});
+        }
+      }
       return ctx.reply(successCard({
         title: 'Anti-Nuke Armed',
         body: 'Server protection is now **Active**. Channel snapshots have been refreshed.',
         tip: 'Run `/antinuke panel` to review trusted roles and thresholds.'
       }));
     }
+
+    // 2b. Repair (/antinuke repair)
+    if (action === 'repair') {
+      const { repaired, fixes } = await repairAntinukeState(ctx.guild.id);
+      return ctx.reply(infoCard({
+        title: 'Anti-Nuke Integrity Repair',
+        body: [
+          `**Status:** ${repaired ? '✔ Repair operations completed' : '✔ System integrity verified (no corruption detected)'}`,
+          '',
+          '### Diagnostic Log',
+          ...(fixes.map(f => `- ${f}`))
+        ].join('\n'),
+        ephemeral: true
+      }));
+    }
+
 
     // 3. Disable
     if (action === 'disable') {

@@ -267,6 +267,7 @@ export async function initiateLockdown(guild, reason = 'Mass raid spam detected'
 
     // 2. Lock Channels: Save current overwrite state and apply deny permissions
     const savedOverwrites = {};
+    const lockedChannels = [];
     const channels = Array.from(guild.channels.cache.values());
 
     // Sort channels so the hot/active spam channel is locked FIRST
@@ -301,6 +302,7 @@ export async function initiateLockdown(guild, reason = 'Mass raid spam detected'
           AddReactions: false,
           ...(ch.type === ChannelType.GuildVoice ? { Connect: false } : {})
         }, { reason: 'AVA Anti-Nuke: Active raid lockdown' });
+        lockedChannels.push(ch.id);
       } catch (err) {
         logger.warn({ err, channelId: ch.id }, 'Error locking channel overwrites');
       }
@@ -320,6 +322,7 @@ export async function initiateLockdown(guild, reason = 'Mass raid spam detected'
       active: true,
       started_at: new Date(startTime).toISOString(),
       reason,
+      locked_channels: lockedChannels,
       saved_overwrites: savedOverwrites,
       offenders,
       calm_until: calmUntil,
@@ -422,13 +425,18 @@ export async function terminateLockdown(guild, liftReason = 'Calm period elapsed
   logger.info({ guildId: gid, liftReason }, '🔓 Lifting server lockdown and restoring channel overwrites');
 
   const savedOverwrites = state.saved_overwrites || {};
+  const channelIdsToUnlock = Array.isArray(state.locked_channels) && state.locked_channels.length > 0
+    ? state.locked_channels
+    : Object.keys(savedOverwrites);
+
   let unlockedCount = 0;
 
-  for (const [cid, ov] of Object.entries(savedOverwrites)) {
+  for (const cid of channelIdsToUnlock) {
     const ch = guild.channels.cache.get(cid);
     if (ch) {
       try {
-        if (ov.allow && ov.deny) {
+        const ov = savedOverwrites[cid];
+        if (ov && ov.allow && ov.deny) {
           await ch.permissionOverwrites.edit(guild.id, {
             SendMessages: (BigInt(ov.deny) & PermissionFlagsBits.SendMessages) === 0n ? null : false,
             SendMessagesInThreads: (BigInt(ov.deny) & PermissionFlagsBits.SendMessagesInThreads) === 0n ? null : false,
@@ -438,7 +446,7 @@ export async function terminateLockdown(guild, liftReason = 'Calm period elapsed
             Connect: (BigInt(ov.deny) & PermissionFlagsBits.Connect) === 0n ? null : false
           }, { reason: `AVA Anti-Nuke: Lockdown lifted (${liftReason})` });
         } else {
-          // Reset @everyone overrides
+          // Channel originally had NO @everyone overwrite! Delete the @everyone overwrite to restore default permissions!
           await ch.permissionOverwrites.delete(guild.id).catch(() => {});
         }
         unlockedCount++;
