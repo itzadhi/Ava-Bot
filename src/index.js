@@ -237,7 +237,7 @@ class AvaClient extends Client {
         configWarnings.push('MessageContent intent disabled (prefix commands will degrade)');
       }
 
-      const memMb = Math.round(process.memoryUsage().rss / 1024 / 1024);
+      const memoryMb = Math.round(process.memoryUsage().rss / 1024 / 1024);
       if (typeof logger.ready === 'function') {
         logger.ready({
           tag: readyClient.user.tag,
@@ -249,6 +249,7 @@ class AvaClient extends Client {
       } else {
         logger.info(`✓ Logged in as ${readyClient.user.tag} (ID: ${readyClient.user.id})`);
       }
+
 
       if (typeof logger.startHeartbeat === 'function') {
         logger.startHeartbeat(readyClient);

@@ -89,6 +89,14 @@ Every lesson follows the format: **What Went Wrong** → **Root Cause** → **Ru
 - **Root Cause:** Standard JavaScript `Number(null)` evaluates to `0`, circumventing Zod's `.default()` fallback because `0` is a valid number primitive.
 - **Rule to Prevent:** Use `z.preprocess()` on integer and boolean fields to map `null`, `undefined`, and empty strings to their respective default values prior to validation.
 
+---
+
+## Lesson 13: Identical Identifier Naming for Object Shorthand Properties
+- **What Went Wrong:** At startup on `readyClient`, `this.on('error')` emitted `Discord client error: memoryMb is not defined`.
+- **Root Cause:** `const memMb = ...` was declared, while `logger.ready({ memoryMb })` used ES6 object literal shorthand with a mismatched identifier name, throwing a runtime `ReferenceError`.
+- **Rule to Prevent:** Align variable names with expected object property keys when utilizing ES6 object shorthand (`const memoryMb = ...`).
+
+
 
 
 
