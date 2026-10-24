@@ -18,7 +18,8 @@
     "test": "node --test tests/**/*.test.js",
     "migrate:temp": "node scripts/migrate-temp.js",
     "doctor": "node scripts/doctor.js",
-    "check:imports": "node scripts/check-imports.js"
+    "check:imports": "node scripts/check-imports.js",
+    "lessons:check": "node scripts/check-lessons.js"
   },
   "dependencies": {
     "@discordjs/voice": "^0.19.2",

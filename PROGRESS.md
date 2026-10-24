@@ -1,13 +1,13 @@
 # AVA Overhaul Progress Tracker
 
 ## Current Phase
-- **Phase 2: Antigravity Skills + Rules + Workflows + Lessons Loop**
+- **Phase 3: Pterodactyl Readiness & Performance**
 
 ## Status by Phase
 - [x] **Step 0: Git Setup** (Committed pre-overhaul checkpoint `d9f71f1`, switched to branch `ava-overhaul`, verified `.gitignore`)
 - [x] **Phase 1: Full Scan & Diagnostics** (COMPLETED: `docs/SCAN_REPORT.md` and `docs/REMOVAL_CANDIDATES.md` generated with real evidence)
-- [ ] **Phase 2: Antigravity Skills + Rules + Workflows + Lessons Loop** (IN PROGRESS: creating `.agents` skills, rules, workflows, `docs/LESSONS.md`, lessons checker)
-- [ ] **Phase 3: Pterodactyl Readiness & Performance**
+- [x] **Phase 2: Antigravity Skills + Rules + Workflows + Lessons Loop** (COMPLETED: 5 skills, 1 rule, 3 workflows, `docs/LESSONS.md`, and `npm run lessons:check` passing)
+- [ ] **Phase 3: Pterodactyl Readiness & Performance** (IN PROGRESS: prebuilt dependencies, engines, cgroup memory detection, log rotation caps, crash loop guard, performance optimizations)
 - [ ] **Phase 4: Brand = AVA + Terminal Style + Universal Logger**
 - [ ] **Phase 5: Modular Plugin Architecture & Dead Code Removal**
 - [ ] **Phase 6: Canvas & Banner Failure Handling Rewrite**
@@ -17,12 +17,13 @@
 
 ## What Is Done
 - Git checkpoint committed (`d9f71f1`), branch `ava-overhaul` created.
-- `.gitignore` verified with `node_modules`, `.env`, `logs/`, `cache/`, `_reference/`.
-- Phase 1 system scan completed:
-  - Inventory: Node v24.22.0, ESM, 17 production deps, cold boot memory (RSS 135MB, Heap 37MB), startup measurement (361ms).
-  - Automated tools executed: ESLint (7 errors in shop/index.js), Madge (0 circular deps), Depcheck (3 unused deps), module isolation test (200/200 passed).
-  - Detailed audit produced in `docs/SCAN_REPORT.md`.
-  - Removal candidates documented in `docs/REMOVAL_CANDIDATES.md`.
+- Phase 1 system scan completed (`docs/SCAN_REPORT.md`, `docs/REMOVAL_CANDIDATES.md`).
+- Phase 2 developer tooling completed:
+  - Antigravity skills created in `.agents/skills/` and `.agent/skills/`: `ava-conventions`, `ava-safe-change`, `ava-interactions`, `ava-pterodactyl`, `ava-antinuke-debug`.
+  - Always-on rule: `ava-always.md`.
+  - Workflows created: `ava-doctor.md`, `ava-new-module.md`, `ava-release-check.md`.
+  - Continuous learning log initialized: `docs/LESSONS.md` with 7 initial lessons.
+  - Verification script: `scripts/check-lessons.js` wired to `npm run lessons:check` (passes).
 
 ## What Is Next
 - Phase 2 Execution:
