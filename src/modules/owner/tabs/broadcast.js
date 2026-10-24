@@ -103,7 +103,7 @@ export const broadcastTab = {
 
               const payload = infoCard({
                 title: draft.title,
-                subtitle: 'Official Argoni Announcement',
+                subtitle: 'Official AVA Announcement',
                 body: draft.message,
                 subtext: 'System Broadcast'
               });

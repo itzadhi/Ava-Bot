@@ -44,7 +44,7 @@ function createMockGuild(options = {}) {
   roles.set(guildId, { id: guildId, name: '@everyone', position: 0, managed: false });
 
   const botRoleId = `bot_role_${guildId}`;
-  roles.set(botRoleId, { id: botRoleId, name: 'Argoni Bot Role', position: 90, managed: true });
+  roles.set(botRoleId, { id: botRoleId, name: 'AVA Role', position: 90, managed: true });
 
   const highestRoleId = `super_admin_${guildId}`;
   roles.set(highestRoleId, { id: highestRoleId, name: 'Higher Role', position: 95, managed: false });
@@ -161,7 +161,7 @@ function createMockGuild(options = {}) {
     id: `bot_user_${guildId}`,
     user: { id: `bot_user_${guildId}`, bot: true },
     roles: {
-      highest: { position: 90, name: 'Argoni Bot Role' },
+      highest: { position: 90, name: 'AVA Role' },
       botRole: { id: botRoleId },
       cache: new Collection([[botRoleId, roles.get(botRoleId)]])
     },

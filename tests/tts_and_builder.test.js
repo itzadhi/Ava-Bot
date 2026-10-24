@@ -204,7 +204,7 @@ test('Command: /componentbuilder builds and sends component directly', async () 
       channel: mockTargetChannel,
       thumbnail: 'https://images.example.com/thumb.png',
       button_label: 'Official Website',
-      button_url: 'https://argoni.example.com'
+      button_url: 'https://ava.example.com'
     },
     reply: (p) => { repliedCard = p; }
   };
@@ -243,7 +243,7 @@ test('Router: Intercepts fb:cb:modal and publishes component to target channel',
     },
     fields: {
       getTextInputValue: (field) => {
-        if (field === 'cb_title') return 'Welcome to Argoni!';
+        if (field === 'cb_title') return 'Welcome to AVA!';
         if (field === 'cb_body') return 'High-performance Discord infrastructure.';
         if (field === 'cb_thumb') return 'https://example.com/logo.png';
         if (field === 'cb_img') return '';
@@ -284,7 +284,7 @@ test('Bot Profile Panel: Renders full interactive panel with headings, subheadin
 
   const payload = buildBotProfilePanel({
     guild: mockGuild,
-    client: { user: { username: 'Argoni' } },
+    client: { user: { username: 'AVA' } },
     currentSettings,
     note: 'Active custom profile'
   });
@@ -338,7 +338,7 @@ test('Router: Intercepts fb:bp:refresh and updates bot profile panel smoothly', 
         me: { nickname: 'RefreshedBot' }
       }
     },
-    client: { user: { username: 'Argoni' } },
+    client: { user: { username: 'AVA' } },
     deferUpdate: async () => {},
     update: async (p) => { updatedPayload = p; }
   };
@@ -371,7 +371,7 @@ test('TTS Panel: Renders interactive panel with typography, voice dropdown, and 
 
   const payload = await buildTTSPanel({
     guild: mockGuild,
-    client: { user: { username: 'Argoni' } },
+    client: { user: { username: 'AVA' } },
     user: { id: 'user_listener_1' },
     session: {
       voiceChannelId: 'vc_active_1',
@@ -455,7 +455,7 @@ test('Router: Intercepts fb:tts:voice_sel and updates user voice smoothly', asyn
       name: 'Router Test Guild',
       channels: { cache: new Map() }
     },
-    client: { user: { username: 'Argoni' } },
+    client: { user: { username: 'AVA' } },
     deferUpdate: async () => {},
     update: async (p) => { updatePayload = p; }
   };

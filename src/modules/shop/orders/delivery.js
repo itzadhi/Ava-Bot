@@ -154,7 +154,7 @@ export async function handleDeliverOrder(interaction, orderId) {
     const buyer = await interaction.client.users.fetch(order.user_id);
     if (buyer) {
       await buyer.send({
-        content: `🎉 Your Argoni Shop Order #${order.number} for **${product.name}** in **${guild.name}** has been delivered!\nView your items in <#${ticketChan.id}>.`
+        content: `🎉 Your AVA Shop Order #${order.number} for **${product.name}** in **${guild.name}** has been delivered!\nView your items in <#${ticketChan.id}>.`
       }).catch(() => {});
     }
   } catch (_) {}

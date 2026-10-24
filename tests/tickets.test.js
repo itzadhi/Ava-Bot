@@ -87,14 +87,14 @@ test('Ticket Database: panels, blacklist, macros, and notes CRUD', async () => {
   const panel = await ticketDb.savePanel({
     guild_id: guildId,
     channel_id: '111222333',
-    title: 'Argoni Support Hub',
+    title: 'AVA Support Hub',
     description: 'Select an option to get in touch with our team.',
     style: 'buttons'
   });
   assert.ok(panel.id);
   const panels = await ticketDb.getPanels(guildId);
   assert.equal(panels.length, 1);
-  assert.equal(panels[0].title, 'Argoni Support Hub');
+  assert.equal(panels[0].title, 'AVA Support Hub');
 
   // Blacklist
   await ticketDb.addToBlacklist({
@@ -116,7 +116,7 @@ test('Ticket Database: panels, blacklist, macros, and notes CRUD', async () => {
   await ticketDb.saveMacro({
     guild_id: guildId,
     name: 'greeting',
-    content: 'Hello! Thank you for reaching out to Argoni Support. A team member will assist you shortly.',
+    content: 'Hello! Thank you for reaching out to AVA Support. A team member will assist you shortly.',
     created_by: 'staff_1'
   });
   const macros = await ticketDb.getMacros(guildId);

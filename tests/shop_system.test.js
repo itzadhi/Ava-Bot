@@ -114,7 +114,7 @@ test('Shop Setup Wizard: Steps render V2 payloads with grey buttons', async () =
 test('Shop Dashboard: All tabs render V2 and respect grey buttons', async () => {
   const mockGuild = {
     id: TEST_GUILD_ID,
-    name: 'Argoni Electronics',
+    name: 'AVA Electronics',
     ownerId: TEST_USER_1
   };
 
@@ -223,7 +223,7 @@ test('Canvas Banner Engine: Renders 1200x400 PNG and leverages LRU memory cache'
     product: sampleProduct,
     theme: 'neon',
     categoryName: 'Games',
-    shopName: 'Argoni Vault'
+    shopName: 'AVA Vault'
   });
   const durationCold = Date.now() - t0;
 
@@ -242,7 +242,7 @@ test('Canvas Banner Engine: Renders 1200x400 PNG and leverages LRU memory cache'
     product: sampleProduct,
     theme: 'neon',
     categoryName: 'Games',
-    shopName: 'Argoni Vault'
+    shopName: 'AVA Vault'
   });
   const durationCached = Date.now() - t1;
 

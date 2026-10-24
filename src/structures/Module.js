@@ -1,11 +1,11 @@
 import { logger } from '../utils/logger.js';
 
 /**
- * Base class representing an Argoni feature module.
+ * Base class representing an AVA feature module.
  * Modules bundle commands, UI component handlers, event listeners,
  * scheduled cron jobs, and database interactions into a reusable unit.
  */
-export class ArgoniModule {
+export class AvaModule {
   /**
    * @param {object} options
    * @param {string} options.name Unique module identifier (e.g. 'economy', 'backup')
@@ -20,11 +20,11 @@ export class ArgoniModule {
    */
   constructor(options) {
     if (!options.name || typeof options.name !== 'string') {
-      throw new Error('ArgoniModule requires a unique string name');
+      throw new Error('AvaModule requires a unique string name');
     }
 
     this.name = options.name.toLowerCase();
-    this.description = options.description || `Argoni ${this.name} module`;
+    this.description = options.description || `AVA ${this.name} module`;
     this.version = options.version || '1.0.0';
     this.commands = options.commands || [];
     this.components = options.components || [];
@@ -37,7 +37,7 @@ export class ArgoniModule {
   }
 
   /**
-   * Initializes the module with an active Argoni/Discord client
+   * Initializes the module with an active AVA/Discord client
    * @param {import('discord.js').Client} client
    */
   async init(client) {
@@ -62,12 +62,12 @@ export class ArgoniModule {
 }
 
 /**
- * Convenience builder function to define a new Argoni module
+ * convenience builder function to define a new AVA module
  * @param {object} options
- * @returns {ArgoniModule}
+ * @returns {AvaModule}
  */
 export function defineModule(options) {
-  return new ArgoniModule(options);
+  return new AvaModule(options);
 }
 
-export default ArgoniModule;
+export default AvaModule;

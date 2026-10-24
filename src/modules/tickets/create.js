@@ -428,7 +428,7 @@ export async function handleOpenTicketFlow({
           username: displayName,
           avatarURL: avatarURL
         });
-        await webhook.delete('Argoni temporary ticket relay').catch(() => {});
+        await webhook.delete('AVA temporary ticket relay').catch(() => {});
       } else {
         // Fallback if bot lacks ManageWebhooks
         await ticketChannel.send({

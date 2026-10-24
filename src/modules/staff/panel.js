@@ -414,7 +414,7 @@ async function renderSettingsTab(container, guild, guildSettings) {
   const slowmodeVal = guildSettings?.suggestion_thread_slowmode || 0;
   const cdDisplay = cdSec === 0 ? 'Disabled (0s)' : `${cdSec}s`;
 
-  const botNick = guild.members?.me?.nickname || guildSettings?.bot_nickname || guild.client?.user?.username || 'Argoni';
+  const botNick = guild.members?.me?.nickname || guildSettings?.bot_nickname || guild.client?.user?.username || 'AVA';
   const botBio = guildSettings?.bot_bio ? `\`${guildSettings.bot_bio}\`` : '_Default_';
 
   const content =

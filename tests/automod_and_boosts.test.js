@@ -33,7 +33,7 @@ test('AutoMod Engine: Rule detection for invites, links, mentions, caps, words, 
     guild: { id: 'guild_am_1' },
     author: normalMember.user,
     member: normalMember,
-    content: 'Check out my cool server https://discord.gg/ArgoniDev'
+    content: 'Check out my cool server https://discord.gg/AvaDev'
   };
   const inviteResult = await scanMessage(inviteMsg, guildSettings);
   assert.equal(inviteResult.violated, true);
@@ -192,7 +192,7 @@ test('AutoMod Panel: Renders with Components V2 without sidebar accent colors', 
 test('Boost Tracker: Celebration card adheres strictly to Components V2', () => {
   const mockGuild = {
     id: 'guild_bst_1',
-    name: 'Argoni Community',
+    name: 'AVA Community',
     premiumSubscriptionCount: 7,
     premiumTier: 2,
     iconURL: () => 'https://cdn.discordapp.com/icons/123/abc.png'

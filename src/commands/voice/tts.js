@@ -189,7 +189,7 @@ export default {
       return ctx.reply(errorCard({
         title: 'Missing Permissions',
         reason: 'The bot lacks permission to Connect or Speak in your voice channel.',
-        fix: 'Check the voice channel permissions and ensure Argoni can speak.',
+        fix: 'Check the voice channel permissions and ensure AVA can speak.',
         ephemeral: true
       }));
     }

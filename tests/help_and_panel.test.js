@@ -17,7 +17,7 @@ import logsCommand from '../src/commands/settings/logs.js';
 
 test('Help Menu: builds valid Components V2 container with links and two category select menus', () => {
   const dummyUser = { id: '12345', username: 'TestUser' };
-  const dummyClient = { user: { id: '99999', username: 'Argoni' } };
+  const dummyClient = { user: { id: '99999', username: 'AVA' } };
   const payload = buildHelpMenuPayload({
     user: dummyUser,
     client: dummyClient,
@@ -69,7 +69,7 @@ test('Dashboard: renders main panel dashboard with all modules', async () => {
     memberCount: 50
   };
   const dummyUser = { id: 'owner_456', username: 'Owner' };
-  const dummyClient = { user: { id: '99999', username: 'Argoni' } };
+  const dummyClient = { user: { id: '99999', username: 'AVA' } };
 
   const dashPayload = await buildDashboardPayload({
     guild: dummyGuild,

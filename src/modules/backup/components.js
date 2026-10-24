@@ -366,8 +366,8 @@ export const backupComponents = [
       if (!permCheck.valid) {
         return interaction.editReply(errorCard({
           title: 'Missing Bot Permissions',
-          reason: `Argoni is missing required permissions: ${permCheck.missing.join(', ')}`,
-          fix: 'Grant Administrator or Manage Roles / Manage Channels permissions to Argoni.',
+          reason: `AVA is missing required permissions: ${permCheck.missing.join(', ')}`,
+          fix: 'Grant Administrator or Manage Roles / Manage Channels permissions to AVA.',
           ephemeral: true
         }));
       }
@@ -444,7 +444,7 @@ export const backupComponents = [
           targetGuildName: interaction.guild.name,
           originGuildName: originName,
           errorMessage: err.message,
-          errorFix: 'Ensure Argoni bot role is positioned above roles being created, then retry.',
+          errorFix: 'Ensure AVA bot role is positioned above roles being created, then retry.',
           checklist: err.checklist || []
         }));
       } finally {

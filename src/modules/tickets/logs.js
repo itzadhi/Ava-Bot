@@ -80,7 +80,7 @@ export function buildTicketLogCard({
   // 3. Footer
   container.addSeparatorComponents(new SeparatorBuilder());
   container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(`-# Argoni • Ticket System Logs`)
+    new TextDisplayBuilder().setContent(`-# AVA • Ticket System Logs`)
   );
 
   return {

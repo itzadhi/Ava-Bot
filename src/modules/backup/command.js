@@ -298,7 +298,7 @@ export async function renderBackupStructure({ backupId, guild, user }) {
     glyph: '📦',
     subtitle: `Snapshot from ${originName}`,
     textBlocks: [block1, block2, block3],
-    subtext: `Configure modules above, then tap Restore • Argoni`,
+    subtext: `Configure modules above, then tap Restore • AVA`,
     rows,
     thumbnail: snapshot?.settings?.iconURL || 'attachment://logo.jpg'
   });

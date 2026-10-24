@@ -399,7 +399,7 @@ export default {
       return ctx.reply(errorCard({
         title: 'Not a Ticket Channel',
         reason: 'This channel is not an active ticket. Ticket actions must be run inside a ticket channel.',
-        fix: 'Run this command inside a ticket created by Argoni, or use `/ticket panel` or `/ticket settings`.',
+        fix: 'Run this command inside a ticket created by AVA, or use `/ticket panel` or `/ticket settings`.',
         ephemeral: true
       }));
     }

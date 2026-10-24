@@ -148,7 +148,7 @@ export function renderHtmlTranscript({ guild, channel, ticket, messages = [], gu
       ${messageRowsHtml}
     </div>
     <div class="footer">
-      Generated on ${formatTimestamp(new Date())} · Argoni Ticket System
+      Generated on ${formatTimestamp(new Date())} · AVA Ticket System
     </div>
   </div>
 </body>

@@ -1587,7 +1587,7 @@ async function routePanelInteraction(interaction, action, id) {
       .setLabel('Server Nickname / Display Name')
       .setStyle(TextInputStyle.Short)
       .setValue(currentSettings?.bot_nickname || '')
-      .setPlaceholder('e.g. Argoni or Server Assistant')
+      .setPlaceholder('e.g. AVA or Server Assistant')
       .setRequired(false)
       .setMaxLength(32);
 

@@ -287,7 +287,7 @@ export async function handleCloseTicket(target, ticketIdOrOptions, reason = null
     try {
       const liveChan = guild.channels.cache.get(ticket.channel_id);
       if (liveChan) {
-        await liveChan.delete(`Argoni Ticket #${ticket.ticket_number} Closed`).catch(() => {});
+        await liveChan.delete(`AVA Ticket #${ticket.ticket_number} Closed`).catch(() => {});
       }
     } catch (_) {}
   }, delaySec * 1000);

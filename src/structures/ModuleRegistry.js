@@ -2,9 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { registry as commandRegistry } from './CommandRegistry.js';
-import { componentRegistry } from './ComponentRegistry.js';
-import { ArgoniModule } from './Module.js';
-import { logger } from '../utils/logger.js';
+import { AvaModule } from './Module.js';
 import cron from 'node-cron';
 
 export class ModuleRegistry {
@@ -23,11 +21,11 @@ export class ModuleRegistry {
   }
 
   /**
-   * Registers an Argoni module
-   * @param {ArgoniModule|object} module
+   * Registers an AVA module
+   * @param {AvaModule|object} module
    */
   async register(module) {
-    const mod = module instanceof ArgoniModule ? module : new ArgoniModule(module);
+    const mod = module instanceof AvaModule ? module : new AvaModule(module);
 
     if (this.modules.has(mod.name)) {
       logger.warn(`Module "${mod.name}" is already registered. Skipping.`);
@@ -87,7 +85,7 @@ export class ModuleRegistry {
       await mod.init(this.client);
     }
 
-    logger.info(`Registered Argoni Module: [${mod.name}] (v${mod.version}) - ${mod.commands.length} command(s), ${mod.components.length} component(s)`);
+    logger.info(`Registered AVA Module: [${mod.name}] (v${mod.version}) - ${mod.commands.length} command(s), ${mod.components.length} component(s)`);
   }
 
   /**
@@ -112,7 +110,7 @@ export class ModuleRegistry {
     }
 
     this.modules.delete(name);
-    logger.info(`Unregistered Argoni Module: [${name}]`);
+    logger.info(`Unregistered AVA Module: [${name}]`);
     return true;
   }
 
@@ -144,7 +142,7 @@ export class ModuleRegistry {
             const fileUrl = pathToFileURL(targetFile).href;
             const imported = await import(fileUrl);
             const mod = imported.default || imported.module;
-            if (mod && (mod instanceof ArgoniModule || mod.name)) {
+            if (mod && (mod instanceof AvaModule || mod.name)) {
               await this.register(mod);
               loaded++;
             }

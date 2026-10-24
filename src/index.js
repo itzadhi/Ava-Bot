@@ -12,7 +12,7 @@ import { loadCommands, loadModules } from './structures/loader.js';
 import { registry, CommandRegistry } from './structures/CommandRegistry.js';
 import { componentRegistry, ComponentRegistry, defineComponent } from './structures/ComponentRegistry.js';
 import { moduleRegistry, ModuleRegistry } from './structures/ModuleRegistry.js';
-import { ArgoniModule, defineModule } from './structures/Module.js';
+import { AvaModule, defineModule } from './structures/Module.js';
 import { CommandContext } from './structures/CommandContext.js';
 import { initBlacklistCache } from './db/blacklist.js';
 import { initBotState, getBotState } from './db/botState.js';
@@ -61,9 +61,9 @@ import { pruneLogsDirectory } from './core/pterodactyl/storage.js';
 import { startHealthServer, stopHealthServer } from './core/pterodactyl/healthServer.js';
 
 /**
- * ArgoniClient - Reusable Discord Bot Client powered by Components V2 & Supabase
+ * AvaClient - Reusable Discord Bot Client powered by Components V2 & Supabase
  */
-export class ArgoniClient extends Client {
+class AvaClient extends Client {
   /**
    * @param {import('discord.js').ClientOptions} [options]
    */
@@ -235,20 +235,21 @@ export class ArgoniClient extends Client {
         configWarnings.push('MessageContent intent disabled (prefix commands will degrade)');
       }
 
+      const memMb = Math.round(process.memoryUsage().rss / 1024 / 1024);
       if (typeof logger.ready === 'function') {
         logger.ready({
           tag: readyClient.user.tag,
           id: readyClient.user.id,
           guilds: readyClient.guilds.cache.size,
           ping: Math.round(readyClient.ws.ping),
-          commandCount: registry.getAll().length,
-          guildsCached: cachedCount,
-          cacheWarmUpMs,
-          dbStatus,
-          configWarnings
+          memoryMb
         });
       } else {
         logger.info(`✓ Logged in as ${readyClient.user.tag} (ID: ${readyClient.user.id})`);
+      }
+
+      if (typeof logger.startHeartbeat === 'function') {
+        logger.startHeartbeat(readyClient);
       }
 
       const presenceConfig = getBotState('presence') || { type: 'Playing', text: '/backup | /setting', status: 'online' };
@@ -320,7 +321,7 @@ export class ArgoniClient extends Client {
 
   /**
    * Registers a feature module
-   * @param {ArgoniModule|object} mod
+   * @param {AvaModule|object} mod
    */
   async registerModule(mod) {
     return this.modules.register(mod);
@@ -353,11 +354,32 @@ export class ArgoniClient extends Client {
     if (typeof logger.banner === 'function') {
       logger.banner();
     }
-    logger.info('Initializing Argoni Framework...');
+    const t0 = performance.now();
+    if (typeof logger.bootStep === 'function') {
+      logger.bootStep('Config & Pterodactyl environment validated', performance.now() - t0);
+    }
+
+    const tDb = performance.now();
     await initBlacklistCache();
     await initBotState();
+    if (typeof logger.bootStep === 'function') {
+      logger.bootStep('Database connected & state loaded', performance.now() - tDb);
+    }
+
+    const tCmd = performance.now();
     await loadCommands();
+    const cmdCount = registry.getAll().length;
+    if (typeof logger.bootStep === 'function') {
+      logger.bootStep(`${cmdCount} commands registered`, performance.now() - tCmd);
+    }
+
+    const tMod = performance.now();
     await loadModules();
+    const modCount = moduleRegistry.getAll().length;
+    if (typeof logger.bootStep === 'function') {
+      logger.bootStep(`${modCount} modules loaded`, performance.now() - tMod);
+    }
+
     return this;
   }
 
@@ -389,16 +411,16 @@ export class ArgoniClient extends Client {
 }
 
 /**
- * Factory function to create and configure an Argoni bot instance
+ * Factory function to create and configure an AVA bot instance
  * @param {import('discord.js').ClientOptions} [options]
- * @returns {ArgoniClient}
+ * @returns {AvaClient}
  */
-export function createArgoni(options = {}) {
-  return new ArgoniClient(options);
+function createAva(options = {}) {
+  return new AvaClient(options);
 }
 
 // Singleton client instance for backwards compatibility and standalone execution
-export const client = new ArgoniClient();
+const client = new AvaClient();
 
 // 2. ERROR & CRASH HANDLING
 process.on('unhandledRejection', async (reason) => {
@@ -445,7 +467,7 @@ async function handleShutdown(signal) {
     logger.info('Discord client destroyed');
   } catch (_) {}
 
-  logger.info('Argoni shut down cleanly. Goodbye.');
+  logger.info('AVA shut down cleanly. Goodbye.');
   process.exit(0);
 }
 
@@ -467,7 +489,10 @@ if (process.argv[1] && import.meta.url === `file:///${process.argv[1].replace(/\
 
 // Export Framework API
 export {
-  ArgoniModule,
+  AvaClient,
+  AvaModule,
+  createAva,
+  client,
   defineModule,
   defineComponent,
   CommandRegistry,
@@ -486,8 +511,9 @@ export {
 };
 
 export default {
-  ArgoniClient,
-  createArgoni,
+  AvaClient,
+  AvaModule,
+  createAva,
   client,
   defineModule,
   defineComponent,

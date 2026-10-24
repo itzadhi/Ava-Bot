@@ -30,7 +30,7 @@ export async function handleAutoRoleMemberJoin(member) {
     const role = guild.roles.cache.get(roleId);
     if (role && role.position < guild.members.me.roles.highest.position) {
       try {
-        await member.roles.add(roleId, 'Argoni Auto-Role: Automated bot role assignment');
+        await member.roles.add(roleId, 'AVA Auto-Role: Automated bot role assignment');
         logger.info({ guildId: guild.id, userId: member.id, roleId }, 'Auto-assigned bot role upon join');
       } catch (err) {
         logger.warn({ err, guildId: guild.id, roleId }, 'Error assigning bot auto-role');
@@ -64,9 +64,9 @@ export async function handleAutoRoleMemberJoin(member) {
     if (assignableRoleIds.length > 0) {
       try {
         if (assignableRoleIds.length === 1) {
-          await member.roles.add(assignableRoleIds[0], 'Argoni Auto-Role: Automated member role assignment');
+          await member.roles.add(assignableRoleIds[0], 'AVA Auto-Role: Automated member role assignment');
         } else {
-          await member.roles.add(assignableRoleIds, 'Argoni Auto-Role: Automated member role assignment');
+          await member.roles.add(assignableRoleIds, 'AVA Auto-Role: Automated member role assignment');
         }
         logger.info({
           guildId: guild.id,

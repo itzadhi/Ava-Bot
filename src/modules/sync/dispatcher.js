@@ -53,7 +53,7 @@ export async function handleMessageSync(message) {
 
         if (!webhook && targetGuild.members.me?.permissions.has(PermissionFlagsBits.ManageWebhooks)) {
           webhook = await targetChannel.createWebhook({
-            name: 'Argoni Sync',
+            name: 'AVA Sync',
             reason: `Cross-server message sync from ${message.guild.name}`
           });
         }
@@ -109,7 +109,7 @@ export async function handleBanSync(ban) {
     await addJob(async () => {
       try {
         await targetGuild.bans.create(ban.user.id, {
-          reason: `Argoni Ban Sync: Banned in ${ban.guild.name} (${ban.reason || 'No reason provided'})`
+          reason: `AVA Ban Sync: Banned in ${ban.guild.name} (${ban.reason || 'No reason provided'})`
         });
         logger.info(`Synced ban for user ${ban.user.tag} to guild ${targetGuild.name}`);
       } catch (err) {
@@ -145,14 +145,14 @@ export async function handleRoleAssignSync(oldMember, newMember) {
       // Role was added
       await addJob(async () => {
         try {
-          await targetMember.roles.add(targetRoleId, `Argoni Sync: Assigned role in ${newMember.guild.name}`);
+          await targetMember.roles.add(targetRoleId, `AVA Sync: Assigned role in ${newMember.guild.name}`);
         } catch (_) {}
       });
     } else if (hadRole && !hasRole) {
       // Role was removed
       await addJob(async () => {
         try {
-          await targetMember.roles.remove(targetRoleId, `Argoni Sync: Removed role in ${newMember.guild.name}`);
+          await targetMember.roles.remove(targetRoleId, `AVA Sync: Removed role in ${newMember.guild.name}`);
         } catch (_) {}
       });
     }

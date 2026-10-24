@@ -300,7 +300,7 @@ export async function initiateLockdown(guild, reason = 'Mass raid spam detected'
           CreatePrivateThreads: false,
           AddReactions: false,
           ...(ch.type === ChannelType.GuildVoice ? { Connect: false } : {})
-        }, { reason: 'Argoni Anti-Nuke: Active raid lockdown' });
+        }, { reason: 'AVA Anti-Nuke: Active raid lockdown' });
       } catch (err) {
         logger.warn({ err, channelId: ch.id }, 'Error locking channel overwrites');
       }
@@ -341,13 +341,13 @@ export async function initiateLockdown(guild, reason = 'Mass raid spam detected'
         if (!settings.dry_run) {
           if (punishment === 'ban') {
             await guild.bans.create(uid, {
-              reason: `Argoni Anti-Nuke: Raid participant (${reason})`,
+              reason: `AVA Anti-Nuke: Raid participant (${reason})`,
               deleteMessageSeconds: 86400 // Purge up to 1 day of messages
             });
             bannedUsers.push(uid);
           } else if (punishment === 'kick') {
             const mem = await guild.members.fetch(uid).catch(() => null);
-            if (mem?.kickable) await mem.kick('Argoni Anti-Nuke: Raid participant');
+            if (mem?.kickable) await mem.kick('AVA Anti-Nuke: Raid participant');
             bannedUsers.push(uid);
           }
         } else {
@@ -436,7 +436,7 @@ export async function terminateLockdown(guild, liftReason = 'Calm period elapsed
             CreatePrivateThreads: (BigInt(ov.deny) & PermissionFlagsBits.CreatePrivateThreads) === 0n ? null : false,
             AddReactions: (BigInt(ov.deny) & PermissionFlagsBits.AddReactions) === 0n ? null : false,
             Connect: (BigInt(ov.deny) & PermissionFlagsBits.Connect) === 0n ? null : false
-          }, { reason: `Argoni Anti-Nuke: Lockdown lifted (${liftReason})` });
+          }, { reason: `AVA Anti-Nuke: Lockdown lifted (${liftReason})` });
         } else {
           // Reset @everyone overrides
           await ch.permissionOverwrites.delete(guild.id).catch(() => {});

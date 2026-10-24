@@ -10,7 +10,7 @@ export const LOGO_PATH = path.resolve(__dirname, '../../assets/logo.jpg');
 export const HAS_LOGO = fs.existsSync(LOGO_PATH);
 
 /**
- * Returns an AttachmentBuilder for the Argoni brand logo if present
+ * Returns an AttachmentBuilder for the AVA brand logo if present
  * @returns {AttachmentBuilder|null}
  */
 export function getBrandAttachment() {

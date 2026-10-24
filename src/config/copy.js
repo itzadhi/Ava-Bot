@@ -6,7 +6,7 @@ import { THEME } from '../ui/theme.js';
  * - NO technology names (Components V2, Supabase, Postgres, discord.js, canvas)
  * - NO implementation terms (atomic, row locking, FOR UPDATE, SKIP LOCKED, concurrency guard, cache, RPC)
  * - NO heavy "Issue Encountered / Recommended Solution" blocks
- * - NO hardcoded bot names ("Argoni") - bot name is resolved dynamically via THEME.brand.name
+ * - NO hardcoded bot names ("AVA") - bot name is resolved dynamically via THEME.brand.name
  */
 
 export const copy = {

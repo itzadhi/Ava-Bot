@@ -172,7 +172,7 @@ async function handleTriggerJoin(member, guild, guildSettings) {
       userLimit: Math.min(Math.max(userLimit, 0), 99),
       bitrate,
       permissionOverwrites,
-      reason: `Argoni JTC Voice Room for ${member.user.tag}`
+      reason: `AVA JTC Voice Room for ${member.user.tag}`
     });
 
     // Move member into the new channel
@@ -293,7 +293,7 @@ async function handleTempChannelLeave(channelId, member, guild) {
       if (live.members.filter(m => !m.user.bot).size === 0) {
         logger.info({ channelId, guildId: guild.id }, 'Deleting empty temporary voice channel');
         ttsEngine.handleEmptyChannel(guild.id);
-        await live.delete('Argoni temporary channel empty').catch(() => {});
+        await live.delete('AVA temporary channel empty').catch(() => {});
         await deleteTempChannel(channelId);
         voiceMembersTime.delete(channelId);
         channelRenameHistory.delete(channelId);
@@ -360,7 +360,7 @@ export async function transferRoomOwnership(channel, record, newOwnerId, reason 
     await channel.send(infoCard({
       title: 'Room Ownership Transferred',
       body: `👑 <@${newOwnerId}> is now the room owner.`,
-      subtext: 'Join-to-Create • Argoni Voice'
+      subtext: 'Join-to-Create • AVA Voice'
     })).catch(() => {});
 
     logger.info({ channelId: channel.id, newOwnerId, reason }, 'Transferred room ownership');

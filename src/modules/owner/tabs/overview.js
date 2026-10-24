@@ -65,7 +65,7 @@ export const overviewTab = {
       const updated = !current;
       await setBotState('maintenance', {
         enabled: updated,
-        message: 'Argoni is currently undergoing scheduled maintenance. Please check back shortly.'
+        message: 'AVA is currently undergoing scheduled maintenance. Please check back shortly.'
       });
       await logAudit({
         userId: interaction.user.id,

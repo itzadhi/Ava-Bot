@@ -1,5 +1,5 @@
 /**
- * Argoni Unlocked Configuration
+ * AVA Unlocked Configuration
  * All features, backups, chatlogs, syncs, and templates are 100% unlocked with zero paywalls.
  */
 export const TIERS = {

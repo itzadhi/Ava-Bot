@@ -35,9 +35,9 @@ test('Components V2 cards strictly return MessageFlags.IsComponentsV2 and Contai
     { name: 'metricCard', payload: metricCard({ title: 'Status', metrics: [{ label: 'Ping', value: '42ms' }] }) },
     { name: 'formCard', payload: formCard({ title: 'Feedback', buttonLabel: 'Fill Form' }) },
     { name: 'mediaGalleryCard', payload: mediaGalleryCard({ title: 'Gallery', images: ['https://example.com/pic.png'] }) },
-    { name: 'brandCard', payload: brandCard({ title: 'Argoni' }) },
+    { name: 'brandCard', payload: brandCard({ title: 'AVA' }) },
     { name: 'backupCard', payload: backupCard({ title: 'Universal Snapshot', id: 'TEST-123', name: 'Alpha', sizeFormatted: '100 KB' }) },
-    { name: 'homeCard', payload: homeCard({ title: 'Argoni Control Center' }) },
+    { name: 'homeCard', payload: homeCard({ title: 'AVA Control Center' }) },
     { name: 'restoreConsoleCard', payload: restoreConsoleCard({ stage: 'confirm', record: { name: 'Alpha', id: '123' }, targetGuildName: 'Target', originGuildName: 'Origin' }) }
   ];
 

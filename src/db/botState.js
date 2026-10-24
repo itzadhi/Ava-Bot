@@ -3,7 +3,7 @@ import { logger } from '../utils/logger.js';
 
 // In-memory cache for ultra-fast middleware checks
 let stateCache = {
-  maintenance: { enabled: false, message: 'Argoni is currently undergoing maintenance. Please try again later.' },
+  maintenance: { enabled: false, message: 'AVA is currently undergoing maintenance. Please try again later.' },
   disabled_commands: [],
   presence: { type: 'Playing', text: 'a!help | /backup', status: 'online' }
 };
@@ -50,7 +50,7 @@ export function isMaintenanceActive() {
 }
 
 export function getMaintenanceMessage() {
-  return stateCache.maintenance?.message || 'Argoni is currently undergoing scheduled maintenance.';
+  return stateCache.maintenance?.message || 'AVA is currently undergoing scheduled maintenance.';
 }
 
 export function isCommandDisabled(commandName) {

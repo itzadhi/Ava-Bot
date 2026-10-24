@@ -54,7 +54,7 @@ export async function handleRoleDeleteEvent(role) {
         guild,
         executor,
         settings.punishment || 'ban',
-        `Argoni Anti-Nuke: Mass role deletion detected (${count} roles in ${windowSecs}s)`,
+        `AVA Anti-Nuke: Mass role deletion detected (${count} roles in ${windowSecs}s)`,
         Boolean(settings.dry_run)
       );
 
@@ -68,7 +68,7 @@ export async function handleRoleDeleteEvent(role) {
             permissions: role.permissions,
             hoist: role.hoist,
             mentionable: role.mentionable,
-            reason: 'Argoni Anti-Nuke: Emergency role restoration'
+            reason: 'AVA Anti-Nuke: Emergency role restoration'
           });
           recreated = true;
         }
@@ -117,7 +117,7 @@ export async function handleBotAddEvent(member) {
     // Unauthorized bot added! Kick or ban the unauthorized bot
     try {
       if (!settings.dry_run) {
-        await member.kick('Argoni Anti-Nuke: Unauthorized bot added by non-trusted user');
+        await member.kick('AVA Anti-Nuke: Unauthorized bot added by non-trusted user');
       }
     } catch (_) {}
 
@@ -126,7 +126,7 @@ export async function handleBotAddEvent(member) {
       guild,
       executor,
       settings.punishment || 'ban',
-      `Argoni Anti-Nuke: Added unauthorized bot (${member.user.tag})`,
+      `AVA Anti-Nuke: Added unauthorized bot (${member.user.tag})`,
       Boolean(settings.dry_run)
     );
 
@@ -179,7 +179,7 @@ export async function handleRoleUpdateEvent(oldRole, newRole) {
     // Revert permissions immediately
     try {
       if (!settings.dry_run) {
-        await newRole.setPermissions(oldRole.permissions, 'Argoni Anti-Nuke: Reverting unauthorized dangerous permission grant');
+        await newRole.setPermissions(oldRole.permissions, 'AVA Anti-Nuke: Reverting unauthorized dangerous permission grant');
       }
     } catch (err) {
       logger.warn({ err }, 'Could not revert role permissions');
@@ -190,7 +190,7 @@ export async function handleRoleUpdateEvent(oldRole, newRole) {
       guild,
       executor,
       settings.punishment || 'ban',
-      `Argoni Anti-Nuke: Unauthorized dangerous permission grant on role ${newRole.name}`,
+      `AVA Anti-Nuke: Unauthorized dangerous permission grant on role ${newRole.name}`,
       Boolean(settings.dry_run)
     );
 
@@ -236,14 +236,14 @@ export async function handleWebhookCreateEvent(channel) {
     if (count >= limit) {
       // Delete target webhook if found
       if (entry.target?.delete && !settings.dry_run) {
-        await entry.target.delete('Argoni Anti-Nuke: Webhook spam protection').catch(() => {});
+        await entry.target.delete('AVA Anti-Nuke: Webhook spam protection').catch(() => {});
       }
 
       const punishmentResult = await punishOffender(
         guild,
         executor,
         settings.punishment || 'ban',
-        `Argoni Anti-Nuke: Webhook creation spam (${count} webhooks in ${windowSecs}s)`,
+        `AVA Anti-Nuke: Webhook creation spam (${count} webhooks in ${windowSecs}s)`,
         Boolean(settings.dry_run)
       );
 

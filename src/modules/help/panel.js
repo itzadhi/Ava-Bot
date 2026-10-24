@@ -20,7 +20,7 @@ import { greyButton } from '../../utils/ui/greyButton.js';
 import { safeRespond } from '../../core/interactions/safeRespond.js';
 
 /**
- * Category definitions matching Argoni's modular architecture.
+ * Category definitions matching AVA's modular architecture.
  * Organizes core tools into "Main Categories" and extended systems into "Extra Categories".
  */
 export const CATEGORY_DEFINITIONS = {
@@ -195,7 +195,7 @@ export function buildHelpMenuPayload({ user, client, prefix = 'a!', sessionId })
   const container = new ContainerBuilder();
 
   const totalCommands = registry.getAll().length;
-  const botName = theme.botName || client?.user?.username || 'Argoni';
+  const botName = theme.botName || client?.user?.username || 'AVA';
   const dot = theme.emojis.dot || '•';
   const arrow = theme.emojis.arrow || '❯';
   const butterfly = theme.emojis.butterfly || '🦋';

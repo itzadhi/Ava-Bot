@@ -14,9 +14,9 @@ export async function checkBlacklist(ctx, command) {
       const payload = errorCard({
         title: 'Access Denied',
         reason: result.type === 'user' 
-          ? 'Your account has been restricted from accessing Argoni.'
-          : 'This guild has been blacklisted from using Argoni.',
-        fix: 'Contact Argoni Support if you believe this is in error.',
+          ? 'Your account has been restricted from accessing AVA.'
+          : 'This guild has been blacklisted from using AVA.',
+        fix: 'Contact AVA Support if you believe this is in error.',
         ephemeral: true
       });
       await ctx.reply(payload);

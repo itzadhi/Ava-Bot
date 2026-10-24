@@ -91,7 +91,7 @@ export async function handleBoostMemberUpdate(oldMember, newMember) {
 
       if (canManageRoles && !newMember.roles.cache.has(roleId)) {
         try {
-          await newMember.roles.add(roleId, 'Argoni Auto-Booster Role: Member boosted the server');
+          await newMember.roles.add(roleId, 'AVA Auto-Booster Role: Member boosted the server');
           logger.info({ guildId: guild.id, userId: newMember.id, roleId }, 'Auto-assigned booster role');
         } catch (err) {
           logger.warn({ err, roleId }, 'Failed to auto-assign booster role');
@@ -131,7 +131,7 @@ export async function handleBoostMemberUpdate(oldMember, newMember) {
 
       if (canManageRoles && newMember.roles.cache.has(roleId)) {
         try {
-          await newMember.roles.remove(roleId, 'Argoni Auto-Booster Role: Server boost expired');
+          await newMember.roles.remove(roleId, 'AVA Auto-Booster Role: Server boost expired');
           logger.info({ guildId: guild.id, userId: newMember.id, roleId }, 'Removed booster role');
         } catch (err) {
           logger.warn({ err, roleId }, 'Failed to remove booster role');

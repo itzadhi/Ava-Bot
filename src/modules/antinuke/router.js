@@ -133,7 +133,7 @@ export async function handleAntiNukeInteraction(interaction) {
     let unbanned = 0;
     for (const uid of offenders) {
       try {
-        await interaction.guild.bans.remove(uid, 'Argoni Anti-Nuke: Reverting incident bans');
+        await interaction.guild.bans.remove(uid, 'AVA Anti-Nuke: Reverting incident bans');
         unbanned++;
       } catch (_) {}
     }

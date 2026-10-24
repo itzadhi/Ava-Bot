@@ -40,7 +40,7 @@ async function runPreview() {
       ]
     }),
     homeCard: homeCard({
-      title: 'Argoni Control Center',
+      title: 'AVA Control Center',
       subtitle: 'Universal Server Snapshots • Live Guild Sync • Blueprint Hub'
     }),
     loadingCard: loadingCard({
@@ -57,10 +57,10 @@ async function runPreview() {
       title: 'Restore Incomplete',
       subtitle: 'Could not complete role hierarchy restoration.',
       reason: 'The bot role is positioned lower than the "Moderator" role in server settings.',
-      fix: 'Move the "Argoni" role above other roles in Server Settings -> Roles.'
+      fix: 'Move the "AVA" role above other roles in Server Settings -> Roles.'
     }),
     infoCard: infoCard({
-      title: 'About Argoni',
+      title: 'About AVA',
       subtitle: 'Modern Server Backup, Restore & Sync Platform',
       body: '> 🧩 **Engine**: Discord Components V2\n> 🔒 **Encryption**: AES-256-GCM at rest\n> 🌐 **Cross-Server**: Universal Server Cloning'
     }),
@@ -113,7 +113,7 @@ async function runPreview() {
       customIdPrefix: 'bk_list'
     }),
     brandCard: brandCard({
-      title: 'Argoni Discord Engine'
+      title: 'AVA Discord Engine'
     })
   };
 

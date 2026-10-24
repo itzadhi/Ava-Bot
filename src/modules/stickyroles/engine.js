@@ -68,7 +68,7 @@ export async function handleStickyRoleMemberRejoin(member) {
 
   if (validRoles.length > 0) {
     try {
-      await member.roles.add(validRoles, 'Argoni Sticky Roles: Restoring previous member roles upon rejoining');
+      await member.roles.add(validRoles, 'AVA Sticky Roles: Restoring previous member roles upon rejoining');
       logger.info({ guildId: guild.id, userId: member.id, roles: validRoles }, 'Restored member sticky roles upon rejoin');
     } catch (err) {
       logger.warn({ err, guildId: guild.id, userId: member.id }, 'Error adding sticky roles to rejoining member');

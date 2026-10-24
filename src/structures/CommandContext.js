@@ -85,7 +85,7 @@ export class CommandContext {
   }
 
   /**
-   * Replies with a card payload along with the Argoni brand logo attachment
+   * Replies with a card payload along with the AVA brand logo attachment
    * @param {object} cardPayload
    */
   async replyWithLogo(cardPayload) {

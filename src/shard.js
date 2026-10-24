@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const botFile = path.join(__dirname, 'index.js');
 
-logger.info('Initializing Argoni ShardingManager (Scale-ready for 2,500+ guilds)...');
+logger.info('Initializing AVA ShardingManager (Scale-ready for 2,500+ guilds)...');
 
 export const manager = new ShardingManager(botFile, {
   totalShards: 'auto',

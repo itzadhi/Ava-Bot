@@ -199,7 +199,7 @@ export async function restoreChannelBatch(guild, snapshots) {
         position: snap.position ?? undefined,
         parent: parentId || undefined,
         permissionOverwrites: overwrites,
-        reason: 'Argoni Anti-Nuke: Automated emergency channel restoration'
+        reason: 'AVA Anti-Nuke: Automated emergency channel restoration'
       };
 
       if (snap.type === ChannelType.GuildVoice || snap.type === ChannelType.GuildStageVoice) {
@@ -307,7 +307,7 @@ export async function handleChannelDeleteEvent(channel) {
         guild,
         executor,
         settings.punishment || 'ban',
-        `Argoni Anti-Nuke: Mass channel deletion detected (${windowList.length} channels in ${windowSecs}s)`,
+        `AVA Anti-Nuke: Mass channel deletion detected (${windowList.length} channels in ${windowSecs}s)`,
         Boolean(settings.dry_run)
       );
 

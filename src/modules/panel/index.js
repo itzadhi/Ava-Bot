@@ -71,7 +71,7 @@ export async function buildDashboardPayload({ guild, user, client, sessionId }) 
 
   // 1. Heading
   container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(`## ${theme.emojis.gear} Argoni Control Dashboard`)
+    new TextDisplayBuilder().setContent(`## ${theme.emojis.gear} AVA Control Dashboard`)
   );
 
   // 2. Info lines
@@ -322,7 +322,7 @@ export async function startDashboardSession(ctx) {
   if (!isServerOwner && !isBotOwner && !hasManageGuild) {
     return ctx.replyError(
       'Missing Manage Server Permission',
-      'You need the `Manage Server` permission to access the Argoni Control Dashboard.'
+      'You need the `Manage Server` permission to access the AVA Control Dashboard.'
     );
   }
 

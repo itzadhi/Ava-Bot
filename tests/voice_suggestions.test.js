@@ -635,7 +635,7 @@ test('Bot Profile: /botprofile updates guild settings and calls editMe', async (
     guild: mockGuild,
     user: { id: 'owner_user_1', tag: 'owner#0001' },
     member: { permissions: { has: () => true } },
-    client: { user: { username: 'Argoni', displayAvatarURL: () => 'https://cdn.discordapp.com/embed/avatars/0.png' } },
+    client: { user: { username: 'AVA', displayAvatarURL: () => 'https://cdn.discordapp.com/embed/avatars/0.png' } },
     args: {
       name: 'Custom Hedwig',
       about_me: 'I am the server assistant!',

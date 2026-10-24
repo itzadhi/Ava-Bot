@@ -37,7 +37,7 @@ test('defineModule and ArgoniModule create valid module structures', () => {
     }
   });
 
-  assert.ok(sampleModule instanceof ArgoniModule);
+  assert.ok(sampleModule instanceof AvaModule);
   assert.equal(sampleModule.name, 'testmod');
   assert.equal(sampleModule.version, '2.1.0');
   assert.equal(sampleModule.commands.length, 1);
@@ -99,7 +99,7 @@ test('ModuleRegistry registers commands, components, and triggers init/destroy h
 test('backupModule is a fully compliant ArgoniModule with commands, components, and cron', async () => {
   const { backupModule, createServerBackup, restoreServerBackup } = await import('../src/modules/backup/index.js');
 
-  assert.ok(backupModule instanceof ArgoniModule);
+  assert.ok(backupModule instanceof AvaModule);
   assert.equal(backupModule.name, 'backup');
   assert.equal(typeof createServerBackup, 'function');
   assert.equal(typeof restoreServerBackup, 'function');

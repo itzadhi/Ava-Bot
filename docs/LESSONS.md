@@ -53,3 +53,11 @@ Every lesson follows the format: **What Went Wrong** → **Root Cause** → **Ru
 - **What Went Wrong:** Installing the bot in a headless Pterodactyl container would fail during `npm install` because `canvas` (node-canvas) requires `node-gyp`, Cairo, Pango, and gcc.
 - **Root Cause:** `canvas` was included in `package.json` dependencies alongside `@napi-rs/canvas`.
 - **Rule to Prevent:** Only keep prebuilt native dependencies (`@napi-rs/canvas`). Never add packages requiring `node-gyp` or native C/C++ compilation on the server.
+
+---
+
+## Lesson 8: Duplicate Export Statements in ESM Modules
+- **What Went Wrong:** Bot failed to load with `SyntaxError: Duplicate export of 'createAva'` and `Duplicate export of 'bootstrap'`.
+- **Root Cause:** Functions or classes were declared with inline `export` and also listed in a trailing `export { ... }` object.
+- **Rule to Prevent:** Standardize export conventions. Either use inline exports or a unified `export { ... }` block, never duplicate export bindings for the same name.
+

@@ -126,7 +126,7 @@ export function startScheduler(client) {
     await runGuildRetentionCheck();
   });
 
-  logger.info('Argoni background scheduler initialized (interval: */15 * * * *)');
+  logger.info('AVA background scheduler initialized (interval: */15 * * * *)');
 }
 
 /**
@@ -136,7 +136,7 @@ export function stopScheduler() {
   if (cronJob) {
     cronJob.stop();
     cronJob = null;
-    logger.info('Argoni background scheduler stopped');
+    logger.info('AVA background scheduler stopped');
   }
 }
 

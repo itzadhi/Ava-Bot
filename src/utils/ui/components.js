@@ -675,7 +675,7 @@ export function logCard({
     );
   }
 
-  blocks.push(new TextDisplayBuilder().setContent(format.subtext(`Category: ${category} • Argoni Vault`)));
+  blocks.push(new TextDisplayBuilder().setContent(format.subtext(`Category: ${category} • AVA Vault`)));
 
   return container({ blocks, ephemeral: false });
 }

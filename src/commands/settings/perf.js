@@ -54,7 +54,7 @@ export function buildPerfCard(client, ephemeral = true) {
     title: '⚡ System Performance Diagnostics',
     subtitle: 'Real-time gateway telemetry and interaction health monitoring',
     body,
-    subtext: 'Argoni Core Telemetry • Components V2',
+    subtext: 'AVA Core Telemetry • Components V2',
     rows: [row],
     ephemeral
   });

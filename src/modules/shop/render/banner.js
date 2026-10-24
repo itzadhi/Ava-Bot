@@ -50,7 +50,7 @@ export async function renderBanner({
   compact = false,
   productImage = null
 }) {
-  const cleanShopName = (shopName && shopName !== 'Argoni Store') ? shopName : 'Store';
+  const cleanShopName = (shopName && shopName !== 'AVA Store') ? shopName : 'Store';
   const cacheKey = getBannerCacheKey({ product, theme, shopName: cleanShopName, compact });
   if (bannerCache.has(cacheKey)) {
     return bannerCache.get(cacheKey);

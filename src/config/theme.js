@@ -7,7 +7,7 @@ import { config } from '../config.js';
  */
 export const theme = {
   // Brand identity
-  botName: process.env.BOT_NAME || 'Argoni',
+  botName: process.env.BOT_NAME || 'AVA',
   defaultPrefix: process.env.DEFAULT_PREFIX || config?.DEFAULT_PREFIX || 'a!',
 
   // Color tokens for text/markdown reference (NO accent color - containers are borderless dark cards)
@@ -77,15 +77,15 @@ export const theme = {
 
   // Standardized footer text
   footer: {
-    text: 'Argoni • Components V2'
+    text: 'AVA • Components V2'
   },
 
   // Official Links for link rows & help menu
   links: {
-    invite: process.env.INVITE_URL || config?.INVITE_URL || 'https://discord.com/oauth2/authorize?client_id=argoni',
-    website: process.env.WEBSITE_URL || config?.WEBSITE_URL || 'https://argoni.app',
-    support: process.env.SUPPORT_SERVER_URL || config?.SUPPORT_SERVER_URL || 'https://discord.gg/argoni',
-    docs: process.env.DOCS_URL || (config?.WEBSITE_URL ? `${config.WEBSITE_URL}/docs` : 'https://argoni.app/docs')
+    invite: process.env.INVITE_URL || config?.INVITE_URL || 'https://discord.com/oauth2/authorize?client_id=ava',
+    website: process.env.WEBSITE_URL || config?.WEBSITE_URL || 'https://ava.gg',
+    support: process.env.SUPPORT_SERVER_URL || config?.SUPPORT_SERVER_URL || 'https://discord.gg/ava',
+    docs: process.env.DOCS_URL || (config?.WEBSITE_URL ? `${config.WEBSITE_URL}/docs` : 'https://ava.gg/docs')
   }
 };
 

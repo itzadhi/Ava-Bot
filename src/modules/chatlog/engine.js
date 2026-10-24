@@ -52,7 +52,7 @@ export function extractMessagePayload(m) {
 export async function recordLiveMessage(message) {
   try {
     // Ignore webhooks created by our own replay engine to prevent infinite loops
-    if (message.webhookId && message.author?.username?.startsWith('Argoni')) return;
+    if (message.webhookId && message.author?.username?.startsWith('AVA')) return;
     if (!message.guild || !message.channel || typeof message.channel.isTextBased !== 'function' || !message.channel.isTextBased()) return;
 
     // Check if chatlog / vault protection is enabled for this server
@@ -189,7 +189,7 @@ export async function autoRestoreChannel({ guild, channel, user, onProgress = nu
   let webhook = hooks.find(h => h.owner?.id === guild.client.user.id);
   if (!webhook) {
     webhook = await channel.createWebhook({
-      name: 'Argoni Auto-Recovery',
+      name: 'AVA Auto-Recovery',
       reason: 'Automatic Chat Restoration Engine'
     });
   }
@@ -402,7 +402,7 @@ export async function restoreChannelChatlog({ guild, channel, user, chatlogRecor
   let webhook = hooks.find(h => h.owner?.id === guild.client.user.id);
   if (!webhook) {
     webhook = await channel.createWebhook({
-      name: 'Argoni Auto-Recovery',
+      name: 'AVA Auto-Recovery',
       reason: 'Automatic Chat Restoration Engine'
     });
   }

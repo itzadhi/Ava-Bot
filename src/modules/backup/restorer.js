@@ -112,7 +112,7 @@ export async function restoreServerBackup({
       for (const ch of channelsToDelete) {
         try {
           if (typeof ch.delete === 'function') {
-            await ch.delete('Argoni Clean Restore Wipe');
+            await ch.delete('AVA Clean Restore Wipe');
             deletedChannels++;
           }
         } catch (err) {
@@ -129,7 +129,7 @@ export async function restoreServerBackup({
       for (const role of rolesToDelete) {
         try {
           if (typeof role.delete === 'function') {
-            await role.delete('Argoni Clean Restore Wipe');
+            await role.delete('AVA Clean Restore Wipe');
             deletedRoles++;
           }
         } catch (err) {
@@ -152,7 +152,7 @@ export async function restoreServerBackup({
     // Apply origin @everyone permissions if present in snapshot
     if (snapshot.everyonePermissions && guild.roles?.everyone && typeof guild.roles.everyone.setPermissions === 'function') {
       try {
-        await guild.roles.everyone.setPermissions(BigInt(snapshot.everyonePermissions), 'Argoni Restore: @everyone permissions');
+        await guild.roles.everyone.setPermissions(BigInt(snapshot.everyonePermissions), 'AVA Restore: @everyone permissions');
       } catch (err) {
         logger.warn(`Could not update @everyone permissions: ${err.message}`);
       }
@@ -180,7 +180,7 @@ export async function restoreServerBackup({
               hoist: Boolean(roleData.hoist),
               permissions: perms,
               mentionable: Boolean(roleData.mentionable),
-              reason: 'Argoni Role Hierarchy Engine'
+              reason: 'AVA Role Hierarchy Engine'
             });
 
             if (newRole && newRole.id) {
@@ -257,7 +257,7 @@ export async function restoreServerBackup({
               type: ChannelType.GuildCategory,
               position: cat.position,
               permissionOverwrites: mappedCatOverwrites,
-              reason: 'Argoni Category Architecture Restore'
+              reason: 'AVA Category Architecture Restore'
             });
 
             if (newCat && newCat.id) {
@@ -311,7 +311,7 @@ export async function restoreServerBackup({
               userLimit: ch.userLimit && ch.type === ChannelType.GuildVoice ? ch.userLimit : undefined,
               rateLimitPerUser: ch.rateLimitPerUser || undefined,
               permissionOverwrites: mappedOverwrites,
-              reason: 'Argoni Channel Architecture Restore'
+              reason: 'AVA Channel Architecture Restore'
             });
             restoredChannelsCount++;
           }
@@ -365,7 +365,7 @@ export async function restoreServerBackup({
           logger.warn(`Could not update guild settings: ${err.message}`);
           if (editPayload.icon && typeof guild.setIcon === 'function') {
             try {
-              await guild.setIcon(editPayload.icon, 'Argoni Server Logo Restore');
+              await guild.setIcon(editPayload.icon, 'AVA Server Logo Restore');
             } catch (_) {}
           }
         }
@@ -378,7 +378,7 @@ export async function restoreServerBackup({
           await guild.emojis.create({
             attachment: emoji.url,
             name: emoji.name,
-            reason: 'Argoni Restore'
+            reason: 'AVA Restore'
           });
         } catch (_) {}
       }
@@ -399,8 +399,8 @@ export async function restoreServerBackup({
           let webhook = null;
           try {
             webhook = await targetChannel.createWebhook({
-              name: 'Argoni Replay',
-              reason: 'Argoni Message History Restore'
+              name: 'AVA Replay',
+              reason: 'AVA Message History Restore'
             });
             for (const msg of msgList) {
               try {

@@ -160,7 +160,7 @@ export const premiumTab = {
         return { status: 'Error: Tier must be either "pro" or "ultimate"' };
       }
 
-      const code = `ARGONI-${tier.toUpperCase()}-${generateShortId(4, 2)}`;
+      const code = `AVA-${tier.toUpperCase()}-${generateShortId(4, 2)}`;
       await createPremiumCode({
         code,
         tier,

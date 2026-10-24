@@ -158,7 +158,7 @@ export async function onMessageCreate(message) {
       title: 'Execution Error',
       subtitle: `Failed to execute ${usedPrefix}${command.name}.`,
       reason: 'An unexpected internal error occurred.',
-      fix: 'Please try again in a few moments or report to Argoni support.'
+      fix: 'Please try again in a few moments or report to AVA support.'
     });
 
     await message.reply({

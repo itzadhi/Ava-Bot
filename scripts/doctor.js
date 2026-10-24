@@ -8,9 +8,10 @@ import { componentRegistry } from '../src/structures/ComponentRegistry.js';
 import { moduleRegistry } from '../src/structures/ModuleRegistry.js';
 import { loadCommands, loadModules } from '../src/structures/loader.js';
 import { getSupabase } from '../src/db/index.js';
+import { checkBrandConsistency } from './check-brand.js';
 
 /**
- * System Doctor & Health Diagnostic Engine for Argoni
+ * System Doctor & Health Diagnostic Engine for AVA
  * Runs static analysis, dependency health, runtime registry, and schema parity.
  */
 export async function runDiagnostics() {
@@ -160,12 +161,24 @@ export async function runDiagnostics() {
     addCheck('Database Schema Parity', 'FAIL', err.message);
   }
 
+  // 7. AVA BRAND CONSISTENCY CHECK
+  try {
+    const violations = checkBrandConsistency();
+    if (violations.length === 0) {
+      addCheck('AVA Brand Consistency', 'PASS', '0 legacy brand names found across all source files');
+    } else {
+      addCheck('AVA Brand Consistency', 'FAIL', `${violations.length} legacy brand occurrence(s) in src/: ${violations.slice(0, 2).map(v => `${v.file}:${v.line}`).join(', ')}`);
+    }
+  } catch (err) {
+    addCheck('AVA Brand Consistency', 'FAIL', err.message);
+  }
+
   return results;
 }
 
 // CLI runner
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  console.log('\n🩺 Running Argoni System Doctor Diagnostic Suite...\n');
+  console.log('\n🩺 Running AVA System Doctor Diagnostic Suite...\n');
   const t0 = performance.now();
   runDiagnostics().then(results => {
     const duration = ((performance.now() - t0) / 1000).toFixed(2);

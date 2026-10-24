@@ -4,7 +4,7 @@ import { startDashboardSession } from '../../modules/panel/index.js';
 export default {
   name: 'panel',
   aliases: ['dash', 'dashboard', 'control'],
-  description: 'Open the central Argoni Control Dashboard for all server modules',
+  description: 'Open the central AVA Control Dashboard for all server modules',
   category: 'settings',
   permissions: [PermissionFlagsBits.ManageGuild],
   cooldown: 3,

@@ -621,7 +621,7 @@ export function mediaGalleryCard({
 }
 
 /**
- * Brand card configured with Argoni logo asset
+ * Brand card configured with AVA logo asset
  */
 export function brandCard({
   title = 'Bot Information',
@@ -645,7 +645,7 @@ export function brandCard({
 
 /**
  * Ultra-rich Home / Command Hub Card
- * Displays the Argoni Control Center with live status chips, command matrix, and interactive controls
+ * Displays the AVA Control Center with live status chips, command matrix, and interactive controls
  */
 export function homeCard({
   title = 'Control Center',
@@ -715,7 +715,7 @@ export function homeCard({
 }
 
 /**
- * Unified Argoni Restoration Console Panel
+ * Unified AVA Restoration Console Panel
  * A single, cohesive, in-place updating Components V2 panel for Pre-Flight Confirmation,
  * Live Pipeline Execution, and Verified Completion Manifest.
  */

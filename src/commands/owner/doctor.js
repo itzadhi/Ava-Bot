@@ -28,7 +28,7 @@ export default {
 export function renderDoctorCard(results) {
   const builder = ComponentBuilder.create().setEphemeral(true);
 
-  builder.setTitle('Argoni System Doctor Diagnostics', '🩺');
+  builder.setTitle('AVA System Doctor Diagnostics', '🩺');
   builder.setSubtitle(
     `Diagnostic check run at ${new Date(results.timestamp).toLocaleTimeString()} • ` +
     `Overall Status: **${results.passed ? 'ALL SYSTEMS OPERATIONAL' : 'ISSUES DETECTED'}**`
