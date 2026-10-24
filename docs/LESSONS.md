@@ -124,6 +124,14 @@ Every lesson follows the format: **What Went Wrong** → **Root Cause** → **Ru
 - **Root Cause:** Standard string literals process `\` as an escape prefix, corrupting ASCII art containing backslashes (such as `\\` or `\_`) unless double-escaped or loaded from plain text.
 - **Rule to Prevent:** Store complex ASCII art containing backslashes in dedicated plain text asset files (`assets/banner/ava.txt`) read synchronously at startup, or use `String.raw`. Validate exact art width and character content via snapshot unit tests.
 
+---
+
+## Lesson 18: Incomplete Fast-Path Lockdown Permissions Restoration
+- **What Went Wrong:** Server unlock left `@everyone` with 0 permissions (`SendMessages: false`), completely muting normal server activity.
+- **Root Cause:** Fast-path lock mutated `@everyone` permissions before ensuring the original role permission bitfield was committed to the database plan; on unlock, an empty plan skipped role permission restoration.
+- **Rule to Prevent:** Never mutate Discord role permissions until the pre-lock permission bitfield is saved and verified in the database plan. On unlock, if the plan is missing, fall back to standard Discord default permissions for `@everyone` rather than leaving bitfield at 0.
+
+
 
 
 

@@ -202,6 +202,15 @@ export async function runHandler(interaction, handler, meta = {}) {
         }), { ephemeral: true });
       }
 
+      // Graceful expiration card for pre-reset or missing database records
+      if (err.code === 'PGRST116' || err.message?.includes('expired') || err.message?.includes('not found')) {
+        return await safeRespond(safeInteraction, errorCard({
+          title: 'Panel Expired',
+          reason: 'This panel expired, run the command again.',
+          ephemeral: true
+        }), { ephemeral: true });
+      }
+
       // Persist to error log database in background
       logError({
         scope: `handler:${identifier}`,

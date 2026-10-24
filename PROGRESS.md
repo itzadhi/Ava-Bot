@@ -36,6 +36,14 @@
 - [x] **Phase 4: Small Log Fixes** (COMPLETED: Child loggers for startup lines `[DATABASE]` and `[BLACKLIST]`; message length capping to prevent wrapping beyond 120 columns).
 - [x] **Verification**: `npm run banner:preview`, `node --test tests/banner.test.js` (4/4 PASS), `npm run doctor` (8/8 PASS), `npm run lessons:check` (0 violations), zero `console.*` in changed logger code.
 
+## Fresh Start (Branch: `fresh-start`)
+- [x] **Phase 0: Stop Everything First** (COMPLETED: Bot stopped; 0 heartbeats confirmed).
+- [x] **Phase 1: Unlock Any Locked Servers** (COMPLETED: Both Discord servers restored; `@everyone` role permission bitfield restored from 0 to standard messaging permissions via `scripts/unlock-servers.js`).
+- [x] **Phase 2: Complete Local Backup** (COMPLETED: Full export of 2,977 rows across 67 tables saved to `backups/pre-reset-2026-10-24T17-06-41-577Z/`; shop stock encrypted; added to `.gitignore`).
+- [x] **Phase 3: The Reset Tool** (COMPLETED: `supabase/migrations/20261024_reset_all.sql` created and executed `ava_reset_all()` RPC; 60 tables truncated; 85 storage objects deleted; local runtime caches emptied; all bot tables verified at 0 rows).
+- [x] **Phase 4: Start Clean & Seed** (COMPLETED: Clean startup seeded `guild_settings` with 1 row per guild; 0 stuck jobs; 0 lockdown rows; 27 commands cached; `scripts/list-orphans.js` scans pre-reset Discord messages; `tests/fresh_start.test.js` verified pre-reset buttons show "Panel Expired" card).
+- [x] **Verification**: `npm run doctor` 8/8 PASS; `npm run lessons:check` 0 violations; `tests/fresh_start.test.js` 2/2 PASS.
+
 
 
 

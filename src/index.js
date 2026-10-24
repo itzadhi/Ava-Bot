@@ -290,7 +290,7 @@ class AvaClient extends Client {
       startScheduler(readyClient);
       startTicketScheduler(readyClient);
       startShopExpiryJob(readyClient);
-      startReliabilityWatchdog(readyClient, { cgroupLimitMb: cgroupLimitMb || 1024 });
+      startReliabilityWatchdog(readyClient);
 
       // Parallel cache preloads for instant readiness
       await Promise.all([
