@@ -1,0 +1,4317 @@
+{
+  "guild": {
+    "id": "1545306915242778656",
+    "name": "Adhi Development"
+  },
+  "timestamp": "2026-10-24T17:55:45.226Z",
+  "bot": {
+    "id": "1561027896242343956",
+    "tag": "Argoni#0409"
+  },
+  "roles": {
+    "everyone": {
+      "id": "1545306915242778656",
+      "name": "@everyone",
+      "permissions": "277129317953",
+      "bits": "277129317953",
+      "present": [
+        "View Channel",
+        "Send Messages",
+        "Send Messages in Threads",
+        "Add Reactions",
+        "Read Message History",
+        "Embed Links",
+        "Attach Files",
+        "Connect",
+        "Speak",
+        "Use Application Commands"
+      ],
+      "missing": [
+        "Use External Emojis",
+        "Create Public Threads"
+      ]
+    },
+    "members": []
+  },
+  "channels": {
+    "totalChannels": 52,
+    "damagedCount": 2,
+    "intentionalReadOnlyCount": 0,
+    "damagedChannels": [
+      {
+        "id": "1561801663055011881",
+        "name": "﹒🏷️﹒tickets﹒",
+        "type": 0,
+        "denyBits": "2048",
+        "denies": {
+          "SendMessages": true,
+          "AddReactions": false,
+          "SendMessagesInThreads": false,
+          "Connect": false
+        }
+      },
+      {
+        "id": "1561801705522470974",
+        "name": "﹒⚙️﹒ticket﹒logs﹒",
+        "type": 0,
+        "denyBits": "2048",
+        "denies": {
+          "SendMessages": true,
+          "AddReactions": false,
+          "SendMessagesInThreads": false,
+          "Connect": false
+        }
+      }
+    ],
+    "intentionalChannels": []
+  },
+  "safety": {
+    "verificationLevel": 2,
+    "safetyAlertsChannelId": null,
+    "incidentsData": null,
+    "slowmodeChannelCount": 0,
+    "slowmodeChannels": []
+  },
+  "database": {
+    "error": "db.from(...).select(...).eq(...).catch is not a function"
+  },
+  "auditLogs": {
+    "botEntriesFound": 96,
+    "entries": [
+      {
+        "id": "1563600439168073872",
+        "actionType": 31,
+        "targetId": "1545306915242778656",
+        "reason": "AVA Fresh Start: Restoring standard @everyone permissions",
+        "changes": [
+          {
+            "key": "permissions",
+            "new_value": "277129317953",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1562491804534702130",
+        "actionType": 14,
+        "targetId": "1561801705522470974",
+        "reason": null,
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "2048",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1562491802781618358",
+        "actionType": 14,
+        "targetId": "1561801663055011881",
+        "reason": null,
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "2048",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1562491801028403302",
+        "actionType": 14,
+        "targetId": "1545829084896952411",
+        "reason": null,
+        "changes": [
+          {
+            "key": "allow",
+            "new_value": "1024",
+            "old_value": "0"
+          },
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "1024"
+          }
+        ]
+      },
+      {
+        "id": "1561820067706966018",
+        "actionType": 50,
+        "targetId": "1561820067706966017",
+        "reason": "Argoni Chatlog Restoration",
+        "changes": [
+          {
+            "key": "channel_id",
+            "new_value": "1561790133186076693"
+          },
+          {
+            "key": "application_id",
+            "new_value": "1561027896242343956"
+          },
+          {
+            "key": "name",
+            "new_value": "Argoni Replay"
+          },
+          {
+            "key": "type",
+            "new_value": 1
+          }
+        ]
+      },
+      {
+        "id": "1561801715970347130",
+        "actionType": 10,
+        "targetId": "1561801715970347129",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒⚙️﹒mod﹒logs﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "1180680",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1561801551247573052",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              },
+              {
+                "id": "1561801546742763671",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801712497590397",
+        "actionType": 10,
+        "targetId": "1561801712497590396",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒⚙️﹒wick﹒logs﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "1180680",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1561801551247573052",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801546742763671",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801708449960119",
+        "actionType": 10,
+        "targetId": "1561801708449960118",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒⚙️﹒security﹒logs﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "1180680",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801551247573052",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              },
+              {
+                "id": "1561801546742763671",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801705522470975",
+        "actionType": 10,
+        "targetId": "1561801705522470974",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒⚙️﹒ticket﹒logs﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "1180680",
+                "deny": "0"
+              },
+              {
+                "id": "1561801546742763671",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              },
+              {
+                "id": "1561801551247573052",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801703165001820",
+        "actionType": 10,
+        "targetId": "1561801703165001819",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒📠﹒j2c﹒interface﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801530972053684",
+                "type": 0,
+                "allow": "0",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801700522725407",
+        "actionType": 10,
+        "targetId": "1561801700522725406",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🎙️﹒music﹒cmds﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "68608",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801698308006039",
+        "actionType": 10,
+        "targetId": "1561801698308006038",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🫂﹒share﹒projects﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 15
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "available_tags",
+            "new_value": []
+          },
+          {
+            "key": "template",
+            "new_value": ""
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801695699410976",
+        "actionType": 10,
+        "targetId": "1561801695699410974",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🐝﹒coding﹒help﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 15
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "available_tags",
+            "new_value": []
+          },
+          {
+            "key": "template",
+            "new_value": ""
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801692998017027",
+        "actionType": 10,
+        "targetId": "1561801692998017026",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🧰﹒other﹒codes﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801690355736709",
+        "actionType": 10,
+        "targetId": "1561801690355736708",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🗃️﹒web﹒codes﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801688346665123",
+        "actionType": 10,
+        "targetId": "1561801688346665122",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒📦﹒codes﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801685754576972",
+        "actionType": 10,
+        "targetId": "1561801685754576971",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🦀﹒early﹒perks﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "1180680",
+                "deny": "0"
+              },
+              {
+                "id": "1561801546742763671",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              },
+              {
+                "id": "1561801551247573052",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801683099721742",
+        "actionType": 10,
+        "targetId": "1561801683099721740",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🦋﹒rich﹒basics﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "1180680",
+                "deny": "0"
+              },
+              {
+                "id": "1561801546742763671",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              },
+              {
+                "id": "1561801551247573052",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801680742383819",
+        "actionType": 10,
+        "targetId": "1561801680742383818",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🪺﹒rich﹒chat﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "1180680",
+                "deny": "0"
+              },
+              {
+                "id": "1561801546742763671",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              },
+              {
+                "id": "1561801551247573052",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801677961699370",
+        "actionType": 10,
+        "targetId": "1561801677961699369",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒💻﹒bot﹒cmds﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "68608",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801675239592120",
+        "actionType": 10,
+        "targetId": "1561801675239592118",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒📻﹒media﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "68608",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801672500453407",
+        "actionType": 10,
+        "targetId": "1561801672500453406",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒💭﹒social﹒chat﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "68608",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801670206292029",
+        "actionType": 10,
+        "targetId": "1561801670206292028",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒💝﹒blessers﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1561801530972053684",
+                "type": 0,
+                "allow": "0",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801667534389279",
+        "actionType": 10,
+        "targetId": "1561801667534389278",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🎁﹒perkz﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801530972053684",
+                "type": 0,
+                "allow": "0",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801665584304301",
+        "actionType": 10,
+        "targetId": "1561801665584304300",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🌾﹒feedbacks﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801663055011882",
+        "actionType": 10,
+        "targetId": "1561801663055011881",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🏷️﹒tickets﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801660370518097",
+        "actionType": 10,
+        "targetId": "1561801660370518096",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🪷﹒suggestions﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801657422061589",
+        "actionType": 10,
+        "targetId": "1561801657422061588",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🌴﹒live﹒mlb﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801654351822961",
+        "actionType": 10,
+        "targetId": "1561801654351822959",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🎋﹒promos﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1561801530972053684",
+                "type": 0,
+                "allow": "0",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801651763806319",
+        "actionType": 10,
+        "targetId": "1561801651763806318",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🪎﹒giveaways﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1561801530972053684",
+                "type": 0,
+                "allow": "0",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801649532436612",
+        "actionType": 10,
+        "targetId": "1561801649532436611",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🎐﹒shop﹒rules﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801647334887427",
+        "actionType": 10,
+        "targetId": "1561801647334887426",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒⛩️﹒web﹒store﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 15
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "available_tags",
+            "new_value": []
+          },
+          {
+            "key": "template",
+            "new_value": ""
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801644830752912",
+        "actionType": 10,
+        "targetId": "1561801644830752911",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒⛩️﹒bot﹒store﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 15
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "available_tags",
+            "new_value": []
+          },
+          {
+            "key": "template",
+            "new_value": ""
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801642314305577",
+        "actionType": 10,
+        "targetId": "1561801642314305576",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🐙﹒Join To Create﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 2
+          },
+          {
+            "key": "bitrate",
+            "new_value": 64000
+          },
+          {
+            "key": "user_limit",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "68608",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801639738998917",
+        "actionType": 10,
+        "targetId": "1561801639738998916",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒📞﹒general﹒vc﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 2
+          },
+          {
+            "key": "bitrate",
+            "new_value": 64000
+          },
+          {
+            "key": "user_limit",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "68608",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801636979015682",
+        "actionType": 10,
+        "targetId": "1561801636979015681",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒📯﹒sneek﹒peeks﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "274878105608",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1561801530972053684",
+                "type": 0,
+                "allow": "0",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801634684604500",
+        "actionType": 10,
+        "targetId": "1561801634684604499",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🎧﹒Music  Vc  ³﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 2
+          },
+          {
+            "key": "bitrate",
+            "new_value": 64000
+          },
+          {
+            "key": "user_limit",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "68608",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801631719497869",
+        "actionType": 10,
+        "targetId": "1561801631719497868",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒📍﹒guidelines﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801530972053684",
+                "type": 0,
+                "allow": "0",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "274878105608",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801629064495145",
+        "actionType": 10,
+        "targetId": "1561801629064495144",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🎧﹒Music  Vc  ²﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 2
+          },
+          {
+            "key": "bitrate",
+            "new_value": 64000
+          },
+          {
+            "key": "user_limit",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "68608",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801626757632142",
+        "actionType": 10,
+        "targetId": "1561801626757632141",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒📣﹒notice﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 5
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "274878105608",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801530972053684",
+                "type": 0,
+                "allow": "0",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801623695532092",
+        "actionType": 10,
+        "targetId": "1561801623188017326",
+        "reason": "Argoni Channel Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒🎧﹒Music  Vc  ¹﹒"
+          },
+          {
+            "key": "type",
+            "new_value": 2
+          },
+          {
+            "key": "bitrate",
+            "new_value": 64000
+          },
+          {
+            "key": "user_limit",
+            "new_value": 0
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "68608",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "nsfw",
+            "new_value": false
+          },
+          {
+            "key": "rate_limit_per_user",
+            "new_value": 0
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801613625004196",
+        "actionType": 10,
+        "targetId": "1561801613625004195",
+        "reason": "Argoni Category Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "↯    00:13    𓂃·"
+          },
+          {
+            "key": "type",
+            "new_value": 4
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "1180680",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1561801551247573052",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              },
+              {
+                "id": "1561801541063811307",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801546742763671",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801611024535694",
+        "actionType": 10,
+        "targetId": "1561801611024535693",
+        "reason": "Argoni Category Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "↯    00:12    𓂃·"
+          },
+          {
+            "key": "type",
+            "new_value": 4
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "1180680",
+                "deny": "0"
+              },
+              {
+                "id": "1561801546742763671",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              },
+              {
+                "id": "1561801551247573052",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801608843632701",
+        "actionType": 10,
+        "targetId": "1561801608843632700",
+        "reason": "Argoni Category Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "↯    00:11    𓂃·"
+          },
+          {
+            "key": "type",
+            "new_value": 4
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "68608",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801605899223293",
+        "actionType": 10,
+        "targetId": "1561801605899223292",
+        "reason": "Argoni Category Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "↯    00:10    𓂃·"
+          },
+          {
+            "key": "type",
+            "new_value": 4
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "68608",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801591315632202",
+        "actionType": 10,
+        "targetId": "1561801591315632200",
+        "reason": "Argoni Category Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "↯    00:09    𓂃·"
+          },
+          {
+            "key": "type",
+            "new_value": 4
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801588920553688",
+        "actionType": 10,
+        "targetId": "1561801588920553686",
+        "reason": "Argoni Category Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "↯    00:08    𓂃·"
+          },
+          {
+            "key": "type",
+            "new_value": 4
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801586379067412",
+        "actionType": 10,
+        "targetId": "1561801585913241656",
+        "reason": "Argoni Category Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "↯    00:07    𓂃·"
+          },
+          {
+            "key": "type",
+            "new_value": 4
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "1180680",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1561801551247573052",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801546742763671",
+                "type": 0,
+                "allow": "1049600",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801583992377525",
+        "actionType": 10,
+        "targetId": "1561801583531008144",
+        "reason": "Argoni Category Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "↯    00:06    𓂃·"
+          },
+          {
+            "key": "type",
+            "new_value": 4
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "68608",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801581081665620",
+        "actionType": 10,
+        "targetId": "1561801581081665616",
+        "reason": "Argoni Category Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "↯    00:05    𓂃·"
+          },
+          {
+            "key": "type",
+            "new_value": 4
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801578153906187",
+        "actionType": 10,
+        "targetId": "1561801578153906186",
+        "reason": "Argoni Category Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "↯    00:04    𓂃·"
+          },
+          {
+            "key": "type",
+            "new_value": 4
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801575876268064",
+        "actionType": 10,
+        "targetId": "1561801575876268063",
+        "reason": "Argoni Category Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "↯    00:03    𓂃·"
+          },
+          {
+            "key": "type",
+            "new_value": 4
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801573909266444",
+        "actionType": 10,
+        "targetId": "1561801573909266443",
+        "reason": "Argoni Category Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "↯    00:02    𓂃·"
+          },
+          {
+            "key": "type",
+            "new_value": 4
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "131080",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801571795345472",
+        "actionType": 10,
+        "targetId": "1561801571795345470",
+        "reason": "Argoni Category Architecture Restore",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "↯    00:01    𓂃·"
+          },
+          {
+            "key": "type",
+            "new_value": 4
+          },
+          {
+            "key": "permission_overwrites",
+            "new_value": [
+              {
+                "id": "1561801553675821086",
+                "type": 0,
+                "allow": "274878105608",
+                "deny": "0"
+              },
+              {
+                "id": "1561801538475794453",
+                "type": 0,
+                "allow": "10240",
+                "deny": "0"
+              },
+              {
+                "id": "1545306915242778656",
+                "type": 0,
+                "allow": "66560",
+                "deny": "0"
+              }
+            ]
+          },
+          {
+            "key": "flags",
+            "new_value": 0
+          }
+        ]
+      },
+      {
+        "id": "1561801555835883684",
+        "actionType": 30,
+        "targetId": "1561801555835883683",
+        "reason": "Argoni Role Hierarchy Engine",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "╭────────⎝ ・  Δ β Ω U T   M Σ   ・ ⎠───────➤"
+          },
+          {
+            "key": "permissions",
+            "new_value": "0"
+          },
+          {
+            "key": "color",
+            "new_value": 0
+          },
+          {
+            "key": "hoist",
+            "new_value": false
+          },
+          {
+            "key": "mentionable",
+            "new_value": false
+          },
+          {
+            "key": "colors",
+            "new_value": {
+              "primary_color": 0,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801553675821087",
+        "actionType": 30,
+        "targetId": "1561801553675821086",
+        "reason": "Argoni Role Hierarchy Engine",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒FounderZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "new_value": "8"
+          },
+          {
+            "key": "color",
+            "new_value": 12584454
+          },
+          {
+            "key": "hoist",
+            "new_value": true
+          },
+          {
+            "key": "mentionable",
+            "new_value": false
+          },
+          {
+            "key": "colors",
+            "new_value": {
+              "primary_color": 12584454,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801551247573053",
+        "actionType": 30,
+        "targetId": "1561801551247573052",
+        "reason": "Argoni Role Hierarchy Engine",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒ S. ManagerZz  ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "new_value": "0"
+          },
+          {
+            "key": "color",
+            "new_value": 6226604
+          },
+          {
+            "key": "hoist",
+            "new_value": true
+          },
+          {
+            "key": "mentionable",
+            "new_value": false
+          },
+          {
+            "key": "colors",
+            "new_value": {
+              "primary_color": 6226604,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801548646846618",
+        "actionType": 30,
+        "targetId": "1561801548646846617",
+        "reason": "Argoni Role Hierarchy Engine",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒ AdminZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "new_value": "0"
+          },
+          {
+            "key": "color",
+            "new_value": 10617087
+          },
+          {
+            "key": "hoist",
+            "new_value": true
+          },
+          {
+            "key": "mentionable",
+            "new_value": false
+          },
+          {
+            "key": "colors",
+            "new_value": {
+              "primary_color": 10617087,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801546742763672",
+        "actionType": 30,
+        "targetId": "1561801546742763671",
+        "reason": "Argoni Role Hierarchy Engine",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒ Head ModZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "new_value": "0"
+          },
+          {
+            "key": "color",
+            "new_value": 26131
+          },
+          {
+            "key": "hoist",
+            "new_value": true
+          },
+          {
+            "key": "mentionable",
+            "new_value": false
+          },
+          {
+            "key": "colors",
+            "new_value": {
+              "primary_color": 26131,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801543823528000",
+        "actionType": 30,
+        "targetId": "1561801543823527998",
+        "reason": "Argoni Role Hierarchy Engine",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒ ModZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "new_value": "0"
+          },
+          {
+            "key": "color",
+            "new_value": 8125817
+          },
+          {
+            "key": "hoist",
+            "new_value": true
+          },
+          {
+            "key": "mentionable",
+            "new_value": false
+          },
+          {
+            "key": "colors",
+            "new_value": {
+              "primary_color": 8125817,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801541508141207",
+        "actionType": 30,
+        "targetId": "1561801541063811307",
+        "reason": "Argoni Role Hierarchy Engine",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒ Ticket Support   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "new_value": "0"
+          },
+          {
+            "key": "color",
+            "new_value": 16383815
+          },
+          {
+            "key": "hoist",
+            "new_value": true
+          },
+          {
+            "key": "mentionable",
+            "new_value": false
+          },
+          {
+            "key": "colors",
+            "new_value": {
+              "primary_color": 16383815,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801538475794454",
+        "actionType": 30,
+        "targetId": "1561801538475794453",
+        "reason": "Argoni Role Hierarchy Engine",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒  StaffZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "new_value": "0"
+          },
+          {
+            "key": "color",
+            "new_value": 1117967
+          },
+          {
+            "key": "hoist",
+            "new_value": false
+          },
+          {
+            "key": "mentionable",
+            "new_value": false
+          },
+          {
+            "key": "colors",
+            "new_value": {
+              "primary_color": 1117967,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801536043229316",
+        "actionType": 30,
+        "targetId": "1561801536043229315",
+        "reason": "Argoni Role Hierarchy Engine",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒ PartnerZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "new_value": "0"
+          },
+          {
+            "key": "color",
+            "new_value": 1059781
+          },
+          {
+            "key": "hoist",
+            "new_value": false
+          },
+          {
+            "key": "mentionable",
+            "new_value": false
+          },
+          {
+            "key": "colors",
+            "new_value": {
+              "primary_color": 1059781,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801533803204642",
+        "actionType": 30,
+        "targetId": "1561801533803204641",
+        "reason": "Argoni Role Hierarchy Engine",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒ BotZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "new_value": "0"
+          },
+          {
+            "key": "color",
+            "new_value": 13041663
+          },
+          {
+            "key": "hoist",
+            "new_value": true
+          },
+          {
+            "key": "mentionable",
+            "new_value": false
+          },
+          {
+            "key": "colors",
+            "new_value": {
+              "primary_color": 13041663,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801530972053685",
+        "actionType": 30,
+        "targetId": "1561801530972053684",
+        "reason": "Argoni Role Hierarchy Engine",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "﹒ Family  ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "new_value": "0"
+          },
+          {
+            "key": "color",
+            "new_value": 2031360
+          },
+          {
+            "key": "hoist",
+            "new_value": true
+          },
+          {
+            "key": "mentionable",
+            "new_value": false
+          },
+          {
+            "key": "colors",
+            "new_value": {
+              "primary_color": 2031360,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801528875024506",
+        "actionType": 30,
+        "targetId": "1561801528875024505",
+        "reason": "Argoni Role Hierarchy Engine",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "╭────────⎝ ・  P I Π G S   ・ ⎠───────➤"
+          },
+          {
+            "key": "permissions",
+            "new_value": "0"
+          },
+          {
+            "key": "color",
+            "new_value": 0
+          },
+          {
+            "key": "hoist",
+            "new_value": false
+          },
+          {
+            "key": "mentionable",
+            "new_value": false
+          },
+          {
+            "key": "colors",
+            "new_value": {
+              "primary_color": 0,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801527067148309",
+        "actionType": 30,
+        "targetId": "1561801527067148308",
+        "reason": "Argoni Role Hierarchy Engine",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "◞ All PinG﹒"
+          },
+          {
+            "key": "permissions",
+            "new_value": "0"
+          },
+          {
+            "key": "color",
+            "new_value": 16184307
+          },
+          {
+            "key": "hoist",
+            "new_value": false
+          },
+          {
+            "key": "mentionable",
+            "new_value": false
+          },
+          {
+            "key": "colors",
+            "new_value": {
+              "primary_color": 16184307,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801523875549398",
+        "actionType": 30,
+        "targetId": "1561801523875549396",
+        "reason": "Argoni Role Hierarchy Engine",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "◞ AnnC PinG﹒"
+          },
+          {
+            "key": "permissions",
+            "new_value": "0"
+          },
+          {
+            "key": "color",
+            "new_value": 16117743
+          },
+          {
+            "key": "hoist",
+            "new_value": false
+          },
+          {
+            "key": "mentionable",
+            "new_value": false
+          },
+          {
+            "key": "colors",
+            "new_value": {
+              "primary_color": 16117743,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801517508333749",
+        "actionType": 30,
+        "targetId": "1561801516963201035",
+        "reason": "Argoni Role Hierarchy Engine",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "◞ SrC PinG﹒"
+          },
+          {
+            "key": "permissions",
+            "new_value": "0"
+          },
+          {
+            "key": "color",
+            "new_value": 16577009
+          },
+          {
+            "key": "hoist",
+            "new_value": false
+          },
+          {
+            "key": "mentionable",
+            "new_value": false
+          },
+          {
+            "key": "colors",
+            "new_value": {
+              "primary_color": 16577009,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801514350026774",
+        "actionType": 30,
+        "targetId": "1561801514350026773",
+        "reason": "Argoni Role Hierarchy Engine",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "◞ GwY PinG﹒"
+          },
+          {
+            "key": "permissions",
+            "new_value": "0"
+          },
+          {
+            "key": "color",
+            "new_value": 16446451
+          },
+          {
+            "key": "hoist",
+            "new_value": false
+          },
+          {
+            "key": "mentionable",
+            "new_value": false
+          },
+          {
+            "key": "colors",
+            "new_value": {
+              "primary_color": 16446451,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801511942627450",
+        "actionType": 30,
+        "targetId": "1561801511942627449",
+        "reason": "Argoni Role Hierarchy Engine",
+        "changes": [
+          {
+            "key": "name",
+            "new_value": "╭────────⎝ ・  β Ω T S   ・ ⎠───────➤"
+          },
+          {
+            "key": "permissions",
+            "new_value": "0"
+          },
+          {
+            "key": "color",
+            "new_value": 0
+          },
+          {
+            "key": "hoist",
+            "new_value": false
+          },
+          {
+            "key": "mentionable",
+            "new_value": false
+          },
+          {
+            "key": "colors",
+            "new_value": {
+              "primary_color": 0,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801503222661200",
+        "actionType": 32,
+        "targetId": "1561800949000052756",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "╭────────⎝ ・  Δ β Ω U T   M Σ   ・ ⎠───────➤"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 0
+          },
+          {
+            "key": "hoist",
+            "old_value": false
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 0,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801499980595260",
+        "actionType": 32,
+        "targetId": "1561800946659623053",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "﹒FounderZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "old_value": "8"
+          },
+          {
+            "key": "color",
+            "old_value": 12584454
+          },
+          {
+            "key": "hoist",
+            "old_value": true
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 12584454,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801497212227666",
+        "actionType": 32,
+        "targetId": "1561800944516071575",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "﹒ S. ManagerZz  ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 6226604
+          },
+          {
+            "key": "hoist",
+            "old_value": true
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 6226604,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801494603497492",
+        "actionType": 32,
+        "targetId": "1561800941907349624",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "﹒ AdminZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 10617087
+          },
+          {
+            "key": "hoist",
+            "old_value": true
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 10617087,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801492174733424",
+        "actionType": 32,
+        "targetId": "1561800939659329706",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "﹒ Head ModZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 26131
+          },
+          {
+            "key": "hoist",
+            "old_value": true
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 26131,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801472587333653",
+        "actionType": 32,
+        "targetId": "1561800937700335697",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "﹒ ModZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 8125817
+          },
+          {
+            "key": "hoist",
+            "old_value": true
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 8125817,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801469764706304",
+        "actionType": 32,
+        "targetId": "1561800935578275932",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "﹒ Ticket Support   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 16383815
+          },
+          {
+            "key": "hoist",
+            "old_value": true
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 16383815,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801467210240120",
+        "actionType": 32,
+        "targetId": "1561800933497766040",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "﹒  StaffZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 1117967
+          },
+          {
+            "key": "hoist",
+            "old_value": false
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 1117967,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801464849104936",
+        "actionType": 32,
+        "targetId": "1561800931404816434",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "﹒ PartnerZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 1059781
+          },
+          {
+            "key": "hoist",
+            "old_value": false
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 1059781,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801462739116135",
+        "actionType": 32,
+        "targetId": "1561800929269780513",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "﹒ BotZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 13041663
+          },
+          {
+            "key": "hoist",
+            "old_value": true
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 13041663,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801460533170337",
+        "actionType": 32,
+        "targetId": "1561800927172624444",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "﹒ Family  ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 2031360
+          },
+          {
+            "key": "hoist",
+            "old_value": true
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 2031360,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801457987096719",
+        "actionType": 32,
+        "targetId": "1561800925033660489",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "╭────────⎝ ・  P I Π G S   ・ ⎠───────➤"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 0
+          },
+          {
+            "key": "hoist",
+            "old_value": false
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 0,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801455432765461",
+        "actionType": 32,
+        "targetId": "1561800923108478986",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "◞ All PinG﹒"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 16184307
+          },
+          {
+            "key": "hoist",
+            "old_value": false
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 16184307,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801435924930580",
+        "actionType": 32,
+        "targetId": "1561800920956665866",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "◞ AnnC PinG﹒"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 16117743
+          },
+          {
+            "key": "hoist",
+            "old_value": false
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 16117743,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801432926126114",
+        "actionType": 32,
+        "targetId": "1561800916636668079",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "◞ SrC PinG﹒"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 16577009
+          },
+          {
+            "key": "hoist",
+            "old_value": false
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 16577009,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801430770126868",
+        "actionType": 32,
+        "targetId": "1561800914505826334",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "◞ GwY PinG﹒"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 16446451
+          },
+          {
+            "key": "hoist",
+            "old_value": false
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 16446451,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801427062366221",
+        "actionType": 32,
+        "targetId": "1561800912299761724",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "╭────────⎝ ・  β Ω T S   ・ ⎠───────➤"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 0
+          },
+          {
+            "key": "hoist",
+            "old_value": false
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 0,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801423715565681",
+        "actionType": 32,
+        "targetId": "1561790050453291181",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "╭────────⎝ ・  Δ β Ω U T   M Σ   ・ ⎠───────➤"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 0
+          },
+          {
+            "key": "hoist",
+            "old_value": false
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 0,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801420460531926",
+        "actionType": 32,
+        "targetId": "1561790048289034374",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "﹒FounderZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "old_value": "8"
+          },
+          {
+            "key": "color",
+            "old_value": 12584454
+          },
+          {
+            "key": "hoist",
+            "old_value": true
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 12584454,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801418367832162",
+        "actionType": 32,
+        "targetId": "1561790046074568735",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "﹒ S. ManagerZz  ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 6226604
+          },
+          {
+            "key": "hoist",
+            "old_value": true
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 6226604,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801415947452506",
+        "actionType": 32,
+        "targetId": "1561790043629166743",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "﹒ AdminZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 10617087
+          },
+          {
+            "key": "hoist",
+            "old_value": true
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 10617087,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801413330206821",
+        "actionType": 32,
+        "targetId": "1561790041414434978",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "﹒ Head ModZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 26131
+          },
+          {
+            "key": "hoist",
+            "old_value": true
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 26131,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801410893582410",
+        "actionType": 32,
+        "targetId": "1561790039187521619",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "﹒ ModZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 8125817
+          },
+          {
+            "key": "hoist",
+            "old_value": true
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 8125817,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801389993369743",
+        "actionType": 32,
+        "targetId": "1561790034728980633",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "﹒ Ticket Support   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 16383815
+          },
+          {
+            "key": "hoist",
+            "old_value": true
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 16383815,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "1561801387535376417",
+        "actionType": 32,
+        "targetId": "1561790031964799046",
+        "reason": "Argoni Clean Restore Wipe",
+        "changes": [
+          {
+            "key": "name",
+            "old_value": "﹒  StaffZz   ?ㅤ"
+          },
+          {
+            "key": "permissions",
+            "old_value": "0"
+          },
+          {
+            "key": "color",
+            "old_value": 1117967
+          },
+          {
+            "key": "hoist",
+            "old_value": false
+          },
+          {
+            "key": "mentionable",
+            "old_value": false
+          },
+          {
+            "key": "colors",
+            "old_value": {
+              "primary_color": 1117967,
+              "secondary_color": null,
+              "tertiary_color": null
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

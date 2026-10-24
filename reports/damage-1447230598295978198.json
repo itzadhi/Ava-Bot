@@ -1,0 +1,1448 @@
+{
+  "guild": {
+    "id": "1447230598295978198",
+    "name": "Adhi Development"
+  },
+  "timestamp": "2026-10-24T17:55:43.166Z",
+  "bot": {
+    "id": "1561027896242343956",
+    "tag": "Argoni#0409"
+  },
+  "roles": {
+    "everyone": {
+      "id": "1447230598295978198",
+      "name": "@everyone",
+      "permissions": "277129317953",
+      "bits": "277129317953",
+      "present": [
+        "View Channel",
+        "Send Messages",
+        "Send Messages in Threads",
+        "Add Reactions",
+        "Read Message History",
+        "Embed Links",
+        "Attach Files",
+        "Connect",
+        "Speak",
+        "Use Application Commands"
+      ],
+      "missing": [
+        "Use External Emojis",
+        "Create Public Threads"
+      ]
+    },
+    "members": []
+  },
+  "channels": {
+    "totalChannels": 50,
+    "damagedCount": 7,
+    "intentionalReadOnlyCount": 0,
+    "damagedChannels": [
+      {
+        "id": "1560686029357453393",
+        "name": "﹒🎧﹒Music  Vc  ¹﹒",
+        "type": 2,
+        "denyBits": "1048576",
+        "denies": {
+          "SendMessages": false,
+          "AddReactions": false,
+          "SendMessagesInThreads": false,
+          "Connect": true
+        }
+      },
+      {
+        "id": "1560686032062517329",
+        "name": "﹒🎧﹒Music  Vc  ²﹒",
+        "type": 2,
+        "denyBits": "1048576",
+        "denies": {
+          "SendMessages": false,
+          "AddReactions": false,
+          "SendMessagesInThreads": false,
+          "Connect": true
+        }
+      },
+      {
+        "id": "1560686033706680390",
+        "name": "﹒🎧﹒Music  Vc  ³﹒",
+        "type": 2,
+        "denyBits": "1048576",
+        "denies": {
+          "SendMessages": false,
+          "AddReactions": false,
+          "SendMessagesInThreads": false,
+          "Connect": true
+        }
+      },
+      {
+        "id": "1560686036131250206",
+        "name": "﹒📞﹒general﹒vc﹒",
+        "type": 2,
+        "denyBits": "1048576",
+        "denies": {
+          "SendMessages": false,
+          "AddReactions": false,
+          "SendMessagesInThreads": false,
+          "Connect": true
+        }
+      },
+      {
+        "id": "1560686040690458647",
+        "name": "﹒🐙﹒Join To Create﹒",
+        "type": 2,
+        "denyBits": "1048576",
+        "denies": {
+          "SendMessages": false,
+          "AddReactions": false,
+          "SendMessagesInThreads": false,
+          "Connect": true
+        }
+      },
+      {
+        "id": "1560686050907783372",
+        "name": "﹒🏷️﹒tickets﹒",
+        "type": 0,
+        "denyBits": "2048",
+        "denies": {
+          "SendMessages": true,
+          "AddReactions": false,
+          "SendMessagesInThreads": false,
+          "Connect": false
+        }
+      },
+      {
+        "id": "1560686071107293284",
+        "name": "﹒⚙️﹒ticket﹒logs﹒",
+        "type": 0,
+        "denyBits": "2048",
+        "denies": {
+          "SendMessages": true,
+          "AddReactions": false,
+          "SendMessagesInThreads": false,
+          "Connect": false
+        }
+      }
+    ],
+    "intentionalChannels": []
+  },
+  "safety": {
+    "verificationLevel": 2,
+    "safetyAlertsChannelId": "1560686075696119878",
+    "incidentsData": null,
+    "slowmodeChannelCount": 0,
+    "slowmodeChannels": []
+  },
+  "database": {
+    "error": "db.from(...).select(...).eq(...).catch is not a function"
+  },
+  "auditLogs": {
+    "botEntriesFound": 100,
+    "entries": [
+      {
+        "id": "1563603294843314281",
+        "actionType": 31,
+        "targetId": "1447230598295978198",
+        "reason": "AVA Anti-Nuke: Restoring original @everyone permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "permissions",
+            "new_value": "277129317953",
+            "old_value": "2251408897"
+          }
+        ]
+      },
+      {
+        "id": "1563603289814208792",
+        "actionType": 14,
+        "targetId": "1560686066388701284",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603288342134790",
+        "actionType": 14,
+        "targetId": "1560686062592987256",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603288245674125",
+        "actionType": 14,
+        "targetId": "1560686072445534273",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603288136352015",
+        "actionType": 14,
+        "targetId": "1560686074525777980",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603287947612240",
+        "actionType": 14,
+        "targetId": "1560686065306702045",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603287771713616",
+        "actionType": 14,
+        "targetId": "1560686067903102989",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603287771455649",
+        "actionType": 14,
+        "targetId": "1560686056276230267",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603287704469578",
+        "actionType": 14,
+        "targetId": "1560686053369847904",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603286454439976",
+        "actionType": 14,
+        "targetId": "1560686049770864772",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603286425075925",
+        "actionType": 14,
+        "targetId": "1560686032062517329",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "1048576",
+            "old_value": "377958172736"
+          }
+        ]
+      },
+      {
+        "id": "1563603286357966908",
+        "actionType": 14,
+        "targetId": "1560686052476326059",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603286278406295",
+        "actionType": 14,
+        "targetId": "1560686069614248069",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603286135672853",
+        "actionType": 14,
+        "targetId": "1563230220457213962",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603285464842311",
+        "actionType": 14,
+        "targetId": "1560686047996682381",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603285296807939",
+        "actionType": 14,
+        "targetId": "1560686033706680390",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "1048576",
+            "old_value": "377958172736"
+          }
+        ]
+      },
+      {
+        "id": "1563603285246615648",
+        "actionType": 14,
+        "targetId": "1560686040690458647",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "1048576",
+            "old_value": "377958172736"
+          }
+        ]
+      },
+      {
+        "id": "1563603284755746906",
+        "actionType": 14,
+        "targetId": "1560686027784589403",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603284605009990",
+        "actionType": 14,
+        "targetId": "1560686042871369828",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603284424531999",
+        "actionType": 14,
+        "targetId": "1560686058516258929",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603284328194088",
+        "actionType": 14,
+        "targetId": "1560686075696119878",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603284306952213",
+        "actionType": 14,
+        "targetId": "1560686036131250206",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "1048576",
+            "old_value": "377958172736"
+          }
+        ]
+      },
+      {
+        "id": "1563603283925274775",
+        "actionType": 14,
+        "targetId": "1560686029357453393",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "1048576",
+            "old_value": "377958172736"
+          }
+        ]
+      },
+      {
+        "id": "1563603283665362965",
+        "actionType": 14,
+        "targetId": "1560686063851143230",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603283589988372",
+        "actionType": 14,
+        "targetId": "1560686057438060644",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603283023630377",
+        "actionType": 14,
+        "targetId": "1560686034855919757",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603282855854190",
+        "actionType": 14,
+        "targetId": "1560686059937992876",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603282591621221",
+        "actionType": 14,
+        "targetId": "1560686046935646248",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603282377572505",
+        "actionType": 14,
+        "targetId": "1560686055089377420",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603282272849940",
+        "actionType": 14,
+        "targetId": "1560686037263450182",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603281261895752",
+        "actionType": 14,
+        "targetId": "1560686030745632939",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603280121176088",
+        "actionType": 14,
+        "targetId": "1560686061196279883",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563603119361761370",
+        "actionType": 14,
+        "targetId": "1560686067903102989",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603119080996874",
+        "actionType": 14,
+        "targetId": "1560686066388701284",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603118279889088",
+        "actionType": 14,
+        "targetId": "1560686072445534273",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603117906329732",
+        "actionType": 14,
+        "targetId": "1560686062592987256",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603117805666385",
+        "actionType": 14,
+        "targetId": "1560686074525777980",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603117537366068",
+        "actionType": 14,
+        "targetId": "1560686065306702045",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603116723671240",
+        "actionType": 14,
+        "targetId": "1560686053369847904",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603116446978170",
+        "actionType": 14,
+        "targetId": "1560686056276230267",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603116199518308",
+        "actionType": 14,
+        "targetId": "1560686049770864772",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603116111167639",
+        "actionType": 14,
+        "targetId": "1560686032062517329",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377958172736",
+            "old_value": "1048576"
+          }
+        ]
+      },
+      {
+        "id": "1563603116073418793",
+        "actionType": 14,
+        "targetId": "1560686069614248069",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603115893071912",
+        "actionType": 14,
+        "targetId": "1563230220457213962",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603114752348294",
+        "actionType": 14,
+        "targetId": "1560686052476326059",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603114634903583",
+        "actionType": 14,
+        "targetId": "1560686033706680390",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377958172736",
+            "old_value": "1048576"
+          }
+        ]
+      },
+      {
+        "id": "1563603114567930066",
+        "actionType": 14,
+        "targetId": "1560686075696119878",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603114551021659",
+        "actionType": 14,
+        "targetId": "1560686040690458647",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377958172736",
+            "old_value": "1048576"
+          }
+        ]
+      },
+      {
+        "id": "1563603114546823208",
+        "actionType": 14,
+        "targetId": "1560686047996682381",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603114378928270",
+        "actionType": 14,
+        "targetId": "1560686027784589403",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603114060419162",
+        "actionType": 14,
+        "targetId": "1560686061196279883",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603113829728320",
+        "actionType": 14,
+        "targetId": "1560686036131250206",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377958172736",
+            "old_value": "1048576"
+          }
+        ]
+      },
+      {
+        "id": "1563603112940282018",
+        "actionType": 14,
+        "targetId": "1560686037263450182",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603112718106714",
+        "actionType": 14,
+        "targetId": "1560686042871369828",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603112705523903",
+        "actionType": 14,
+        "targetId": "1560686034855919757",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603112671977542",
+        "actionType": 14,
+        "targetId": "1560686046935646248",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603112571306104",
+        "actionType": 14,
+        "targetId": "1560686029357453393",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377958172736",
+            "old_value": "1048576"
+          }
+        ]
+      },
+      {
+        "id": "1563603112198148128",
+        "actionType": 14,
+        "targetId": "1560686030745632939",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603112160141375",
+        "actionType": 14,
+        "targetId": "1560686059937992876",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603110658838749",
+        "actionType": 14,
+        "targetId": "1560686055089377420",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603110604054528",
+        "actionType": 14,
+        "targetId": "1560686057438060644",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603110541131846",
+        "actionType": 14,
+        "targetId": "1560686063851143230",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603108121026622",
+        "actionType": 14,
+        "targetId": "1560686072445534273",
+        "reason": null,
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "1024"
+          },
+          {
+            "key": "allow",
+            "new_value": "1024",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603105617285140",
+        "actionType": 14,
+        "targetId": "1560686058516258929",
+        "reason": "AVA Anti-Nuke: Immediate hot-channel raid lock [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563603103461281866",
+        "actionType": 31,
+        "targetId": "1447230598295978198",
+        "reason": "AVA Anti-Nuke: Immediate role-level raid lock [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "permissions",
+            "new_value": "2251408897",
+            "old_value": "277129317953"
+          }
+        ]
+      },
+      {
+        "id": "1563600432272773257",
+        "actionType": 31,
+        "targetId": "1447230598295978198",
+        "reason": "AVA Fresh Start: Restoring standard @everyone permissions",
+        "changes": [
+          {
+            "key": "permissions",
+            "new_value": "277129317953",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563597703370379495",
+        "actionType": 14,
+        "targetId": "1560686069614248069",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597703232102423",
+        "actionType": 14,
+        "targetId": "1560686066388701284",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597702795759748",
+        "actionType": 14,
+        "targetId": "1560686074525777980",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597702774661170",
+        "actionType": 14,
+        "targetId": "1560686062592987256",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597702560751616",
+        "actionType": 14,
+        "targetId": "1560686072445534273",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "1024",
+            "old_value": "377957125184"
+          }
+        ]
+      },
+      {
+        "id": "1563597702275801181",
+        "actionType": 14,
+        "targetId": "1560686065306702045",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597701453447228",
+        "actionType": 14,
+        "targetId": "1560686075696119878",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597701378216037",
+        "actionType": 14,
+        "targetId": "1560686032062517329",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "1048576",
+            "old_value": "377958172736"
+          }
+        ]
+      },
+      {
+        "id": "1563597701029953726",
+        "actionType": 14,
+        "targetId": "1560686067903102989",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597700942008340",
+        "actionType": 14,
+        "targetId": "1560686053369847904",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597700518125668",
+        "actionType": 14,
+        "targetId": "1560686049770864772",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597700354674730",
+        "actionType": 14,
+        "targetId": "1560686056276230267",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597699520008262",
+        "actionType": 14,
+        "targetId": "1560686052476326059",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597699326939136",
+        "actionType": 14,
+        "targetId": "1560686033706680390",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "1048576",
+            "old_value": "377958172736"
+          }
+        ]
+      },
+      {
+        "id": "1563597699192979507",
+        "actionType": 14,
+        "targetId": "1560686040690458647",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "1048576",
+            "old_value": "377958172736"
+          }
+        ]
+      },
+      {
+        "id": "1563597698786132098",
+        "actionType": 14,
+        "targetId": "1560686047996682381",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597698551124028",
+        "actionType": 14,
+        "targetId": "1560686058516258929",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597698458722307",
+        "actionType": 14,
+        "targetId": "1560686027784589403",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597698140078110",
+        "actionType": 14,
+        "targetId": "1560686030745632939",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597697305288834",
+        "actionType": 14,
+        "targetId": "1560686042871369828",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597697276059739",
+        "actionType": 14,
+        "targetId": "1560686029357453393",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "1048576",
+            "old_value": "377958172736"
+          }
+        ]
+      },
+      {
+        "id": "1563597697217470580",
+        "actionType": 14,
+        "targetId": "1560686036131250206",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "1048576",
+            "old_value": "377958172736"
+          }
+        ]
+      },
+      {
+        "id": "1563597697150361670",
+        "actionType": 14,
+        "targetId": "1560686034855919757",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597697053892730",
+        "actionType": 14,
+        "targetId": "1560686057438060644",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597696873537566",
+        "actionType": 14,
+        "targetId": "1560686059937992876",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597695996661853",
+        "actionType": 14,
+        "targetId": "1560686055089377420",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597695887872001",
+        "actionType": 14,
+        "targetId": "1560686061196279883",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597695719837770",
+        "actionType": 14,
+        "targetId": "1560686063851143230",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597695178899536",
+        "actionType": 14,
+        "targetId": "1560686037263450182",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597694977445902",
+        "actionType": 14,
+        "targetId": "1560686046935646248",
+        "reason": "AVA Anti-Nuke: Restoring exact original permissions [Manually unlocked by <@507601702812385320>]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "0",
+            "old_value": "377957124160"
+          }
+        ]
+      },
+      {
+        "id": "1563597557806927984",
+        "actionType": 14,
+        "targetId": "1560686046935646248",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563597556209029150",
+        "actionType": 14,
+        "targetId": "1560686072445534273",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957125184",
+            "old_value": "1024"
+          }
+        ]
+      },
+      {
+        "id": "1563597554778775563",
+        "actionType": 14,
+        "targetId": "1560686062592987256",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1563597553575002317",
+        "actionType": 14,
+        "targetId": "1560686066388701284",
+        "reason": "AVA Anti-Nuke: Active raid lockdown [Manual command triggered by itz.adhi]",
+        "changes": [
+          {
+            "key": "deny",
+            "new_value": "377957124160",
+            "old_value": "0"
+          }
+        ]
+      }
+    ]
+  }
+}

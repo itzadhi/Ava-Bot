@@ -70,8 +70,21 @@ export const perm = {
       execute
     } = op;
 
-    const oldStr = typeof oldValue === 'object' && oldValue !== null ? JSON.stringify(oldValue) : String(oldValue ?? '');
-    const newStr = typeof newValue === 'object' && newValue !== null ? JSON.stringify(newValue) : String(newValue ?? '');
+    const safeSerialize = (val) => {
+      if (val === null || val === undefined) return '';
+      if (typeof val === 'bigint') return val.toString();
+      if (typeof val === 'object') {
+        try {
+          return JSON.stringify(val, (_, v) => (typeof v === 'bigint' ? v.toString() : v));
+        } catch {
+          return String(val);
+        }
+      }
+      return String(val);
+    };
+
+    const oldStr = safeSerialize(oldValue);
+    const newStr = safeSerialize(newValue);
 
     // 1. Guard check: OFF mode
     if (currentMode === 'off') {
