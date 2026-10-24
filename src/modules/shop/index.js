@@ -3,6 +3,8 @@ import {
   TextInputBuilder,
   TextInputStyle,
   ActionRowBuilder,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
   MessageFlags,
   ContainerBuilder,
   TextDisplayBuilder,
@@ -282,7 +284,7 @@ export async function handleShopInteraction(interaction) {
       if (action === 'content') {
         session.data.description = interaction.fields.getTextInputValue('desc')?.trim() || '';
         const rawFeatures = interaction.fields.getTextInputValue('features')?.trim() || '';
-        session.data.features = rawFeatures.split('\n').map(l => l.replace(/^[•\-\*]\s*/, '').trim()).filter(l => l.length > 0);
+        session.data.features = rawFeatures.split('\n').map(l => l.replace(/^[•\-*]\s*/, '').trim()).filter(l => l.length > 0);
         session.data.delivery_time_text = interaction.fields.getTextInputValue('delivery')?.trim() || 'Instant Automated Delivery';
         session.data.warranty_text = interaction.fields.getTextInputValue('warranty')?.trim() || '';
         const payload = await renderAddProductStep(session, interaction.guild);

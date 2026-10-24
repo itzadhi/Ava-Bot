@@ -65,7 +65,7 @@ function makeCustomId(session, action) {
     module: 'shop',
     action: 'setup',
     guildId: session.guildId,
-    ownerId: session.userId,
+    ownerId: session.userId || session.ownerId || 'staff',
     key: `${session.id}:${action}`
   });
 }

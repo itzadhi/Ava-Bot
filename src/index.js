@@ -54,6 +54,11 @@ import { evaluateRaidMessage, trackMemberJoin, resumeActiveLockdowns } from './m
 import { handleRoleDeleteEvent, handleRoleUpdateEvent, handleBotAddEvent, handleWebhookCreateEvent } from './modules/antinuke/extra.js';
 import { preloadGuildSettings } from './core/cache/guildCache.js';
 import { batchWriter } from './core/cache/batchWriter.js';
+import { validatePterodactylEnv } from './core/pterodactyl/env.js';
+import { startMemoryMonitor, stopMemoryMonitor } from './core/pterodactyl/memory.js';
+import { checkCrashLoopGuard, recordCrash, markCleanStartup } from './core/pterodactyl/crashGuard.js';
+import { pruneLogsDirectory } from './core/pterodactyl/storage.js';
+import { startHealthServer, stopHealthServer } from './core/pterodactyl/healthServer.js';
 
 /**
  * ArgoniClient - Reusable Discord Bot Client powered by Components V2 & Supabase
@@ -217,6 +222,7 @@ export class ArgoniClient extends Client {
     registerLogListeners(this);
 
     this.once(Events.ClientReady, async (readyClient) => {
+      markCleanStartup();
       const tWarm0 = performance.now();
       const cachedCount = await preloadGuildSettings(readyClient).catch(() => 0);
       const cacheWarmUpMs = performance.now() - tWarm0;
@@ -340,6 +346,10 @@ export class ArgoniClient extends Client {
    * Initializes database and loads all default modules and commands
    */
   async init() {
+    validatePterodactylEnv();
+    pruneLogsDirectory();
+    startMemoryMonitor();
+
     if (typeof logger.banner === 'function') {
       logger.banner();
     }
@@ -357,6 +367,15 @@ export class ArgoniClient extends Client {
    */
   async start(token = config.DISCORD_TOKEN) {
     await this.init();
+
+    // 1. Crash loop backoff guard
+    const backoffMs = await checkCrashLoopGuard();
+    if (backoffMs > 0) {
+      await new Promise(r => setTimeout(r, backoffMs));
+    }
+
+    // 2. Optional health endpoint
+    startHealthServer(this);
 
     const creds = validateLiveCredentials();
     if (creds.valid || (token && !token.startsWith('dummy_'))) {
@@ -393,6 +412,7 @@ process.on('unhandledRejection', async (reason) => {
 
 process.on('uncaughtException', async (err) => {
   logger.fatal({ err }, 'Uncaught Exception in process');
+  recordCrash(err);
   await logError({
     scope: 'process:uncaughtException',
     message: err.message,
@@ -404,6 +424,8 @@ process.on('uncaughtException', async (err) => {
 async function handleShutdown(signal) {
   logger.info(`Received ${signal}. Starting graceful shutdown...`);
 
+  stopMemoryMonitor();
+  stopHealthServer();
   stopScheduler();
   stopTicketScheduler();
   stopShopExpiryJob();

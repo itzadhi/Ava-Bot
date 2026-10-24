@@ -268,6 +268,13 @@ async function handleComponentInteraction(interaction) {
   const opensModal = isModalOpener(customId);
 
   return runHandler(interaction, async (i) => {
+    // 0. AVA Telemetry & Status Routing (ava:*)
+    if (customId.startsWith('ava:')) {
+      const { buildAvaStatusPayload } = await import('../../commands/owner/ava.js');
+      const payload = buildAvaStatusPayload(i.client, i.user.id, i.guild?.id);
+      return await safeRespond(i, payload);
+    }
+
     // 0. Persistent Pagination Routing (pager:*)
     if (customId.startsWith('pager:')) {
       const parts = customId.split(':');

@@ -14,15 +14,7 @@ try {
 }
 
 if (!canvasModule) {
-  try {
-    const nodeCanvas = await import('canvas');
-    if (typeof nodeCanvas.default?.createCanvas === 'function' || typeof nodeCanvas.createCanvas === 'function') {
-      canvasModule = nodeCanvas.default || nodeCanvas;
-      providerName = 'canvas';
-    }
-  } catch (err) {
-    logger.warn({ err: err.message }, 'Failed to load both @napi-rs/canvas and canvas providers');
-  }
+  logger.warn('Prebuilt @napi-rs/canvas not available; graphics engine will operate in pure SVG/text fallback mode');
 }
 
 logger.info(`[CANVAS] Graphics engine initialized using provider: "${providerName}"`);
