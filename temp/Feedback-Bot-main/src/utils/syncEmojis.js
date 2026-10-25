@@ -1,6 +1,6 @@
 // : ! Warrior !
 // + Discord: warriorog.exe_
-// + Community: https://discord.gg/aerox (AeroX Development )
+// + Community: https://discord.gg/Adhi (Adhi Development )
 // + for any queries reach out Community or DM me.
 
 import { createReadStream } from 'fs';
@@ -12,25 +12,25 @@ import http from 'http';
 import { REST } from 'discord.js';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname  = dirname(__filename);
+const __dirname = dirname(__filename);
 
 const EMOJI_REGEX = /^<(a?):(\w+):(\d+)>$/;
-const EMOJI_PATH  = join(__dirname, '../../data/emoji.json');
+const EMOJI_PATH = join(__dirname, '../../data/emoji.json');
 
 const col = {
-    reset:  '\x1b[0m',
+    reset: '\x1b[0m',
     bright: '\x1b[1m',
     purple: '\x1b[35m',
-    pink:   '\x1b[95m',
-    white:  '\x1b[97m',
-    gray:   '\x1b[90m',
-    green:  '\x1b[92m',
+    pink: '\x1b[95m',
+    white: '\x1b[97m',
+    gray: '\x1b[90m',
+    green: '\x1b[92m',
     yellow: '\x1b[93m',
-    red:    '\x1b[91m',
-    cyan:   '\x1b[96m',
+    red: '\x1b[91m',
+    cyan: '\x1b[96m',
 };
 
-const tag  = `${col.purple}${col.bright}  [EmojiSync]${col.reset}`;
+const tag = `${col.purple}${col.bright}  [EmojiSync]${col.reset}`;
 const line = `${col.purple}${col.bright}  ─────────────────────────────────────${col.reset}`;
 
 function fetchEmojiImage(id, animated) {
@@ -98,11 +98,11 @@ export default async function syncEmojis(token) {
     console.log(`${tag} ${col.gray}Config: ${col.white}${emojiEntries.length}${col.gray} emojis  |  Application: ${col.white}${appEmojis.length}${col.gray} emojis${col.reset}`);
     console.log(line);
 
-    let updated  = false;
-    let skipped  = 0;
+    let updated = false;
+    let skipped = 0;
     let uploaded = 0;
-    let fixed    = 0;
-    let failed   = 0;
+    let fixed = 0;
+    let failed = 0;
     const result = { ...emojis };
 
     for (const [key, emojiStr] of emojiEntries) {
@@ -114,8 +114,8 @@ export default async function syncEmojis(token) {
         }
 
         const animated = match[1] === 'a';
-        const name     = match[2];
-        const id       = match[3];
+        const name = match[2];
+        const id = match[3];
 
         const existing = appEmojis.find(e => e.id === id) ?? appEmojis.find(e => e.name === name);
 
@@ -147,7 +147,7 @@ export default async function syncEmojis(token) {
 
         try {
             const mimeType = animated ? 'image/gif' : 'image/webp';
-            const image    = `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
+            const image = `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
             const newEmoji = await rest.post(`/applications/${appId}/emojis`, {
                 body: { name, image },
             });
@@ -175,10 +175,10 @@ export default async function syncEmojis(token) {
     }
 
     const parts = [
-        skipped  ? `${col.green}${skipped} present${col.reset}`   : null,
-        fixed    ? `${col.yellow}${fixed} fixed${col.reset}`       : null,
-        uploaded ? `${col.cyan}${uploaded} uploaded${col.reset}`   : null,
-        failed   ? `${col.red}${failed} failed${col.reset}`        : null,
+        skipped ? `${col.green}${skipped} present${col.reset}` : null,
+        fixed ? `${col.yellow}${fixed} fixed${col.reset}` : null,
+        uploaded ? `${col.cyan}${uploaded} uploaded${col.reset}` : null,
+        failed ? `${col.red}${failed} failed${col.reset}` : null,
     ].filter(Boolean);
 
     console.log(`${tag}  ${parts.join('  ')}`);
@@ -187,5 +187,5 @@ export default async function syncEmojis(token) {
 
 // : ! Warrior !
 // + Discord: warriorog.exe_
-// + Community: https://discord.gg/aerox (AeroX Development )
+// + Community: https://discord.gg/Adhi (Adhi Development )
 // + for any queries reach out Community or DM me.

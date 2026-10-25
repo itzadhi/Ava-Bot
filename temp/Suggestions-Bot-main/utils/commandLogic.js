@@ -1,6 +1,6 @@
 // ──────────────────────────────────────────────────────────────
 // Suggestion Bot — Command Logic
-// Made by ayliee, Aerox Development
+// Made by ayliee, Adhi Development
 //
 // Vote buttons are embedded inside the suggestion container.
 // Messages are sent/edited as a single component ([container]).

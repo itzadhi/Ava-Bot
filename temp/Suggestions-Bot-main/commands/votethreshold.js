@@ -1,6 +1,6 @@
 // ──────────────────────────────────────────────────────────────
 // Suggestion Bot — /votethreshold Command
-// Made by ayliee, Aerox Development
+// Made by ayliee, Adhi Development
 //
 // Sets how many upvotes a suggestion needs before it is
 // forwarded to the logs channel as a "Potential Content Idea".

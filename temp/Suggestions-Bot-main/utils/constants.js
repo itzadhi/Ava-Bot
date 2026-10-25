@@ -1,6 +1,6 @@
 // ──────────────────────────────────────────────────────────────
 // Suggestion Bot — Constants
-// Made by ayliee, Aerox Development
+// Made by ayliee, Adhi Development
 // ──────────────────────────────────────────────────────────────
 
 export const Constants = Object.freeze({

@@ -1,6 +1,6 @@
 // : ! Warrior !
 // + Discord: warriorog.exe_
-// + Community: https://discord.gg/aerox (AeroX Development )
+// + Community: https://discord.gg/Adhi (Adhi Development )
 // + for any queries reach out Community or DM me.
 
 import {
@@ -16,7 +16,7 @@ import {
 import { getEmoji } from '../handlers/emoji.js';
 
 function statusLabel(ws) {
-  if (ws < 80)  return { text: 'Blazing fast — no complaints here', color: 0x57F287 };
+  if (ws < 80) return { text: 'Blazing fast — no complaints here', color: 0x57F287 };
   if (ws < 150) return { text: 'Solid connection, all good', color: 0x57F287 };
   if (ws < 250) return { text: 'A little sluggish, but holding up', color: 0xFEE75C };
   return { text: 'Running hot — might be a hiccup', color: 0xED4245 };
@@ -86,5 +86,5 @@ export default {
 
 // : ! Warrior !
 // + Discord: warriorog.exe_
-// + Community: https://discord.gg/aerox (AeroX Development )
+// + Community: https://discord.gg/Adhi (Adhi Development )
 // + for any queries reach out Community or DM me.

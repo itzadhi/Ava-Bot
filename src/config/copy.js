@@ -44,6 +44,10 @@ export const copy = {
     participantOnly: 'Only the customer or server staff can use these controls.',
     panelExpired: 'This interactive session expired. Run the command again to open a new one.',
     generic: (errorId) => errorId ? `Please try again. Error ID: \`${errorId}\`` : 'An unexpected error occurred. Please try again.',
+    pageLoadFailed: (errorId) => errorId
+      ? `Something went wrong while showing this page. Please try again.\n-# If it keeps happening, send this ID to an admin: \`${errorId}\``
+      : 'Something went wrong while showing this page. Please try again.',
+    nothingAvailable: 'Nothing available yet',
     guildOnly: 'This command can only be used in a Discord server.',
     rateLimited: 'You are doing that too fast. Please wait a moment.'
   },

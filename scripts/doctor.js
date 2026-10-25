@@ -9,6 +9,7 @@ import { moduleRegistry } from '../src/structures/ModuleRegistry.js';
 import { loadCommands, loadModules } from '../src/structures/loader.js';
 import { getSupabase } from '../src/db/index.js';
 import { checkBrandConsistency } from './check-brand.js';
+import { runUiTests } from './test-ui-pages.js';
 
 /**
  * System Doctor & Health Diagnostic Engine for AVA
@@ -171,6 +172,18 @@ export async function runDiagnostics() {
     }
   } catch (err) {
     addCheck('AVA Brand Consistency', 'FAIL', err.message);
+  }
+
+  // 8. COMPONENTS V2 UI PAGES VALIDITY
+  try {
+    const uiResults = await runUiTests();
+    if (uiResults.failedTests === 0) {
+      addCheck('Components V2 UI Pages', 'PASS', `${uiResults.passedTests} page views verified across 8 data states`);
+    } else {
+      addCheck('Components V2 UI Pages', 'FAIL', `${uiResults.failedTests} UI page failures: ${uiResults.failures.slice(0, 2).map(f => `${f.testName} (${f.error})`).join('; ')}`);
+    }
+  } catch (err) {
+    addCheck('Components V2 UI Pages', 'FAIL', err.message);
   }
 
   return results;

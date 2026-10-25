@@ -1,6 +1,6 @@
 // ──────────────────────────────────────────────────────────────
 // Suggestion Bot — Entry Point
-// Made by ayliee, Aerox Development
+// Made by ayliee, Adhi Development
 // ──────────────────────────────────────────────────────────────
 
 import 'dotenv/config';

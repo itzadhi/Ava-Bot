@@ -1,6 +1,6 @@
 // : ! Warrior !
 // + Discord: warriorog.exe_
-// + Community: https://discord.gg/aerox (AeroX Development )
+// + Community: https://discord.gg/Adhi (Adhi Development )
 // + for any queries reach out Community or DM me.
 
 import { REST, Routes } from 'discord.js';
@@ -9,20 +9,20 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import { dirname, join } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname  = dirname(__filename);
+const __dirname = dirname(__filename);
 
 const col = {
-    reset:  '\x1b[0m',
+    reset: '\x1b[0m',
     bright: '\x1b[1m',
     purple: '\x1b[35m',
-    white:  '\x1b[97m',
-    gray:   '\x1b[90m',
-    green:  '\x1b[92m',
-    cyan:   '\x1b[96m',
-    red:    '\x1b[91m',
+    white: '\x1b[97m',
+    gray: '\x1b[90m',
+    green: '\x1b[92m',
+    cyan: '\x1b[96m',
+    red: '\x1b[91m',
 };
 
-const tag  = `${col.purple}${col.bright}  [SlashCmds]${col.reset}`;
+const tag = `${col.purple}${col.bright}  [SlashCmds]${col.reset}`;
 const line = `${col.purple}${col.bright}  ─────────────────────────────────────${col.reset}`;
 
 export default async function deployCommands(token, clientId) {
@@ -56,5 +56,5 @@ export default async function deployCommands(token, clientId) {
 
 // : ! Warrior !
 // + Discord: warriorog.exe_
-// + Community: https://discord.gg/aerox (AeroX Development )
+// + Community: https://discord.gg/Adhi (Adhi Development )
 // + for any queries reach out Community or DM me.

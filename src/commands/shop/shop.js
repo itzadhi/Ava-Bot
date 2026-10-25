@@ -206,13 +206,17 @@ export default {
         return `**${i + 1}. ${format.escapeMarkdown(p.name)}** • ${chan}\n  ↳ Price: \`${price}\` • Stock: \`${stock}\``;
       });
 
+      const catalogContent = lines.length > 0
+        ? lines.join('\n\n')
+        : '*(No active products available in the shop at this time. Run `/shop add` to create one!)*';
+
       const container = new ContainerBuilder()
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(`## 🛒 Store Catalog — **${format.escapeMarkdown(guild.name)}**\nBrowse available products below:`)
         )
         .addSeparatorComponents(new SeparatorBuilder())
         .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(lines.join('\n\n'))
+          new TextDisplayBuilder().setContent(catalogContent)
         );
 
       return ctx.reply({
@@ -303,7 +307,11 @@ export default {
         }));
       }
 
-      const session = createSetupSession(guild.id, ctx.user.id, settings);
+      const session = createSetupSession({
+        guildId: guild.id,
+        userId: ctx.user.id,
+        currentSettings: settings
+      });
       const payload = await renderSetupStep(session, guild);
       return ctx.reply(payload);
     }
@@ -322,7 +330,11 @@ export default {
         }));
       }
 
-      const session = createSetupSession(guild.id, ctx.user.id, settings);
+      const session = createSetupSession({
+        guildId: guild.id,
+        userId: ctx.user.id,
+        currentSettings: settings
+      });
       const payload = await renderSetupStep(session, guild);
       return ctx.reply(payload);
     }

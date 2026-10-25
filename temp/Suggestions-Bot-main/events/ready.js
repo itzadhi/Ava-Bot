@@ -1,6 +1,6 @@
 // ──────────────────────────────────────────────────────────────
 // Suggestion Bot — Ready Event
-// Made by ayliee, Aerox Development
+// Made by ayliee, Adhi Development
 // ──────────────────────────────────────────────────────────────
 
 import { Events, REST, Routes, Collection } from 'discord.js';

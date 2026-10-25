@@ -1,6 +1,6 @@
 // ──────────────────────────────────────────────────────────────
 // Suggestion Bot — JSON Database Utility
-// Made by ayliee, Aerox Development
+// Made by ayliee, Adhi Development
 // ──────────────────────────────────────────────────────────────
 
 import fs from 'node:fs';
@@ -41,9 +41,9 @@ export const getGuild = (db, guildId) => {
 
   // Back-fill fields for guilds created before these keys existed
   const g = db.guilds[guildId];
-  if (!('logsChannelId' in g))  g.logsChannelId  = null;
-  if (!('voteThreshold' in g))  g.voteThreshold  = null;
-  if (!g.threadConfig)          g.threadConfig   = { slowmode: 0 };
+  if (!('logsChannelId' in g)) g.logsChannelId = null;
+  if (!('voteThreshold' in g)) g.voteThreshold = null;
+  if (!g.threadConfig) g.threadConfig = { slowmode: 0 };
 
   return g;
 };

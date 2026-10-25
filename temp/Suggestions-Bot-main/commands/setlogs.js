@@ -1,6 +1,6 @@
 // ──────────────────────────────────────────────────────────────
 // Suggestion Bot — /setlogs Command
-// Made by ayliee, Aerox Development
+// Made by ayliee, Adhi Development
 //
 // Sets the channel where high-vote suggestions are forwarded
 // as "Potential Content Ideas".

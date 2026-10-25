@@ -21,7 +21,12 @@ const TOTAL_STEPS = 8;
 /**
  * Creates a fresh session for /shop setup wizard
  */
-export function createSetupSession({ guildId, userId, currentSettings = null }) {
+export function createSetupSession(guildIdOrOptions, maybeUserId = null, maybeSettings = null) {
+  const options = typeof guildIdOrOptions === 'string'
+    ? { guildId: guildIdOrOptions, userId: maybeUserId, currentSettings: maybeSettings }
+    : (guildIdOrOptions || {});
+
+  const { guildId, userId, currentSettings = null } = options;
   const defaults = {
     step: 1,
     is_enabled: currentSettings?.is_enabled ?? false,

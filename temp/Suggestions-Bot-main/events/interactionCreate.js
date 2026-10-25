@@ -1,6 +1,6 @@
 // ──────────────────────────────────────────────────────────────
 // Suggestion Bot — InteractionCreate Event
-// Made by ayliee, Aerox Development
+// Made by ayliee, Adhi Development
 //
 // Handles slash commands and vote button interactions.
 // Vote button customId: "vote_up_<guildId>_<messageId>"
@@ -44,9 +44,9 @@ export default {
       if (parts.length < 4 || parts[0] !== 'vote') return;
 
       const direction = parts[1];   // "up" or "down"
-      const guildId   = parts[2];
+      const guildId = parts[2];
       const messageId = parts[3];
-      const isUpvote  = direction === 'up';
+      const isUpvote = direction === 'up';
 
       try {
         await interaction.deferUpdate();

@@ -1,6 +1,6 @@
 // ──────────────────────────────────────────────────────────────
 // Suggestion Bot — /help Command
-// Made by ayliee, Aerox Development
+// Made by ayliee, Adhi Development
 //
 // Displays a minimal, sleek overview of all bot commands.
 // Works as both /help (slash) and !help (prefix).

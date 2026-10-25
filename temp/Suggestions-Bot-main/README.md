@@ -2,7 +2,7 @@
 
 A full-featured Discord suggestion bot using **Components v2** (Container Builder, Section Builder, Text Display, Separator, Action Row, Buttons).
 
-Made by **ayliee**, **Aerox Development**.
+Made by **ayliee**, **Adhi Development**.
 
 ---
 

@@ -1,17 +1,17 @@
 // : ! Warrior !
 // + Discord: warriorog.exe_
-// + Community: https://discord.gg/aerox (AeroX Development )
+// + Community: https://discord.gg/Adhi (Adhi Development )
 // + for any queries reach out Community or DM me.
 
 import { ActivityType } from 'discord.js';
 import { PREFIX } from '../utils/config.js';
 
 const col = {
-    reset:  '\x1b[0m',
+    reset: '\x1b[0m',
     bright: '\x1b[1m',
-    green:  '\x1b[92m',
-    white:  '\x1b[97m',
-    gray:   '\x1b[90m',
+    green: '\x1b[92m',
+    white: '\x1b[97m',
+    gray: '\x1b[90m',
     purple: '\x1b[35m',
 };
 
@@ -22,7 +22,7 @@ export default {
     once: true,
     async execute(client) {
         client.user.setPresence({
-            activities: [{ name: `AeroX Feedback | ${PREFIX}help`, type: ActivityType.Watching }],
+            activities: [{ name: `Adhi Feedback | ${PREFIX}help`, type: ActivityType.Watching }],
             status: 'online',
         });
 
@@ -35,5 +35,5 @@ export default {
 
 // : ! Warrior !
 // + Discord: warriorog.exe_
-// + Community: https://discord.gg/aerox (AeroX Development )
+// + Community: https://discord.gg/Adhi (Adhi Development )
 // + for any queries reach out Community or DM me.

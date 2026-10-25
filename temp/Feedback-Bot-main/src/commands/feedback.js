@@ -1,6 +1,6 @@
 // : ! Warrior !
 // + Discord: warriorog.exe_
-// + Community: https://discord.gg/aerox (AeroX Development )
+// + Community: https://discord.gg/Adhi (Adhi Development )
 // + for any queries reach out Community or DM me.
 
 import {
@@ -68,7 +68,7 @@ export function buildFeedbackCard({ rating, review, imageUrl, user }) {
       const g = new MediaGalleryBuilder();
       g.addItems(new MediaGalleryItemBuilder().setURL(imageUrl));
       c.addMediaGalleryComponents(g);
-    } catch {}
+    } catch { }
   }
 
   c.addSeparatorComponents(
@@ -94,7 +94,7 @@ function buildPanel(botAvatarURL) {
     new SectionBuilder()
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `# ${getEmoji('review')} AeroX Feedback\nYour honest opinion actually matters here.\nNo fake reviews, no filters — just real experiences from real users.`,
+          `# ${getEmoji('review')} Adhi Feedback\nYour honest opinion actually matters here.\nNo fake reviews, no filters — just real experiences from real users.`,
         ),
       )
       .setThumbnailAccessory(
@@ -133,7 +133,7 @@ export const pendingGuildMap = new Map();
 export default {
   data: new SlashCommandBuilder()
     .setName('feedback')
-    .setDescription('Drop a review for AeroX services'),
+    .setDescription('Drop a review for Adhi services'),
   prefix: 'feedback',
 
   async execute(interaction) {
@@ -143,7 +143,7 @@ export default {
   },
 
   async prefixExecute(message) {
-    await message.delete().catch(() => {});
+    await message.delete().catch(() => { });
 
     try {
       const panel = buildPanel(message.client.user.displayAvatarURL({ size: 128, extension: 'png' }));
@@ -158,12 +158,12 @@ export default {
         ),
       );
       const notice = await message.channel.send({ components: [c], flags: MessageFlags.IsComponentsV2 });
-      setTimeout(() => notice.delete().catch(() => {}), 7000);
+      setTimeout(() => notice.delete().catch(() => { }), 7000);
     }
   },
 };
 
 // : ! Warrior !
 // + Discord: warriorog.exe_
-// + Community: https://discord.gg/aerox (AeroX Development )
+// + Community: https://discord.gg/Adhi (Adhi Development )
 // + for any queries reach out Community or DM me.

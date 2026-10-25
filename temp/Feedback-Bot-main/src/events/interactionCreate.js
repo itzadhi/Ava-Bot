@@ -1,6 +1,6 @@
 // : ! Warrior !
 // + Discord: warriorog.exe_
-// + Community: https://discord.gg/aerox (AeroX Development )
+// + Community: https://discord.gg/Adhi (Adhi Development )
 // + for any queries reach out Community or DM me.
 
 import {
@@ -108,9 +108,9 @@ export default {
         console.error(err);
         const msg = { content: `${getEmoji('error')} something went wrong`, flags: 64 };
         if (interaction.replied || interaction.deferred) {
-          await interaction.followUp(msg).catch(() => {});
+          await interaction.followUp(msg).catch(() => { });
         } else {
-          await interaction.reply(msg).catch(() => {});
+          await interaction.reply(msg).catch(() => { });
         }
       }
       return;
@@ -119,7 +119,7 @@ export default {
     if (interaction.isButton() && interaction.customId === 'open_feedback_modal') {
       const modal = new ModalBuilder()
         .setCustomId('feedback_modal')
-        .setTitle('AeroX Development — Service Review');
+        .setTitle('Adhi Development — Service Review');
 
       modal.addComponents(
         new ActionRowBuilder().addComponents(
@@ -231,7 +231,7 @@ export default {
             `${getEmoji('warning')} Image upload timed out — your review was **not** posted. Run \`/feedback\` or \`${PREFIX}feedback\` to try again.`,
           ),
         );
-        await interaction.editReply({ components: [expired], flags: MessageFlags.IsComponentsV2 }).catch(() => {});
+        await interaction.editReply({ components: [expired], flags: MessageFlags.IsComponentsV2 }).catch(() => { });
       }, 60_000);
 
       pendingImageMap.set(interaction.user.id, {
@@ -251,5 +251,5 @@ export default {
 
 // : ! Warrior !
 // + Discord: warriorog.exe_
-// + Community: https://discord.gg/aerox (AeroX Development )
+// + Community: https://discord.gg/Adhi (Adhi Development )
 // + for any queries reach out Community or DM me.

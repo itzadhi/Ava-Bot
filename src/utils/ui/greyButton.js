@@ -23,7 +23,7 @@ export function greyButton({ id, label, emoji, disabled = false, url = null } = 
   }
 
   if (label !== undefined && label !== null && String(label).trim().length > 0) {
-    btn.setLabel(String(label));
+    btn.setLabel(String(label).slice(0, 80));
   }
 
   if (emoji) {

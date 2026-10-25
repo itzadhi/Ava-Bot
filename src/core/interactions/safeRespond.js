@@ -4,6 +4,8 @@ import { errorCard } from '../../ui/cards.js';
 import { isAcknowledged, markAcknowledged } from './tracker.js';
 import { metrics } from '../metrics.js';
 import { recordRestCall, recordSpan } from './trace.js';
+import { validateAndFixV2Payload } from '../ui/validateV2.js';
+import { copy } from '../../config/copy.js';
 
 /**
  * Normalizes and sanitizes a payload to conform strictly to Components V2 standards.
@@ -78,7 +80,9 @@ export function sanitizePayload(rawPayload, ephemeral = false) {
     }
   }
 
-  return clean;
+  // Pre-validate and auto-repair Components V2 structure against hard Discord constraints
+  const { payload: fixedPayload } = validateAndFixV2Payload(clean);
+  return fixedPayload;
 }
 
 /**
@@ -243,11 +247,11 @@ async function handleDiscordError(err, interaction, payload) {
 
   // Components V2 form body validation error
   if (err.rawError?.errors || err.message?.includes('Invalid Form Body')) {
-    logger.error({ errors: err.rawError?.errors, payload }, 'Components V2 payload validation error, falling back to minimal card');
+    const errorId = `ERR-${Date.now().toString(36).slice(-4).toUpperCase()}`;
+    logger.error({ errorId, errors: err.rawError?.errors, payload }, 'Components V2 payload validation error from Discord, returning clean user card');
     const safeFallback = sanitizePayload(errorCard({
-      title: 'Display Error',
-      reason: 'Unable to render component container layout.',
-      fix: 'Please report this layout issue to the bot administrators.',
+      title: "Couldn't open this page",
+      reason: copy.errors.pageLoadFailed(errorId),
       ephemeral: true
     }), true);
     return await fallbackDirectSend(interaction, safeFallback);

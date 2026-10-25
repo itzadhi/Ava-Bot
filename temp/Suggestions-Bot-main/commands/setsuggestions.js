@@ -1,6 +1,6 @@
 // ──────────────────────────────────────────────────────────────
 // Suggestion Bot — /setsuggestions Command
-// Made by ayliee, Aerox Development
+// Made by ayliee, Adhi Development
 // ──────────────────────────────────────────────────────────────
 
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';

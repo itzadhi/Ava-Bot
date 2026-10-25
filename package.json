@@ -15,6 +15,7 @@
     "deploy": "node src/deploy-commands.js",
     "ui:preview": "node src/ui/preview.js",
     "test:parser": "node tests/parser.test.js",
+    "test:ui": "node scripts/test-ui-pages.js",
     "test": "node --test tests/**/*.test.js",
     "migrate:temp": "node scripts/migrate-temp.js",
     "doctor": "node scripts/doctor.js",

@@ -1,6 +1,6 @@
 // ──────────────────────────────────────────────────────────────
 // Suggestion Bot — Components v2 Builders
-// Made by ayliee, Aerox Development
+// Made by ayliee, Adhi Development
 //
 // Card layout (all inside one ContainerBuilder):
 //   [Section: "New Suggestion" + quoted text | avatar thumbnail]
@@ -115,8 +115,8 @@ export const buildStatusContainer = ({
   createdAt = new Date(),
 }) => {
   const statusMap = {
-    approved:   `✅ **Approved** by ${moderatorTag}`,
-    denied:     `❌ **Denied** by ${moderatorTag}`,
+    approved: `✅ **Approved** by ${moderatorTag}`,
+    denied: `❌ **Denied** by ${moderatorTag}`,
     considered: `🤔 **Under Consideration** — reviewed by ${moderatorTag}`,
   };
 

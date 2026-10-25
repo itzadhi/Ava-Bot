@@ -34,7 +34,7 @@ function validateV2Payload(name, payload, expectedEphemeral = false) {
 
 test('Components V2: Help Menu matches reference structure with borderless container', () => {
   const helpPayload = buildHelpMenuPayload({
-    user: { username: 'Aegis', displayName: 'Aegis', displayAvatarURL: () => 'https://discord.com/avatar.png' },
+    user: { username: 'Adhi', displayName: 'Adhi', displayAvatarURL: () => 'https://discord.com/avatar.png' },
     client: { user: { username: 'AVA' } },
     prefix: '&',
     sessionId: 'session_123'

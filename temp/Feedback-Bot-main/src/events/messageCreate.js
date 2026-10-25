@@ -1,6 +1,6 @@
 // : ! Warrior !
 // + Discord: warriorog.exe_
-// + Community: https://discord.gg/aerox (AeroX Development )
+// + Community: https://discord.gg/Adhi (Adhi Development )
 // + for any queries reach out Community or DM me.
 
 import { getEmoji } from '../handlers/emoji.js';
@@ -30,7 +30,7 @@ export default {
         clearTimeout(pending.timeout);
         pendingImageMap.delete(message.author.id);
 
-        await message.react(getEmoji('success') || '✅').catch(() => {});
+        await message.react(getEmoji('success') || '✅').catch(() => { });
 
         const guildCfg = getGuildConfig(pending.guildId);
         const guild = client.guilds.cache.get(pending.guildId);
@@ -80,12 +80,12 @@ export default {
       await command.prefixExecute(message, args, client);
     } catch (err) {
       console.error(err);
-      await message.reply(`${getEmoji('error')} Something went wrong.`).catch(() => {});
+      await message.reply(`${getEmoji('error')} Something went wrong.`).catch(() => { });
     }
   },
 };
 
 // : ! Warrior !
 // + Discord: warriorog.exe_
-// + Community: https://discord.gg/aerox (AeroX Development )
+// + Community: https://discord.gg/Adhi (Adhi Development )
 // + for any queries reach out Community or DM me.

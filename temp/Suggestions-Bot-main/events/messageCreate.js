@@ -1,6 +1,6 @@
 // ──────────────────────────────────────────────────────────────
 // Suggestion Bot — MessageCreate Event
-// Made by ayliee, Aerox Development
+// Made by ayliee, Adhi Development
 //
 // Two behaviours:
 //  1. Auto-suggest: any message sent in the configured suggestion

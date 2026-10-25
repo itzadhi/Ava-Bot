@@ -1,6 +1,6 @@
 // : ! Warrior !
 // + Discord: warriorog.exe_
-// + Community: https://discord.gg/aerox (AeroX Development )
+// + Community: https://discord.gg/Adhi (Adhi Development )
 // + for any queries reach out Community or DM me.
 
 import {
@@ -19,7 +19,7 @@ import { PREFIX } from '../utils/config.js';
 export default {
   data: new SlashCommandBuilder()
     .setName('help')
-    .setDescription('See what AeroX Feedback can do'),
+    .setDescription('See what Adhi Feedback can do'),
   prefix: 'help',
 
   async execute(interaction) {
@@ -39,7 +39,7 @@ function buildHelp(user, client) {
     new SectionBuilder()
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `# ${getEmoji('bot')} AeroX Feedback\n-# Hey **${user.username}**, here's everything you need to know`,
+          `# ${getEmoji('bot')} Adhi Feedback\n-# Hey **${user.username}**, here's everything you need to know`,
         ),
       )
       .setThumbnailAccessory(new ThumbnailBuilder().setURL(avatar)),
@@ -51,7 +51,7 @@ function buildHelp(user, client) {
 
   c.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `${getEmoji('feedback')} **Feedback**\n\`/feedback\`  \`${PREFIX}feedback\` — Submit a review for AeroX\n${getEmoji('setup')} \`/setup\`  \`${PREFIX}setup\` — Set the feedback channel  *· Manage Server*`,
+      `${getEmoji('feedback')} **Feedback**\n\`/feedback\`  \`${PREFIX}feedback\` — Submit a review for Adhi\n${getEmoji('setup')} \`/setup\`  \`${PREFIX}setup\` — Set the feedback channel  *· Manage Server*`,
     ),
   );
 
@@ -71,7 +71,7 @@ function buildHelp(user, client) {
 
   c.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `-# ${getEmoji('sparkle')} Serving **${client.guilds.cache.size}** servers  ·  Prefix: \`${PREFIX}\`  ·  AeroX Development`,
+      `-# ${getEmoji('sparkle')} Serving **${client.guilds.cache.size}** servers  ·  Prefix: \`${PREFIX}\`  ·  Adhi Development`,
     ),
   );
 
@@ -80,5 +80,5 @@ function buildHelp(user, client) {
 
 // : ! Warrior !
 // + Discord: warriorog.exe_
-// + Community: https://discord.gg/aerox (AeroX Development )
+// + Community: https://discord.gg/Adhi (Adhi Development )
 // + for any queries reach out Community or DM me.

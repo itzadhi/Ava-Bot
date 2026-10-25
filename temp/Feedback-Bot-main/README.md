@@ -1,9 +1,9 @@
-# AeroX Feedback Bot
+# Adhi Feedback Bot
 
 A Discord bot for collecting structured feedback from server members, built with Discord.js v14 using the latest Components V2 API. Supports both slash commands and prefix commands, interactive setup, emoji syncing, and automatic slash command registration on startup.
 
-> **Support Server:** [discord.gg/aerox](https://discord.gg/aerox)
-> **Developer:** warrior (AeroX Development)
+> **Support Server:** [discord.gg/Adhi](https://discord.gg/Adhi)
+> **Developer:** warrior (Adhi Development)
 
 ---
 
@@ -158,10 +158,10 @@ data/
 
 ## Credits
 
-Developed by **warrior** for **AeroX Development**.
+Developed by **warrior** for **Adhi Development**.
 
 For support, questions, or permission requests, join the community:
-**[discord.gg/aerox](https://discord.gg/aerox)**
+**[discord.gg/Adhi](https://discord.gg/Adhi)**
 
 ---
 

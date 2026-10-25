@@ -66,11 +66,11 @@ export async function buildPublishedPanelCard({ panel, categories = [] }) {
 
   container.addSeparatorComponents(new SeparatorBuilder());
 
-  // Filter categories enabled for this panel
+  // Filter categories enabled for this panel (max 25 for Discord ActionRow limit)
   const enabledCategories = categories.filter(c => 
     c.is_enabled !== false &&
     (!panel.category_ids?.length || panel.category_ids.includes(c.id))
-  );
+  ).slice(0, 25);
 
   // 4. Action Controls based on panel.style
   if (panel.style === 'buttons') {

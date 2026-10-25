@@ -1,0 +1,134 @@
+Ava OPEN SOURCE LICENSE
+Copyright (c) 2026 itz.adhi (Adhi) — Adhi Development
+All rights reserved.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROJECT INFORMATION
+───────────────────
+Project:       Ava
+Author:        itz.adhi (Adhi)
+Organization:  Adhi Development
+GitHub:        https://github.com/itzadhi/Ava
+Support:       https://discord.gg/Adhi (Adhi Development Discord Server)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PREAMBLE
+────────
+This license governs the use, modification, and distribution of the Ava
+software project ("the Software"), authored and owned by itz.adhi (Adhi) under
+Adhi Development. By accessing, downloading, cloning, or otherwise using the
+Software, you agree to be bound by the terms and conditions set forth in this
+license. This is an open source license — you are free to use, modify, and
+distribute this Software in accordance with the terms below.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. PERMITTED USES
+─────────────────
+You are granted a perpetual, worldwide, non-exclusive, royalty-free license to:
+
+  a) Download, run, and deploy the Software on any infrastructure or server,
+     for personal or commercial use.
+
+  b) Read, study, and learn from the source code for any purpose.
+
+  c) Modify, adapt, and build upon the Software to create derivative works.
+
+  d) Distribute original or modified copies of the Software to third parties,
+     provided the conditions in Section 2 are met.
+
+  e) Use the Software to operate a Discord bot for any Discord server(s),
+     including communities, organizations, or commercial operations.
+
+  f) Sublicense the Software as part of a larger project, provided this license
+     and all original copyright notices are retained.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+2. CONDITIONS
+─────────────
+When distributing or publishing the Software (original or modified), you must:
+
+  a) RETAIN COPYRIGHT NOTICES — Include the original copyright notice and this
+     license in all copies or substantial portions of the Software.
+
+  b) ATTRIBUTE THE AUTHOR — You must give appropriate credit to itz.adhi (Adhi)
+     and Adhi Development, provide a link to the original repository, and
+     indicate if changes were made. Attribution must be clear and prominent.
+
+  c) PRESERVE LICENSE — Redistributions of the Software, whether in original or
+     modified form, must be distributed under this same license or a compatible
+     open source license.
+
+  d) DOCUMENT CHANGES — If you modify the Software and distribute it, you must
+     clearly state what changes were made and that the original work was authored
+     by itz.adhi (Adhi) under Adhi Development.
+
+  e) NO MISREPRESENTATION — You may not represent yourself as the original author
+     of the Software. You may not remove or obscure existing copyright notices
+     or author attributions.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+3. INTELLECTUAL PROPERTY
+─────────────────────────
+The original Software, including its source code, structure, architecture,
+logic, design, and documentation, remains the intellectual property of
+itz.adhi (Adhi) and Adhi Development. This license grants you broad rights
+to use and build upon the Software, but does not transfer ownership of the
+original work.
+
+Derivative works you create are your own property, provided they comply with
+the conditions in Section 2.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+4. NO WARRANTY
+───────────────
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. THE AUTHOR MAKES NO GUARANTEES
+REGARDING THE RELIABILITY, AVAILABILITY, OR SUITABILITY OF THE SOFTWARE FOR ANY
+PARTICULAR PURPOSE.
+
+IN NO EVENT SHALL THE AUTHOR OR Adhi Development BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+5. TERMINATION
+───────────────
+Your rights under this license terminate automatically if you fail to comply
+with any of its conditions. Upon termination, you must cease distribution of
+the Software, though existing recipients of your distributions retain their
+rights under this license.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+6. GOVERNING LAW
+─────────────────
+This license shall be interpreted in accordance with general principles of
+intellectual property and software licensing law. Any disputes arising under
+this license shall be resolved through direct communication with the author
+via the official support channels before any other action is taken.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+7. CONTACT & SUPPORT
+──────────────────────
+For questions, contributions, bug reports, or support, please reach out through
+the official Adhi Development Discord community:
+
+  Discord: https://discord.gg/itzadhi
+  GitHub:  https://github.com/itzadhi
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+© 2026 itz.adhi (Adhi) — Adhi Development. Open Source.

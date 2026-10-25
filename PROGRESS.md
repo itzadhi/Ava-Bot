@@ -50,8 +50,8 @@
 - [x] **Phase B: Diagnose Live Damage** (COMPLETED: REST-only diagnostic script `scripts/diagnose-permissions.js` generated reports for both guilds; identified 5 voice channels with Connect deny in guild 1447230598295978198 and 2 ticket channels with SendMessages deny; 0 stuck rows in DB).
 - [x] **Phase C: Safe Recovery** (DRY-RUN COMPLETED: `scripts/recover-permissions.js` generated non-destructive diff tables for both guilds; `tests/recovery.test.js` 2/2 PASS; STOP point reached for user review/approval).
 - [x] **Phase D: Startup & Logging Fixes** (COMPLETED: `startOnce(key, fn)` registry prevents duplicate starts, outputs "Duplicate starts: 0"; eliminated duplicate cron jobs; bulk cache loads after gateway login; real ping measuring, cgroup vs host RAM, and environment detection in online box; tag width 10 `[BLACKLIST ]`, 110 col cap, removed idle `+Nms`, replaced `[SYSTEM]` with subsystems; trace single-line in DEBUG with REST instrumentation in `safeRespond` and unattributed time; reconciled 22 module count and 1 `messageCreate` listener; single-instance lease in `lease.js` with token safety; `tests/phase_d_startup.test.js` 6/6 PASS).
-- [ ] **Phase E: Components V2 Display Error & UI Validity** (NEXT: validateV2Payload auto-fix & npm run test:ui).
-- [ ] **Phase F: Speed & Adaptive First Response** (PENDING: net-check and adaptive response).
+- [x] **Phase E: Components V2 Display Error & UI Validity** (COMPLETED: `validateV2Payload.js` comprehensive validator & auto-fix recovery engine; `safeRespond` auto-recovery fallback to safe-mode; `scripts/test-ui-pages.js` testing 528 page views across 8 data states; 0 failures; integrated into `npm run doctor` 9/9 PASS).
+- [ ] **Phase F: Speed & Adaptive First Response** (NEXT: net-check and adaptive response).
 - [ ] **Phase G: Root Cause of Stuck 0/33** (PENDING: Detailed evidence analysis & /ava jobs).
 - [ ] **Phase H: Lockdown Engine Rewrite** (PENDING: Clean write-ahead resumable engine).
 - [ ] **Phase I: Mutual Exclusion Across Permission Writers** (PENDING: Shared per-guild mutex).

@@ -1,6 +1,6 @@
 // : ! Warrior !
 // + Discord: warriorog.exe_
-// + Community: https://discord.gg/aerox (AeroX Development )
+// + Community: https://discord.gg/Adhi (Adhi Development )
 // + for any queries reach out Community or DM me.
 
 import {
@@ -24,11 +24,11 @@ import { PREFIX } from '../utils/config.js';
 
 function feedbackPanel() {
   const c = new ContainerBuilder();
-  c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ${getEmoji('review')} AeroX Feedback`));
+  c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ${getEmoji('review')} Adhi Feedback`));
   c.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
   c.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `Been using AeroX? Tell us what you think.\nEvery single review gets read by the team — nothing goes ignored.`,
+      `Been using Adhi? Tell us what you think.\nEvery single review gets read by the team — nothing goes ignored.`,
     ),
   );
   c.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
@@ -59,7 +59,7 @@ async function lockChannel(channel, guild) {
         AddReactions: true,
       });
     }
-  } catch {}
+  } catch { }
 }
 
 async function finishSetup(guildId, guild, channel, botAvatar, replyFn) {
@@ -117,9 +117,9 @@ export default {
     if (!channel) {
       try {
         channel = await interaction.guild.channels.create({
-          name: 'aerox-reviews',
+          name: 'Adhi-reviews',
           type: ChannelType.GuildText,
-          topic: `Submit your AeroX reviews here. Use /feedback or ${PREFIX}feedback.`,
+          topic: `Submit your Adhi reviews here. Use /feedback or ${PREFIX}feedback.`,
         });
       } catch {
         const err = new ContainerBuilder();
@@ -179,8 +179,8 @@ export default {
 
       const reply = collected.first();
       channel = reply.mentions.channels.first();
-      await reply.delete().catch(() => {});
-      await prompt.delete().catch(() => {});
+      await reply.delete().catch(() => { });
+      await prompt.delete().catch(() => { });
 
       if (!channel) {
         const notfound = new ContainerBuilder();
@@ -200,5 +200,5 @@ export default {
 
 // : ! Warrior !
 // + Discord: warriorog.exe_
-// + Community: https://discord.gg/aerox (AeroX Development )
+// + Community: https://discord.gg/Adhi (Adhi Development )
 // + for any queries reach out Community or DM me.

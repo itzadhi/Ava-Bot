@@ -1,6 +1,6 @@
 // ──────────────────────────────────────────────────────────────
 // Suggestion Bot — /threadconfig Command
-// Made by ayliee, Aerox Development
+// Made by ayliee, Adhi Development
 // ──────────────────────────────────────────────────────────────
 
 import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';

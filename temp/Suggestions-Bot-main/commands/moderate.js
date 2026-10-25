@@ -1,6 +1,6 @@
 // ──────────────────────────────────────────────────────────────
 // Suggestion Bot — /moderate Command
-// Made by ayliee, Aerox Development
+// Made by ayliee, Adhi Development
 //
 // Allows moderators to approve, deny, or mark suggestions as
 // under consideration. Updates the suggestion message in-place.
